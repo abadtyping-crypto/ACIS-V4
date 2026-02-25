@@ -958,42 +958,67 @@ export const requestPasswordReset = async (email) => {
  */
 export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdfBase64, data) => {
   try {
-    // 1. Fetch tenant brand info for the subject/sender context
     const tenantRef = doc(db, 'tenants', tenantId);
-    const tenantSnap = await getDoc(tenantRef);
+    const [tenantSnap, cfgRes] = await Promise.all([getDoc(tenantRef), fetchTenantMailConfig(tenantId)]);
     const tenantName = tenantSnap.exists() ? tenantSnap.data().name : 'ACIS Platform';
+    const cfg = cfgRes.ok && cfgRes.data ? cfgRes.data : {};
 
-    const cleanType = documentType.replace(/([A-Z])/g, ' $1').toLowerCase();
-    const subject = `${tenantName} - Your ${cleanType}`;
+    const cleanType = String(documentType || 'document').replace(/([A-Z])/g, ' $1').toLowerCase().trim();
+    const txId = data?.txId || '-';
+    const recipient = String(email || '').trim().toLowerCase();
+    const subjectTemplate = cfg.documentEmailSubject || '{{tenantName}} - Your {{cleanType}}';
+
+    const tokens = {
+      tenantName,
+      cleanType,
+      txId,
+      clientName: data?.recipientName || data?.clientName || 'Customer',
+      supportEmail: cfg.replyTo || cfg.fromEmail || cfg.smtpUser || '',
+      contactPhone: cfg.contactPhone || '',
+      contactNumber: cfg.contactPhone || '',
+      signatureName: cfg.signatureName || cfg.fromName || tenantName,
+      signatureRole: cfg.signatureRole || '',
+      signatureAddress: cfg.signatureAddress || '',
+      signaturePhone: cfg.signaturePhone || cfg.contactPhone || '',
+      fromName: cfg.fromName || tenantName,
+      fromEmail: cfg.fromEmail || cfg.smtpUser || '',
+      replyTo: cfg.replyTo || '',
+      contactCardUrl: cfg.contactCardUrl || '',
+      emailLogoUrl: cfg.emailLogoUrl || '',
+    };
+
+    const subject = applyTemplateTokens(subjectTemplate, tokens);
+    const html = buildDocumentEmailHtml({ cfg, tokens, cleanType, txId });
+    const attachments = [
+      {
+        filename: `${documentType}_${txId}.pdf`,
+        content: pdfBase64,
+        encoding: 'base64',
+      },
+    ];
+
+    const smtpSend = await trySendViaElectronSmtp({
+      config: cfg,
+      to: recipient,
+      subject,
+      html,
+      attachments,
+      text: `Please find attached your ${cleanType} (${txId}).`,
+    });
+    if (smtpSend.ok) return { ok: true, channel: 'smtp' };
+    if (!smtpSend.skipped) return { ok: false, error: smtpSend.error || 'SMTP send failed.' };
 
     await setDoc(doc(collection(db, 'mails')), {
-      to: [email],
+      to: [recipient],
       message: {
         subject,
-        html: `
-          <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
-            <h2 style="color: #444;">Hello,</h2>
-            <p>Please find attached your <strong>${cleanType}</strong> for transaction <strong>${data.txId}</strong>.</p>
-            <p>This document was generated and sent via <strong>${tenantName}</strong>.</p>
-            <br/>
-            <hr style="border: none; border-top: 1px solid #eee;" />
-            <footer style="font-size: 11px; color: #999;">
-              This is an automated administrative message. Please do not reply directly to this email.
-            </footer>
-          </div>
-        `,
-        attachments: [
-          {
-            filename: `${documentType}_${data.txId}.pdf`,
-            content: pdfBase64,
-            encoding: 'base64',
-          }
-        ]
+        html,
+        attachments,
       },
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
     });
 
-    return { ok: true };
+    return { ok: true, channel: 'queue' };
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] Email send failed for ${email}: ${message}`);
@@ -1018,7 +1043,61 @@ const applyTemplateTokens = (template, tokens) => {
   return output;
 };
 
-const trySendViaElectronSmtp = async ({ config, to, subject, html }) => {
+
+const createSignatureBlock = (cfg, tokens) => {
+  const signatureTemplate = cfg.emailSignatureHtml || '';
+  if (signatureTemplate.trim()) {
+    return applyTemplateTokens(signatureTemplate, tokens);
+  }
+
+  const lines = [
+    cfg.signatureSignOff || 'Regards,',
+    cfg.signatureName || cfg.fromName || tokens.tenantName,
+    cfg.signatureRole || '',
+    cfg.signaturePhone || cfg.contactPhone || '',
+    cfg.signatureAddress || '',
+  ].filter(Boolean);
+
+  const logo = cfg.emailLogoUrl
+    ? `<img src="${cfg.emailLogoUrl}" alt="${tokens.tenantName} logo" style="max-height:40px;max-width:180px;display:block;margin:0 0 10px;"/>`
+    : '';
+  const cardLink = cfg.contactCardUrl
+    ? `<a href="${cfg.contactCardUrl}" style="color:#0f62fe;text-decoration:none;font-weight:600;">Save Contact Card</a>`
+    : '';
+
+  return `
+    <div style="margin-top:18px;padding-top:12px;border-top:1px solid #e5e7eb;">
+      ${logo}
+      ${lines.map((line) => `<div style="font-size:13px;color:#0f172a;line-height:1.5;">${line}</div>`).join('')}
+      ${cardLink ? `<div style="margin-top:8px;font-size:12px;">${cardLink}</div>` : ''}
+    </div>
+  `;
+};
+
+const buildDocumentEmailHtml = ({ cfg, tokens, cleanType, txId }) => {
+  const bodyTemplate = cfg.documentEmailBodyHtml || '';
+  const body = bodyTemplate.trim()
+    ? applyTemplateTokens(bodyTemplate, { ...tokens, cleanType, txId })
+    : `
+      <p style="margin:0 0 12px;">Dear ${tokens.clientName || 'Customer'},</p>
+      <p style="margin:0 0 12px;">Please find attached your <strong>${cleanType}</strong> for reference <strong>${txId}</strong>.</p>
+      <p style="margin:0;">If you need help, contact us at <a href="mailto:${tokens.supportEmail}" style="color:#0f62fe;">${tokens.supportEmail || 'our support team'}</a>.</p>
+    `;
+
+  const signature = createSignatureBlock(cfg, tokens);
+
+  return `
+    <div style="font-family:Inter,Segoe UI,Arial,sans-serif;background:#f8fafc;padding:18px;color:#0f172a;">
+      <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;">
+        <h2 style="margin:0 0 12px;font-size:18px;color:#111827;">${tokens.tenantName} · ${cleanType}</h2>
+        ${body}
+        ${signature}
+      </div>
+    </div>
+  `;
+};
+
+const trySendViaElectronSmtp = async ({ config, to, subject, html, text = '', attachments = [] }) => {
   try {
     if (typeof window === 'undefined') return { ok: false, skipped: true, reason: 'no_window' };
     const send = window?.electron?.mail?.send;
@@ -1043,6 +1122,8 @@ const trySendViaElectronSmtp = async ({ config, to, subject, html }) => {
         to: [to],
         subject,
         html,
+        text,
+        attachments,
       },
     });
 

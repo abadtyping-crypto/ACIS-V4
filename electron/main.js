@@ -114,6 +114,16 @@ function createWindow() {
                 },
             });
 
+            const attachments = Array.isArray(message.attachments)
+                ? message.attachments
+                    .filter((item) => item && item.filename && item.content)
+                    .map((item) => ({
+                        filename: String(item.filename),
+                        content: String(item.content),
+                        encoding: String(item.encoding || 'base64'),
+                    }))
+                : [];
+
             await transporter.sendMail({
                 from: smtp.fromName && smtp.fromEmail
                     ? `"${String(smtp.fromName)}" <${String(smtp.fromEmail)}>`
@@ -123,6 +133,7 @@ function createWindow() {
                 subject: String(message.subject || ''),
                 html: String(message.html || ''),
                 text: String(message.text || ''),
+                attachments,
             });
 
             return { ok: true };
