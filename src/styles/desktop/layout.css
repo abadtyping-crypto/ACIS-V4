@@ -1,0 +1,39 @@
+.desktop-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow-x: hidden;
+}
+
+.desktop-shell .desktop-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.desktop-shell .desktop-main {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.desktop-shell .desktop-content {
+  min-height: 0;
+  min-width: 0;
+}
+
+.desktop-shell .desktop-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.desktop-shell .desktop-sidebar-footer {
+  min-height: 68px;
+  background: color-mix(in oklab, var(--c-surface) 88%, transparent);
+}
+
+.desktop-shell .brand-button,
+.desktop-shell .brand-button * {
+  text-decoration: none !important;
+}

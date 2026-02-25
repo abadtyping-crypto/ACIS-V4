@@ -1,0 +1,139 @@
+# PROJECT RULES
+
+## 1) Scope and Goal
+
+- Build a multi-tenant admin platform with 14 pages and ~72 components, targeted for **Electron (Desktop)**.
+- Keep all implementation clean-room (no legacy code copy/paste).
+- Optimize for premium UI quality, maintainability, and predictable delivery in a desktop environment.
+
+## 2) Core Architecture
+
+- Route pattern must be tenant-first: `/t/:tenantId/<page>`.
+- Tenant state is global context; page components never hardcode tenant-specific business values.
+- Use composition: pages in `src/pages`, reusable units in `src/components`, providers in `src/context`, constants/config in `src/config`.
+- One-way data flow only: provider/page state -> props -> presentational components.
+
+## 3) Component Separation Rules
+
+- One component = one responsibility.
+- Split by function, not by size only.
+- Presentational components must not fetch data or contain routing logic.
+- Business logic lives in hooks, providers, or page containers.
+- If a component handles more than one domain concern, split it.
+
+## 4) Naming and File Conventions
+
+- Use explicit names: `ProfileSection`, `InvoicePreferencesPanel`, `TenantSwitcher`.
+- Component files use PascalCase; utility/config files use camelCase.
+- Avoid ambiguous names like `Common`, `Helper`, `Data`, `Misc`.
+- Keep imports absolute/clear and grouped by: external, context/config, local components.
+
+## 5) Multi-Tenant Rules
+
+- Source tenant definitions from `src/config/tenants.js`.
+- Always validate route `tenantId`; invalid tenant must redirect to default tenant.
+- Tenant switcher must navigate to equivalent tenant route where possible.
+- Tenant brand values (accent, locale, currency) are consumed through context only.
+
+## 6) Theme System Rules
+
+- Support `light` and `dark` themes from day one.
+- Theme state persists in `localStorage`.
+- UI colors must come from CSS variables (`--c-*`) only.
+- No direct hex colors in component JSX classes unless truly exceptional.
+
+## 7) Responsive and Layout Rules
+
+- Mobile-first implementation mandatory.
+- Supported widths: 320px mobile, tablet, desktop wide.
+- No horizontal overflow at 320px.
+- Minimum interactive target size: 44px height.
+- Prefer grid/flex composition with clear breakpoint behavior.
+
+## 8) UI Quality Rules (Premium Standard)
+
+- Use intentional typography (title/body pairing, clear hierarchy).
+- Avoid generic flat layouts; include subtle depth (surface, border, spacing rhythm).
+- Motion should be minimal and meaningful (state change, reveal, theme transition).
+- Keep density balanced: compact but readable.
+
+## 9) Accessibility Rules
+
+- Every control has label or `aria-label`.
+- Keyboard navigation must work across page controls.
+- Maintain visible focus states.
+- Contrast must remain readable in both light and dark modes.
+
+## 10) State and Form Rules
+
+- Keep form defaults in page-level constants or config objects.
+- Controlled inputs for editable settings pages.
+- Validation rules are explicit and colocated with feature domain.
+- Save/cancel/reset actions must be deterministic.
+
+## 11) Error Handling and Empty States
+
+- Every async block must define loading, success, and error states.
+- Show actionable error messages; avoid silent failures.
+- Empty states must explain next action.
+
+## 12) Performance Rules
+
+- Avoid unnecessary rerenders: memoize derived data where useful.
+- Lazy-load heavy pages/modules when it improves startup.
+- Keep component trees shallow and predictable.
+
+## 13) Testing and Verification Rules
+
+- Minimum verification per milestone:
+- `npm run build` must pass.
+- Manual responsive check at mobile and desktop widths.
+- Manual tenant route check for at least 2 tenants.
+- Theme toggle check (light/dark persistence after refresh).
+
+## 14) Delivery Workflow
+
+- Build one page at a time.
+- For each page: define route -> define components -> implement UI -> wire state -> verify.
+- Do not move to next page until current page is stable.
+- Keep changelog notes short and file-referenced.
+
+## 15) Git and Change Safety
+
+- Never rewrite unrelated files.
+- Avoid destructive operations.
+- Keep commits scoped to a single page/feature when possible.
+
+## 16) Immediate Build Order
+
+- Phase 1: foundation (tenant + theme + shell + rules).
+- Phase 2: implement pages one-by-one with strict component split.
+- Phase 3: harden interactions, validation, and consistency pass.
+
+## 17) Offline Sync Events Rule (Mandatory)
+
+- Any data-changing operation must create a short `/syncEvents` entry.
+- Applies to all modules: settings, portal management, applications, transactions, profile, notifications, and future modules.
+- A write/change is not complete unless the domain write + sync event write both succeed.
+- Keep sync event payload minimal to reduce data usage for offline devices.
+- Required sync event fields:
+  - `tenantId`
+  - `eventType` (create/update/delete/statusChange/action)
+  - `entityType` (portal/application/transaction/settings/user/...)
+  - `entityId` (UID/docId)
+  - `changedFields` (array of keys only, no heavy object copy)
+  - `createdAt` (server timestamp)
+  - `createdBy` (uid only)
+  - `syncStatus` (`pending`)
+- Do not store full entity snapshots in `/syncEvents`.
+- Consumers (offline devices/electron/mobile) must replay events from `/syncEvents` to stay in sync.
+
+## 18) Electron Specific Rules
+
+- **Environment**: Use Electron for desktop distribution.
+- **Process Separation**: Strictly separate Main process (Node.js) and Renderer process (React).
+- **Security**: Enable `contextIsolation`, `sandbox`, and disable `nodeIntegration` in the renderer.
+- **Communication**: Use `ipcMain` and `ipcRenderer` via a `preload.js` script for all communication between processes.
+- **Native Interops**: Any native OS feature (file system, printing, native notifications) must be gated behind IPC.
+- **Event Token Persistence**: The "Event Token" (Sync Event issuing) must be consistent across all open windows/pages.
+- **Distribution**: Target Windows platform primarily.

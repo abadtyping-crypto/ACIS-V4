@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  --c-bg: #eaf2ff;
+  --c-surface: #ffffff;
+  --c-panel: #f2f7ff;
+  --c-border: #cfddf3;
+  --c-text: #12223b;
+  --c-muted: #4f678a;
+  --c-accent: #1778f2;
+  --c-accent-2: #45b6ff;
+  --c-accent-3: #6de3d7;
+  --c-on-accent: #ffffff;
+  --c-accent-soft: color-mix(in srgb, var(--c-accent) 14%, transparent);
+  --dirham-filter: none;
+  --c-ring: rgba(23, 120, 242, 0.24);
+  --brand-gradient: linear-gradient(125deg, var(--c-accent) 0%, var(--c-accent-2) 54%, var(--c-accent-3) 100%);
+  --glass-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(242, 248, 255, 0.6));
+  --glass-border: rgba(255, 255, 255, 0.58);
+  --glass-blur: blur(16px);
+  --glass-shadow: 0 12px 35px -24px rgba(23, 120, 242, 0.55);
+
+  color: var(--c-text);
+  background-color: var(--c-bg);
+  /* Native System Font Stack */
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme='dark'] {
+  --c-bg: #0e1830;
+  --c-surface: #192a49;
+  --c-panel: #223559;
+  --c-border: #3a5584;
+  --c-text: #f4f8ff;
+  --c-muted: #c2d1eb;
+  --c-accent: #69bcff;
+  --c-accent-2: #63d9ff;
+  --c-accent-3: #91efd9;
+  --c-on-accent: #ffffff;
+  --c-accent-soft: color-mix(in srgb, var(--c-accent) 30%, transparent);
+  --dirham-filter: brightness(0) invert(1) contrast(1.08) saturate(1.05);
+  --c-ring: rgba(105, 188, 255, 0.34);
+  --brand-gradient: linear-gradient(125deg, var(--c-accent) 0%, var(--c-accent-2) 54%, var(--c-accent-3) 100%);
+  --glass-bg: linear-gradient(145deg, rgba(40, 58, 93, 0.76), rgba(24, 39, 67, 0.68));
+  --glass-border: rgba(181, 215, 255, 0.24);
+  --glass-shadow: 0 12px 35px -24px rgba(108, 191, 255, 0.56);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a,
+a:visited,
+a:hover,
+a:active {
+  color: inherit;
+  text-decoration: none !important;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--c-text);
+  background:
+    radial-gradient(circle at 12% 4%, color-mix(in srgb, var(--c-accent) 24%, transparent), transparent 28%),
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--c-accent-2) 20%, transparent), transparent 24%),
+    radial-gradient(circle at 50% 120%, color-mix(in srgb, var(--c-accent-3) 18%, transparent), transparent 44%),
+    var(--c-bg);
+}
+
+/* Custom Desktop Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-muted);
+  background-clip: padding-box;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+.brand-gradient-bg {
+  background: var(--brand-gradient);
+  color: var(--c-on-accent);
+}
+
+.brand-gradient-text {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+button[class*='bg-[var(--c-accent)]'],
+a[class*='bg-[var(--c-accent)]'] {
+  background: var(--brand-gradient) !important;
+  color: var(--c-on-accent) !important;
+}
+
+.dirham-icon {
+  filter: var(--dirham-filter);
+}

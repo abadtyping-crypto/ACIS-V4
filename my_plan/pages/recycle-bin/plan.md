@@ -1,0 +1,62 @@
+# Recycle Bin Sidebar Plan
+
+## 1) Objective
+
+Design a universal Recycle Bin workspace that is triggered from the bottom of the **global sidebar** so every page (portal management, onboarding, payments, invoices, statements, etc.) flows through the same recovery channel. The overlay still slides in while the trigger stays consistent and visible from any route.
+
+---
+
+## 2) Scope
+
+1. Persistent trigger placed inside the shared sidebar footer, labeled “Universal Recycle Bin” with a badge for pending deletions.
+2. Sliding overlay anchored to that trigger that loads above the current page; on mobile it turns into a full-height sheet while remaining tied to the sidebar state.
+3. Lists of recently deleted items grouped by domain (clients, portals, transactions, payment receipts, loan persons, invoices/quotations, statements).
+4. Actions per item: Preview, Restore, Permanently Delete with context-rich confirmations.
+5. Metadata shown per row: `deletedBy`, `deletedAt`, originating module (Payments, Portal, Settings), tenant context, parent links (portalId, clientId).
+
+---
+
+## 3) UX Flow
+
+1. Sidebar footer button opens the overlay; the footer is part of the global sidebar component, so the bin is reachable from any page.
+2. Overlay slides in from the right on desktop and expands to a full-height sheet on mobile, but sticky tabs stay visible for domain filters.
+3. Each tab/filter displays entity name/ID, timestamp, deleted-by, and a colored badge for origin (e.g., “Payments”, “Portal”).
+4. `Restore` replays the original creation/update pipeline, rehydrates Firestore documents (same IDs when possible), and removes the entry from the bin.
+5. `Delete Permanently` removes the recycle bin entry, optionally tears down dependent docs, and writes `/syncEvents` with `eventType: deletePermanent`.
+
+---
+
+## 4) Section Responsibilities
+
+1. `RecycleBinSidebar` container orchestrates overlay state, tab filters, pagination, refresh, and hook wiring.
+2. `RecycleBinItemList` renders rows per domain with contextual badges and metadata.
+3. `RecycleBinItemActions` provides `Preview`, `Restore`, `Delete Permanently`, plus toast/snackbar feedback for each action.
+4. `useRecycleBinData` fetches grouped deleted items and handles restore/delete flows with optimistic state.
+5. `SidebarFooterBinTrigger` is the button inside the shared sidebar footer that dispatches overlay open/close and shows a pending count badge.
+
+---
+
+## 5) Mobile Considerations
+
+1. Overlay becomes a modal sheet when viewport <768px but retains sticky tabs and a prominent close control.
+2. Sidebar footer button always remains tappable (>=44px target) even when scrolling the sidebar.
+3. Confirmations for `Restore`/`Delete Permanently` use inline prompts or accessible modals to keep context.
+4. Quick filters (e.g., “Last 24h”, “Payments only”, “Statements”) help users find recent deletions without heavy scrolling.
+
+---
+
+## 6) Acceptance Checklist
+
+- [ ] Sidebar footer houses the Recycle Bin trigger and shows a count badge for pending items.
+- [ ] Overlay lists deletions grouped by domain with origin badges and metadata.
+- [ ] Restore replays original write pipeline and removes the bin entry; `Delete Permanently` writes `/syncEvents`.
+- [ ] Overlay is responsive: slides in on desktop, sheet on mobile, and respects accessibility targets.
+- [ ] Services support refresh/pagination per domain and surface any errors through toast messages.
+
+---
+
+## 7) Related Plans
+
+- `pages/client-onboarding/plan.md` for client recoveries.
+- `pages/portal-management/loan-management.md` for loan person recoveries.
+- `pages/portal-management/internal-transfer.md` & `adding-portal.md` for portal/transaction recoveries.

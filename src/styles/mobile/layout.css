@@ -1,0 +1,47 @@
+.mobile-shell {
+  position: relative;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  isolation: isolate;
+}
+
+.mobile-shell::before,
+.mobile-shell::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(26px);
+  pointer-events: none;
+}
+
+.mobile-shell::before {
+  top: -90px;
+  left: -70px;
+  width: 220px;
+  height: 220px;
+  background: color-mix(in srgb, var(--c-accent) 22%, transparent);
+}
+
+.mobile-shell::after {
+  right: -90px;
+  bottom: 70px;
+  width: 240px;
+  height: 240px;
+  background: color-mix(in srgb, #4fc3ff 20%, transparent);
+}
+
+.mobile-shell .mobile-main {
+  height: calc(100dvh - 10.85rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(6.9rem + env(safe-area-inset-bottom));
+}
+
+.mobile-glass-panel {
+  background: color-mix(in srgb, var(--c-surface) 82%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(16px) saturate(130%);
+  box-shadow: 0 12px 30px -22px color-mix(in srgb, var(--c-accent) 45%, transparent);
+}
