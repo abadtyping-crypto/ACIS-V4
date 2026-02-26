@@ -4,7 +4,9 @@ import { useTenant } from '../../context/TenantContext';
 import { useAuth } from '../../context/AuthContext';
 import {
     fetchTenantClients,
+    fetchTenantClientsLite,
     fetchTenantPortals,
+    fetchTenantPortalsLite,
     fetchTenantTransactions,
     recordClientPayment,
     sendPaymentAcknowledgementEmail,
@@ -49,20 +51,37 @@ const ClientPaymentSection = ({ isOpen, onToggle, refreshKey }) => {
     });
 
     const loadData = useCallback(async () => {
-        const [clientRes, portalRes, txRes] = await Promise.all([
+        const [clientRes, clientLiteRes, portalRes, portalLiteRes, txRes] = await Promise.all([
             fetchTenantClients(tenantId),
+            fetchTenantClientsLite(tenantId),
             fetchTenantPortals(tenantId),
+            fetchTenantPortalsLite(tenantId),
             fetchTenantTransactions(tenantId),
         ]);
-        if (clientRes.ok) setClients((clientRes.rows || []).filter((item) => !item.deletedAt));
-        if (portalRes.ok) setPortals((portalRes.rows || []).filter((item) => !item.deletedAt));
+
+        const effectiveClients = clientRes.ok ? (clientRes.rows || []) : (clientLiteRes.rows || []);
+        const effectivePortals = portalRes.ok ? (portalRes.rows || []) : (portalLiteRes.rows || []);
+
+        setClients(effectiveClients.filter((item) => !item.deletedAt));
+        setPortals(effectivePortals.filter((item) => !item.deletedAt));
+
         if (txRes.ok) setTransactions(txRes.rows || []);
+        else setTransactions([]);
+
+        if (!effectiveClients.length && !effectivePortals.length) {
+            setStatus({ message: 'Unable to load clients/portals for this tenant. Please check access rights.', type: 'error' });
+        }
     }, [tenantId]);
 
     useEffect(() => {
         if (!tenantId || !isOpen) return;
         loadData();
     }, [tenantId, isOpen, loadData, refreshKey]);
+
+    useEffect(() => {
+        if (!tenantId) return;
+        loadData();
+    }, [tenantId, loadData]);
 
     const selectedClient = useMemo(() => clients.find((item) => item.id === form.clientId) || null, [clients, form.clientId]);
 
@@ -192,6 +211,7 @@ const ClientPaymentSection = ({ isOpen, onToggle, refreshKey }) => {
                     <input
                         value={form.clientSearch}
                         onFocus={() => setShowClientDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowClientDropdown(false), 120)}
                         onChange={(e) => {
                             const value = e.target.value;
                             setForm((prev) => ({ ...prev, clientSearch: value, clientId: '' }));

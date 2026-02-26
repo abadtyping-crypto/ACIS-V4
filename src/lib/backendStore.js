@@ -854,6 +854,40 @@ export const fetchTenantClients = async (tenantId) => {
   }
 };
 
+
+export const fetchTenantClientsLite = async (tenantId) => {
+  try {
+    const clientsSnap = await getDocs(collection(db, 'tenants', tenantId, 'clients'));
+    const rows = clientsSnap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item.deletedAt);
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] clients lite read failed tenants/${tenantId}/clients: ${message}`);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
+export const fetchTenantPortalsLite = async (tenantId) => {
+  try {
+    const portalSnap = await getDocs(collection(db, 'tenants', tenantId, 'portals'));
+    const rows = portalSnap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item.deletedAt)
+      .map((item) => ({
+        ...item,
+        balance: Number(item.balance || 0),
+        balanceType: Number(item.balance || 0) < 0 ? 'negative' : 'positive',
+      }));
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] portals lite read failed tenants/${tenantId}/portals: ${message}`);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
 export const updateTenantClient = async (tenantId, clientId, payload) => {
   try {
     const ref = doc(db, 'tenants', tenantId, 'clients', clientId);
