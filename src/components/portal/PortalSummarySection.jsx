@@ -39,11 +39,11 @@ const PortalSummarySection = ({ onQuickAction, refreshKey }) => {
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {portals.map(p => (
                             <div key={p.id} className="group relative flex items-center gap-4 rounded-2xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] p-4 shadow-sm transition hover:border-[var(--c-accent)]">
-                                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-white p-1 ring-1 ring-slate-200/90">
+                                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-xl bg-[var(--c-surface)]/70 p-1">
                                     <img
                                         src={p.iconUrl || fallbackPortalIcon(p.type)}
                                         alt={p.name}
-                                        className="h-full w-full object-cover"
+                                        className="h-full w-full object-contain"
                                         onError={(event) => {
                                             event.currentTarget.onerror = null;
                                             event.currentTarget.src = fallbackPortalIcon(p.type);

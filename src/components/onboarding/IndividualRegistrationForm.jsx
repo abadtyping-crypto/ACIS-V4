@@ -477,11 +477,11 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3">
                             <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Selected Portal</p>
                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 overflow-hidden rounded-lg bg-white">
+                                <div className="h-10 w-10 overflow-hidden rounded-lg bg-[var(--c-surface)]/70 p-0.5">
                                     <img
                                         src={selectedPortal.iconUrl || fallbackPortalIcon(selectedPortal.type)}
                                         alt={selectedPortal.name}
-                                        className="h-full w-full object-cover"
+                                        className="h-full w-full object-contain"
                                         onError={(event) => {
                                             event.currentTarget.onerror = null;
                                             event.currentTarget.src = fallbackPortalIcon(selectedPortal.type);

@@ -350,11 +350,11 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                             portals.map(p => (
                                 <div key={p.id} className="group flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm transition hover:border-[var(--c-accent)]">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-9 w-9 overflow-hidden rounded-lg bg-[var(--c-surface)]">
+                                        <div className="h-9 w-9 overflow-hidden rounded-lg bg-[var(--c-surface)]/70 p-0.5">
                                             <img
                                                 src={p.iconUrl || fallbackPortalIcon(p.type)}
                                                 alt={p.name}
-                                                className="h-full w-full object-cover"
+                                                className="h-full w-full object-contain"
                                                 onError={(event) => {
                                                     event.currentTarget.onerror = null;
                                                     event.currentTarget.src = fallbackPortalIcon(p.type);
