@@ -7,6 +7,7 @@ import PortalSummarySection from '../components/portal/PortalSummarySection';
 import LoanManagementSection from '../components/portal/LoanManagementSection';
 import InternalTransferSection from '../components/portal/InternalTransferSection';
 import PortalSetupSection from '../components/portal/PortalSetupSection';
+import ClientPaymentSection from '../components/portal/ClientPaymentSection';
 import RecentTransactionsSection from '../components/portal/RecentTransactionsSection';
 import ReportsSection from '../components/portal/ReportsSection';
 import { useRecycleBin } from '../context/RecycleBinContext';
@@ -19,6 +20,7 @@ const PortalManagementPage = () => {
     summary: true,
     loan: false,
     transfer: false,
+    payment: false,
     setup: false,
     recent: false,
     reports: false
@@ -88,7 +90,17 @@ const PortalManagementPage = () => {
           />
         </div>
 
-        {/* 4. Portal Setup Section */}
+
+        {/* 4. Client Payment Intake */}
+        <div id="section-payment">
+          <ClientPaymentSection
+            isOpen={activeSections.payment}
+            onToggle={() => toggleSection('payment')}
+            refreshKey={refreshCounter}
+          />
+        </div>
+
+        {/* 5. Portal Setup Section */}
         <div id="section-setup">
           <PortalSetupSection
             isOpen={activeSections.setup}
@@ -97,7 +109,7 @@ const PortalManagementPage = () => {
           />
         </div>
 
-        {/* 5. Recent Activity Section */}
+        {/* 6. Recent Activity Section */}
         <div id="section-recent">
           <RecentTransactionsSection
             isOpen={activeSections.recent}
@@ -106,7 +118,7 @@ const PortalManagementPage = () => {
           />
         </div>
 
-        {/* 6. Reports Section */}
+        {/* 7. Reports Section */}
         <div id="section-reports">
           <ReportsSection
             isOpen={activeSections.reports}

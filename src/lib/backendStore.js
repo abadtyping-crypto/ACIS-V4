@@ -635,6 +635,90 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
   }
 };
 
+export const recordClientPayment = async (tenantId, {
+  clientId,
+  portalId,
+  method,
+  amount,
+  date,
+  description,
+  dependentIds,
+  displayTxId,
+  createdBy,
+}) => {
+  try {
+    const paymentAmount = Math.abs(Number(amount || 0));
+    if (!clientId || !portalId || !method) throw new Error('Client, portal, and method are required.');
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) throw new Error('Payment amount must be greater than zero.');
+
+    const [clientSnap, portalSnap] = await Promise.all([
+      getDoc(doc(db, 'tenants', tenantId, 'clients', clientId)),
+      getDoc(doc(db, 'tenants', tenantId, 'portals', portalId)),
+    ]);
+
+    if (!clientSnap.exists()) throw new Error('Selected client was not found.');
+    if (!portalSnap.exists()) throw new Error('Selected portal was not found.');
+
+    const eventDate = date || new Date().toISOString();
+    const batchId = `pay_${Date.now()}`;
+
+    const clientTxRes = await upsertTenantTransaction(tenantId, `${batchId}_client`, {
+      displayTransactionId: displayTxId,
+      clientId,
+      portalId,
+      amount: paymentAmount,
+      type: 'Client Payment',
+      description: description || `Payment received via ${method}`,
+      method,
+      dependentIds: dependentIds || [],
+      date: eventDate,
+      batchId,
+      affectsPortalBalance: false,
+      createdBy,
+    });
+    if (!clientTxRes.ok) throw new Error(clientTxRes.error || 'Failed to create client transaction.');
+
+    const portalTxRes = await upsertTenantTransaction(tenantId, `${batchId}_portal`, {
+      displayTransactionId: `${displayTxId}-P`,
+      portalId,
+      amount: paymentAmount,
+      type: 'Portal Payment Credit',
+      description: `Client payment from ${clientId}`,
+      method,
+      linkedClientId: clientId,
+      linkedTransactionId: displayTxId,
+      date: eventDate,
+      batchId,
+      createdBy,
+    });
+    if (!portalTxRes.ok) throw new Error(portalTxRes.error || 'Failed to create portal transaction.');
+
+    const clientData = clientSnap.data() || {};
+    const currentBalance = Number(clientData.currentBalance ?? clientData.openingBalance ?? 0);
+    await setDoc(doc(db, 'tenants', tenantId, 'clients', clientId), {
+      currentBalance: currentBalance + paymentAmount,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    await upsertTenantSyncEvent(tenantId, `se_pay_${clientId}_${Date.now()}`, {
+      tenantId,
+      eventType: 'create',
+      entityType: 'transaction',
+      entityId: displayTxId,
+      changedFields: ['amount', 'portalId', 'clientId', 'method', 'description', 'currentBalance'],
+      createdAt: serverTimestamp(),
+      createdBy: createdBy || 'unknown',
+      syncStatus: 'pending',
+    });
+
+    return { ok: true, batchId };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] client payment failed: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
 /**
  * Recycle Bin Logic
  */
@@ -998,6 +1082,48 @@ export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdf
     const message = toSafeError(error);
     console.warn(`[backendStore] Email send failed for ${email}: ${message}`);
     return { ok: false, error: message };
+  }
+};
+
+export const sendPaymentAcknowledgementEmail = async (tenantId, {
+  email,
+  clientName,
+  amount,
+  date,
+  portalName,
+  method,
+  transactionId,
+}) => {
+  try {
+    const tenantRef = doc(db, 'tenants', tenantId);
+    const tenantSnap = await getDoc(tenantRef);
+    const tenantName = tenantSnap.exists() ? tenantSnap.data().name : 'ACIS Platform';
+
+    await setDoc(doc(collection(db, 'mails')), {
+      to: [email],
+      message: {
+        subject: `${tenantName} payment acknowledgement`,
+        html: `
+          <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
+            <h2>Hello ${clientName || 'Client'},</h2>
+            <p>We acknowledge receipt of your payment.</p>
+            <ul>
+              <li><strong>Transaction:</strong> ${transactionId}</li>
+              <li><strong>Amount:</strong> ${Number(amount || 0).toLocaleString()}</li>
+              <li><strong>Date:</strong> ${date || '-'}</li>
+              <li><strong>Portal:</strong> ${portalName || '-'}</li>
+              <li><strong>Method:</strong> ${method || '-'}</li>
+            </ul>
+            <p>Thank you.</p>
+          </div>
+        `,
+      },
+      createdAt: serverTimestamp(),
+    });
+
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: toSafeError(error) };
   }
 };
 
