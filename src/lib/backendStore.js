@@ -1107,6 +1107,8 @@ export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdf
 
     const subject = applyTemplateTokens(subjectTemplate, tokens);
     const html = buildDocumentEmailHtml({ cfg, tokens, cleanType, txId });
+    const cc = parseEmailList(cfg.documentEmailCc);
+    const bcc = parseEmailList(cfg.documentEmailBcc);
     const attachments = [
       {
         filename: `${documentType}_${txId}.pdf`,
@@ -1121,6 +1123,8 @@ export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdf
       subject,
       html,
       attachments,
+      cc,
+      bcc,
       text: `Please find attached your ${cleanType} (${txId}).`,
     });
     if (smtpSend.ok) return { ok: true, channel: 'smtp' };
@@ -1132,6 +1136,8 @@ export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdf
         subject,
         html,
         attachments,
+        cc,
+        bcc,
       },
       createdAt: serverTimestamp(),
     });
@@ -1194,6 +1200,14 @@ export const upsertTenantMailConfig = async (tenantId, payload) => {
   return upsertTenantSettingDoc(tenantId, 'mailConfiguration', payload);
 };
 
+export const fetchTenantSmsConfig = async (tenantId) => {
+  return getTenantSettingDoc(tenantId, 'smsConfiguration');
+};
+
+export const upsertTenantSmsConfig = async (tenantId, payload) => {
+  return upsertTenantSettingDoc(tenantId, 'smsConfiguration', payload);
+};
+
 const applyTemplateTokens = (template, tokens) => {
   let output = String(template || '');
   Object.entries(tokens || {}).forEach(([key, value]) => {
@@ -1202,6 +1216,12 @@ const applyTemplateTokens = (template, tokens) => {
   });
   return output;
 };
+
+const parseEmailList = (value) =>
+  String(value || '')
+    .split(/[;,]/)
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
 
 
 const createSignatureBlock = (cfg, tokens) => {
@@ -1257,7 +1277,16 @@ const buildDocumentEmailHtml = ({ cfg, tokens, cleanType, txId }) => {
   `;
 };
 
-const trySendViaElectronSmtp = async ({ config, to, subject, html, text = '', attachments = [] }) => {
+const trySendViaElectronSmtp = async ({
+  config,
+  to,
+  subject,
+  html,
+  text = '',
+  attachments = [],
+  cc = [],
+  bcc = [],
+}) => {
   try {
     if (typeof window === 'undefined') return { ok: false, skipped: true, reason: 'no_window' };
     const send = window?.electron?.mail?.send;
@@ -1280,6 +1309,8 @@ const trySendViaElectronSmtp = async ({ config, to, subject, html, text = '', at
       smtp,
       message: {
         to: [to],
+        cc,
+        bcc,
         subject,
         html,
         text,
@@ -1291,6 +1322,62 @@ const trySendViaElectronSmtp = async ({ config, to, subject, html, text = '', at
     return { ok: false, skipped: false, error: res?.error || 'SMTP send failed.' };
   } catch (error) {
     return { ok: false, skipped: false, error: toSafeError(error) };
+  }
+};
+
+const trySendViaElectronSms = async ({ connectorUrl, to, message, meta }) => {
+  try {
+    if (typeof window === 'undefined') return { ok: false, skipped: true, reason: 'no_window' };
+    const send = window?.electron?.sms?.send;
+    if (typeof send !== 'function') return { ok: false, skipped: true, reason: 'not_electron' };
+    const res = await send({ connectorUrl, to, message, meta });
+    if (res?.ok) return { ok: true, skipped: false };
+    return { ok: false, skipped: false, error: res?.error || 'SMS send failed.' };
+  } catch (error) {
+    return { ok: false, skipped: false, error: toSafeError(error) };
+  }
+};
+
+export const sendTenantPaymentSms = async (tenantId, {
+  toMobile,
+  clientName,
+  amount,
+  date,
+  portalName,
+  method,
+  transactionId,
+}) => {
+  try {
+    const configRes = await fetchTenantSmsConfig(tenantId);
+    const cfg = configRes.ok && configRes.data ? configRes.data : {};
+    if (!cfg.enablePaymentSms) return { ok: true, skipped: true, reason: 'disabled' };
+
+    const mobile = String(toMobile || '').trim();
+    if (!mobile) return { ok: true, skipped: true, reason: 'missing_mobile' };
+
+    const tenantSnap = await getDoc(doc(db, 'tenants', tenantId));
+    const tenantName = tenantSnap.exists() ? tenantSnap.data().name : 'ACIS Platform';
+
+    const body = [
+      `Hi ${clientName || 'Client'},`,
+      `We received your payment (${transactionId || '-'}) of ${Number(amount || 0).toLocaleString()}.`,
+      `Date: ${date || '-'}`,
+      `Portal: ${portalName || '-'}`,
+      `Method: ${method || '-'}`,
+      `${tenantName}`,
+    ].join(' ');
+
+    const sendRes = await trySendViaElectronSms({
+      connectorUrl: cfg.connectorUrl,
+      to: mobile,
+      message: body,
+      meta: { tenantId, type: 'payment_ack', transactionId },
+    });
+    if (sendRes.ok) return { ok: true, skipped: false, channel: 'connector' };
+    if (!sendRes.skipped) return { ok: false, error: sendRes.error || 'SMS send failed.' };
+    return { ok: true, skipped: true, reason: sendRes.reason || 'not_available' };
+  } catch (error) {
+    return { ok: false, error: toSafeError(error) };
   }
 };
 

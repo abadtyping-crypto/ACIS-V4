@@ -97,6 +97,8 @@ function createWindow() {
             const smtp = payload?.smtp || {};
             const message = payload?.message || {};
             const to = Array.isArray(message.to) ? message.to : [message.to].filter(Boolean);
+            const cc = Array.isArray(message.cc) ? message.cc.filter(Boolean) : [message.cc].filter(Boolean);
+            const bcc = Array.isArray(message.bcc) ? message.bcc.filter(Boolean) : [message.bcc].filter(Boolean);
             if (!smtp.host || !smtp.port || !smtp.user || !smtp.pass) {
                 return { ok: false, error: 'SMTP configuration is incomplete.' };
             }
@@ -130,6 +132,8 @@ function createWindow() {
                     : String(smtp.fromEmail || smtp.user),
                 replyTo: smtp.replyTo ? String(smtp.replyTo) : undefined,
                 to,
+                cc: cc.length ? cc : undefined,
+                bcc: bcc.length ? bcc : undefined,
                 subject: String(message.subject || ''),
                 html: String(message.html || ''),
                 text: String(message.text || ''),
@@ -139,6 +143,40 @@ function createWindow() {
             return { ok: true };
         } catch (error) {
             return { ok: false, error: error?.message || 'Failed to send email.' };
+        }
+    });
+
+    ipcMain.removeHandler('sms-send');
+    ipcMain.handle('sms-send', async (_event, payload) => {
+        try {
+            const connectorUrl = String(payload?.connectorUrl || '').trim();
+            const to = String(payload?.to || '').trim();
+            const message = String(payload?.message || '').trim();
+
+            if (!connectorUrl) {
+                return { ok: false, error: 'SMS connector URL is missing.' };
+            }
+            if (!to) {
+                return { ok: false, error: 'Recipient mobile number is required.' };
+            }
+            if (!message) {
+                return { ok: false, error: 'SMS body is required.' };
+            }
+
+            const response = await fetch(connectorUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to, message, meta: payload?.meta || {} }),
+            });
+
+            if (!response.ok) {
+                const body = await response.text();
+                return { ok: false, error: `Connector responded ${response.status}: ${body || 'unknown'}` };
+            }
+
+            return { ok: true };
+        } catch (error) {
+            return { ok: false, error: error?.message || 'Failed to send SMS.' };
         }
     });
 }

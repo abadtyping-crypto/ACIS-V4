@@ -2,6 +2,7 @@ import {
   Bell,
   CircleUserRound,
   House,
+  HandCoins,
   Info,
   Search,
   Settings,
@@ -27,5 +28,6 @@ export const SearchIcon = withIcon(Search, 'h-5 w-5');
 export const InfoIcon = withIcon(Info, 'h-4 w-4');
 export const SettingsIcon = withIcon(Settings, 'h-5 w-5');
 export const PortalIcon = withIcon(WalletCards, 'h-5 w-5');
+export const PaymentIcon = withIcon(HandCoins, 'h-5 w-5');
 export const UserPlusIcon = withIcon(UserPlus, 'h-5 w-5');
 export const RecycleBinIcon = withIcon(Trash2, 'h-5 w-5');

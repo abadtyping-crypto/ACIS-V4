@@ -1,5 +1,5 @@
 import { NavLink, useParams } from 'react-router-dom';
-import { BellIcon, HomeIcon, PortalIcon, RecycleBinIcon, SettingsIcon, StarIcon, UserIcon, UserPlusIcon } from '../icons/AppIcons';
+import { BellIcon, HomeIcon, PaymentIcon, PortalIcon, RecycleBinIcon, SettingsIcon, StarIcon, UserIcon, UserPlusIcon } from '../icons/AppIcons';
 import { isVisibleOnPlatform, NAV_ITEMS } from '../../config/appNavigation';
 import { getRuntimePlatform } from '../../lib/runtimePlatform';
 import { useRecycleBin } from '../../context/RecycleBinContext';
@@ -11,6 +11,7 @@ const renderNavIcon = (iconKey) => {
   if (iconKey === 'star') return <StarIcon className="h-[1.15rem] w-[1.15rem]" />;
   if (iconKey === 'user') return <UserIcon className="h-[1.15rem] w-[1.15rem]" />;
   if (iconKey === 'portal') return <PortalIcon className="h-[1.15rem] w-[1.15rem]" />;
+  if (iconKey === 'payment') return <PaymentIcon className="h-[1.15rem] w-[1.15rem]" />;
   if (iconKey === 'user-plus') return <UserPlusIcon className="h-[1.15rem] w-[1.15rem]" />;
   return null;
 };

@@ -59,9 +59,6 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
         emiratesId: '',
         passportNumber: '',
         unifiedNumber: '',
-        nationality: '',
-        dateOfBirth: '',
-        gender: '',
         primaryMobile: '',
         secondaryMobile: '',
         primaryEmail: '',
@@ -226,7 +223,6 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
         }
     };
 
-    const nationalities = ['United Arab Emirates', 'India', 'Pakistan', 'United Kingdom', 'United States', 'Egypt', 'Jordan', 'Lebanon', 'Others'];
     const selectedPortal = portals.find((p) => p.id === form.portalId) || null;
     const openingAmount = Math.abs(Number(form.openingBalance) || 0);
     const signedOpeningAmount = form.balanceType === 'debit' ? -openingAmount : openingAmount;
@@ -257,7 +253,7 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
             </header>
 
             {/* Identity Details */}
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6">
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Full Name *</label>
@@ -282,50 +278,6 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                             value={form.emiratesId}
                             onChange={(e) => setForm({ ...form, emiratesId: e.target.value })}
                             placeholder="784-xxxx-xxxxxxx-x"
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Nationality *</label>
-                            <select
-                                name="nationality"
-                                required
-                                value={form.nationality}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            >
-                                <option value="">Select</option>
-                                {nationalities.map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Gender *</label>
-                            <select
-                                name="gender"
-                                required
-                                value={form.gender}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            >
-                                <option value="">Select</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Date of Birth *</label>
-                        <input
-                            type="date"
-                            name="dateOfBirth"
-                            required
-                            value={form.dateOfBirth}
-                            onChange={handleChange}
                             className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
                         />
                     </div>

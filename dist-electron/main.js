@@ -1,17 +1,17 @@
-import { app as Z, BrowserWindow as kt, ipcMain as J } from "electron";
+import { app as Z, BrowserWindow as kt, ipcMain as K } from "electron";
 import At, { dirname as Ut, join as ze } from "path";
 import ee, { fileURLToPath as Bt } from "url";
 import Ue, { existsSync as Dt, readFileSync as Ft, writeFileSync as $t } from "fs";
-import V from "events";
+import X from "events";
 import Ct from "util";
 import Gt from "http";
 import Qt from "https";
 import Wt from "zlib";
 import P from "stream";
 import te from "net";
-import It from "dns";
-import jt from "os";
-import K from "crypto";
+import jt from "dns";
+import It from "os";
+import V from "crypto";
 import Mt from "tls";
 import Kt from "child_process";
 function Vt(b) {
@@ -22,9 +22,9 @@ function Xt() {
   if ($e) return re;
   $e = 1;
   const b = ee, y = 1800;
-  class k {
-    constructor(p) {
-      this.options = p || {}, this.cookies = [];
+  class T {
+    constructor(o) {
+      this.options = o || {}, this.cookies = [];
     }
     /**
      * Stores a cookie string to the cookie storage
@@ -32,11 +32,11 @@ function Xt() {
      * @param {String} cookieStr Value from the 'Set-Cookie:' header
      * @param {String} url Current URL
      */
-    set(p, n) {
-      let o = b.parse(n || ""), r = this.parse(p), m;
-      return r.domain ? (m = r.domain.replace(/^\./, ""), // can't be valid if the requested domain is shorter than current hostname
-      (o.hostname.length < m.length || // prefix domains with dot to be sure that partial matches are not used
-      ("." + o.hostname).substr(-m.length + 1) !== "." + m) && (r.domain = o.hostname)) : r.domain = o.hostname, r.path || (r.path = this.getPath(o.pathname)), r.expires || (r.expires = new Date(Date.now() + (Number(this.options.sessionTimeout || y) || y) * 1e3)), this.add(r);
+    set(o, n) {
+      let r = b.parse(n || ""), p = this.parse(o), m;
+      return p.domain ? (m = p.domain.replace(/^\./, ""), // can't be valid if the requested domain is shorter than current hostname
+      (r.hostname.length < m.length || // prefix domains with dot to be sure that partial matches are not used
+      ("." + r.hostname).substr(-m.length + 1) !== "." + m) && (p.domain = r.hostname)) : p.domain = r.hostname, p.path || (p.path = this.getPath(r.pathname)), p.expires || (p.expires = new Date(Date.now() + (Number(this.options.sessionTimeout || y) || y) * 1e3)), this.add(p);
     }
     /**
      * Returns cookie string for the 'Cookie:' header.
@@ -44,8 +44,8 @@ function Xt() {
      * @param {String} url URL to check for
      * @returns {String} Cookie header or empty string if no matches were found
      */
-    get(p) {
-      return this.list(p).map((n) => n.name + "=" + n.value).join("; ");
+    get(o) {
+      return this.list(o).map((n) => n.name + "=" + n.value).join("; ");
     }
     /**
      * Lists all valied cookie objects for the specified URL
@@ -53,14 +53,14 @@ function Xt() {
      * @param {String} url URL to check for
      * @returns {Array} An array of cookie objects
      */
-    list(p) {
-      let n = [], o, r;
-      for (o = this.cookies.length - 1; o >= 0; o--) {
-        if (r = this.cookies[o], this.isExpired(r)) {
-          this.cookies.splice(o, o);
+    list(o) {
+      let n = [], r, p;
+      for (r = this.cookies.length - 1; r >= 0; r--) {
+        if (p = this.cookies[r], this.isExpired(p)) {
+          this.cookies.splice(r, r);
           continue;
         }
-        this.match(r, p) && n.unshift(r);
+        this.match(p, o) && n.unshift(p);
       }
       return n;
     }
@@ -70,10 +70,10 @@ function Xt() {
      * @param {String} cookieStr String from the 'Set-Cookie:' header
      * @returns {Object} Cookie object
      */
-    parse(p) {
+    parse(o) {
       let n = {};
-      return (p || "").toString().split(";").forEach((o) => {
-        let r = o.split("="), m = r.shift().trim().toLowerCase(), e = r.join("=").trim(), l;
+      return (o || "").toString().split(";").forEach((r) => {
+        let p = r.split("="), m = p.shift().trim().toLowerCase(), e = p.join("=").trim(), l;
         if (m)
           switch (m) {
             case "expires":
@@ -106,23 +106,23 @@ function Xt() {
      * @param {String} url URL to check for
      * @returns {Boolean} true if cookie is valid for specifiec URL
      */
-    match(p, n) {
-      let o = b.parse(n || "");
-      return !(o.hostname !== p.domain && (p.domain.charAt(0) !== "." || ("." + o.hostname).substr(-p.domain.length) !== p.domain) || this.getPath(o.pathname).substr(0, p.path.length) !== p.path || p.secure && o.protocol !== "https:");
+    match(o, n) {
+      let r = b.parse(n || "");
+      return !(r.hostname !== o.domain && (o.domain.charAt(0) !== "." || ("." + r.hostname).substr(-o.domain.length) !== o.domain) || this.getPath(r.pathname).substr(0, o.path.length) !== o.path || o.secure && r.protocol !== "https:");
     }
     /**
      * Adds (or updates/removes if needed) a cookie object to the cookie storage
      *
      * @param {Object} cookie Cookie value to be stored
      */
-    add(p) {
-      let n, o;
-      if (!p || !p.name)
+    add(o) {
+      let n, r;
+      if (!o || !o.name)
         return !1;
-      for (n = 0, o = this.cookies.length; n < o; n++)
-        if (this.compare(this.cookies[n], p))
-          return this.isExpired(p) ? (this.cookies.splice(n, 1), !1) : (this.cookies[n] = p, !0);
-      return this.isExpired(p) || this.cookies.push(p), !0;
+      for (n = 0, r = this.cookies.length; n < r; n++)
+        if (this.compare(this.cookies[n], o))
+          return this.isExpired(o) ? (this.cookies.splice(n, 1), !1) : (this.cookies[n] = o, !0);
+      return this.isExpired(o) || this.cookies.push(o), !0;
     }
     /**
      * Checks if two cookie objects are the same
@@ -131,8 +131,8 @@ function Xt() {
      * @param {Object} b Cookie to check against
      * @returns {Boolean} True, if the cookies are the same
      */
-    compare(p, n) {
-      return p.name === n.name && p.path === n.path && p.domain === n.domain && p.secure === n.secure && p.httponly === p.httponly;
+    compare(o, n) {
+      return o.name === n.name && o.path === n.path && o.domain === n.domain && o.secure === n.secure && o.httponly === o.httponly;
     }
     /**
      * Checks if a cookie is expired
@@ -140,8 +140,8 @@ function Xt() {
      * @param {Object} cookie Cookie object to check against
      * @returns {Boolean} True, if the cookie is expired
      */
-    isExpired(p) {
-      return p.expires && p.expires < /* @__PURE__ */ new Date() || !p.value;
+    isExpired(o) {
+      return o.expires && o.expires < /* @__PURE__ */ new Date() || !o.value;
     }
     /**
      * Returns normalized cookie path for an URL path argument
@@ -149,12 +149,12 @@ function Xt() {
      * @param {String} pathname
      * @returns {String} Normalized path
      */
-    getPath(p) {
-      let n = (p || "/").split("/");
+    getPath(o) {
+      let n = (o || "/").split("/");
       return n.pop(), n = n.join("/").trim(), n.charAt(0) !== "/" && (n = "/" + n), n.substr(-1) !== "/" && (n += "/"), n;
     }
   }
-  return re = k, re;
+  return re = T, re;
 }
 const Jt = "nodemailer", Yt = "8.0.1", Zt = "https://nodemailer.com/", D = {
   name: Jt,
@@ -196,7 +196,7 @@ function F() {
     EFETCH: "HTTP fetch error"
   };
   return pe = Object.keys(b).reduce(
-    (y, k) => (y[k] = k, y),
+    (y, T) => (y[T] = T, y),
     { ERROR_CODES: b }
   ), pe;
 }
@@ -204,17 +204,17 @@ var Qe;
 function ae() {
   if (Qe) return ie.exports;
   Qe = 1;
-  const b = Gt, y = Qt, k = ee, f = Wt, p = P.PassThrough, n = Xt(), o = D, r = te, m = F(), e = 5;
+  const b = Gt, y = Qt, T = ee, f = Wt, o = P.PassThrough, n = Xt(), r = D, p = te, m = F(), e = 5;
   ie.exports = function(c, s) {
     return l(c, s);
   }, ie.exports.Cookies = n;
   function l(c, s) {
-    s = s || {}, s.fetchRes = s.fetchRes || new p(), s.cookies = s.cookies || new n(), s.redirects = s.redirects || 0, s.maxRedirects = isNaN(s.maxRedirects) ? e : s.maxRedirects, s.cookie && ([].concat(s.cookie || []).forEach((w) => {
+    s = s || {}, s.fetchRes = s.fetchRes || new o(), s.cookies = s.cookies || new n(), s.redirects = s.redirects || 0, s.maxRedirects = isNaN(s.maxRedirects) ? e : s.maxRedirects, s.cookie && ([].concat(s.cookie || []).forEach((w) => {
       s.cookies.set(w, c);
     }), s.cookie = !1);
-    let x = s.fetchRes, g = k.parse(c), v = (s.method || "").toString().trim().toUpperCase() || "GET", t = !1, i, d, a = g.protocol === "https:" ? y : b, h = {
+    let x = s.fetchRes, g = T.parse(c), v = (s.method || "").toString().trim().toUpperCase() || "GET", t = !1, i, d, a = g.protocol === "https:" ? y : b, h = {
       "accept-encoding": "gzip,deflate",
-      "user-agent": "nodemailer/" + o.version
+      "user-agent": "nodemailer/" + r.version
     };
     if (Object.keys(s.headers || {}).forEach((w) => {
       h[w.toLowerCase().trim()] = s.headers[w];
@@ -257,7 +257,7 @@ function ae() {
     };
     s.tls && Object.keys(s.tls).forEach((w) => {
       _[w] = s.tls[w];
-    }), g.protocol === "https:" && g.hostname && g.hostname !== _.host && !r.isIP(g.hostname) && !_.servername && (_.servername = g.hostname);
+    }), g.protocol === "https:" && g.hostname && g.hostname !== _.host && !p.isIP(g.hostname) && !_.servername && (_.servername = g.hostname);
     try {
       u = a.request(_);
     } catch (w) {
@@ -291,7 +291,7 @@ function ae() {
             S.code = m.EFETCH, S.sourceUrl = c, x.emit("error", S), u.abort();
             return;
           }
-          return s.method = "GET", s.body = !1, l(k.resolve(c, w.headers.location), s);
+          return s.method = "GET", s.body = !1, l(T.resolve(c, w.headers.location), s);
         }
         if (x.statusCode = w.statusCode, x.headers = w.headers, w.statusCode >= 300 && !s.allowErrorResponse) {
           t = !0;
@@ -323,14 +323,14 @@ function ae() {
 var We;
 function q() {
   return We || (We = 1, (function(b) {
-    const y = ee, k = Ct, f = Ue, p = ae(), n = It, o = te, r = jt, m = 300 * 1e3, e = 30 * 1e3, l = 1e3;
+    const y = ee, T = Ct, f = Ue, o = ae(), n = jt, r = te, p = It, m = 300 * 1e3, e = 30 * 1e3, l = 1e3;
     let c = 0;
     b.exports._lastCacheCleanup = () => c, b.exports._resetCacheCleanup = () => {
       c = 0;
     };
     let s;
     try {
-      s = r.networkInterfaces();
+      s = p.networkInterfaces();
     } catch {
     }
     b.exports.networkInterfaces = s;
@@ -374,7 +374,7 @@ function q() {
       );
     };
     b.exports.resolveHostname = (a, h) => {
-      if (a = a || {}, !a.host && a.servername && (a.host = a.servername), !a.host || o.isIP(a.host)) {
+      if (a = a || {}, !a.host && a.servername && (a.host = a.servername), !a.host || r.isIP(a.host)) {
         let A = {
           addresses: [a.host],
           servername: a.servername || !1
@@ -392,11 +392,11 @@ function q() {
         const A = Date.now();
         if (A - c > e) {
           c = A;
-          for (const [C, j] of v.entries())
-            j.expires && j.expires < A && v.delete(C);
+          for (const [C, I] of v.entries())
+            I.expires && I.expires < A && v.delete(C);
           if (v.size > l) {
             const C = Math.floor(l * 0.1);
-            Array.from(v.keys()).slice(0, C).forEach((T) => v.delete(T));
+            Array.from(v.keys()).slice(0, C).forEach((k) => v.delete(k));
           }
         }
         if (!u.expires || u.expires >= A)
@@ -409,12 +409,12 @@ function q() {
       }
       let _ = [], w = [], E = null, S = null;
       g(4, a.host, a, (A, C) => {
-        A ? E = A : _ = C || [], g(6, a.host, a, (j, T) => {
-          j ? S = j : w = T || [];
-          let I = _.concat(w);
-          if (I.length) {
+        A ? E = A : _ = C || [], g(6, a.host, a, (I, k) => {
+          I ? S = I : w = k || [];
+          let j = _.concat(w);
+          if (j.length) {
             let M = {
-              addresses: I,
+              addresses: j,
               servername: a.servername || a.host
             };
             return v.set(a.host, {
@@ -553,14 +553,14 @@ function q() {
       let w;
       const E = _.split(";");
       if (E.length > 0) {
-        const j = E[E.length - 1].toLowerCase().trim();
-        ["base64", "utf8", "utf-8"].includes(j) && j.indexOf("=") === -1 && (w = j, E.pop());
+        const I = E[E.length - 1].toLowerCase().trim();
+        ["base64", "utf8", "utf-8"].includes(I) && I.indexOf("=") === -1 && (w = I, E.pop());
       }
       const S = E.length > 0 ? E.shift() : "application/octet-stream", A = {};
-      for (let j = 0; j < E.length; j++) {
-        const T = E[j], I = T.indexOf("=");
-        if (I > 0) {
-          const M = T.substring(0, I).trim(), L = T.substring(I + 1).trim();
+      for (let I = 0; I < E.length; I++) {
+        const k = E[I], j = k.indexOf("=");
+        if (j > 0) {
+          const M = k.substring(0, j).trim(), L = k.substring(j + 1).trim();
           M && (A[M] = L);
         }
       }
@@ -599,7 +599,7 @@ function q() {
             a[h].content ? a[h].content = C : a[h] = C, u(null, C);
           });
         if (/^https?:\/\//i.test(w.path || w.href))
-          return E = p(w.path || w.href), i(E, u);
+          return E = o(w.path || w.href), i(E, u);
         if (/^data:/i.test(w.path || w.href)) {
           let A = b.exports.parseDataURI(w.path || w.href);
           return !A || !A.data ? u(null, Buffer.from(0)) : u(null, A.data);
@@ -656,9 +656,9 @@ function q() {
         S.length < h && (S += " ".repeat(h - S.length)), u.set(E, S);
       });
       let _ = (E, S, A, ...C) => {
-        let j = "";
-        S && (S.tnx === "server" ? j = "S: " : S.tnx === "client" && (j = "C: "), S.sid && (j = "[" + S.sid + "] " + j), S.cid && (j = "[#" + S.cid + "] " + j)), A = k.format(A, ...C), A.split(/\r?\n/).forEach((T) => {
-          console.log("[%s] %s %s", (/* @__PURE__ */ new Date()).toISOString().substr(0, 19).replace(/T/, " "), u.get(E), j + T);
+        let I = "";
+        S && (S.tnx === "server" ? I = "S: " : S.tnx === "client" && (I = "C: "), S.sid && (I = "[" + S.sid + "] " + I), S.cid && (I = "[#" + S.cid + "] " + I)), A = T.format(A, ...C), A.split(/\r?\n/).forEach((k) => {
+          console.log("[%s] %s %s", (/* @__PURE__ */ new Date()).toISOString().substr(0, 19).replace(/T/, " "), u.get(E), I + k);
         });
       }, w = {};
       return a.forEach((E) => {
@@ -671,7 +671,7 @@ var le, Ke;
 function Lt() {
   if (Ke) return le;
   Ke = 1;
-  const b = At, y = "application/octet-stream", k = "bin", f = /* @__PURE__ */ new Map([
+  const b = At, y = "application/octet-stream", T = "bin", f = /* @__PURE__ */ new Map([
     ["application/acad", "dwg"],
     ["application/applixware", "aw"],
     ["application/arj", "arj"],
@@ -1695,7 +1695,7 @@ function Lt() {
     ["x-world/x-vrt", "vrt"],
     ["xgl/drawing", "xgz"],
     ["xgl/movie", "xmz"]
-  ]), p = /* @__PURE__ */ new Map([
+  ]), o = /* @__PURE__ */ new Map([
     ["123", "application/vnd.lotus-1-2-3"],
     ["323", "text/h323"],
     ["*", "application/octet-stream"],
@@ -2733,18 +2733,18 @@ function Lt() {
     detectMimeType(n) {
       if (!n)
         return y;
-      let o = b.parse(n), r = (o.ext.substr(1) || o.name || "").split("?").shift().trim().toLowerCase(), m = y;
-      return p.has(r) && (m = p.get(r)), Array.isArray(m) ? m[0] : m;
+      let r = b.parse(n), p = (r.ext.substr(1) || r.name || "").split("?").shift().trim().toLowerCase(), m = y;
+      return o.has(p) && (m = o.get(p)), Array.isArray(m) ? m[0] : m;
     },
     detectExtension(n) {
       if (!n)
-        return k;
-      let o = (n || "").toLowerCase().trim().split("/"), r = o.shift().trim(), m = o.join("/").trim();
-      if (f.has(r + "/" + m)) {
-        let e = f.get(r + "/" + m);
+        return T;
+      let r = (n || "").toLowerCase().trim().split("/"), p = r.shift().trim(), m = r.join("/").trim();
+      if (f.has(p + "/" + m)) {
+        let e = f.get(p + "/" + m);
         return Array.isArray(e) ? e[0] : e;
       }
-      return r === "text" ? "txt" : "bin";
+      return p === "text" ? "txt" : "bin";
     }
   }, le;
 }
@@ -2752,108 +2752,108 @@ var ce, Ve;
 function Ot() {
   if (Ve) return ce;
   Ve = 1;
-  const b = 2147483647, y = 36, k = 1, f = 26, p = 38, n = 700, o = 72, r = 128, m = "-", e = /^xn--/, l = /[^\0-\x7F]/, c = /[\x2E\u3002\uFF0E\uFF61]/g, s = {
+  const b = 2147483647, y = 36, T = 1, f = 26, o = 38, n = 700, r = 72, p = 128, m = "-", e = /^xn--/, l = /[^\0-\x7F]/, c = /[\x2E\u3002\uFF0E\uFF61]/g, s = {
     overflow: "Overflow: input needs wider integers to process",
     "not-basic": "Illegal input >= 0x80 (not a basic code point)",
     "invalid-input": "Invalid input"
-  }, x = y - k, g = Math.floor, v = String.fromCharCode;
-  function t(T) {
-    throw new RangeError(s[T]);
+  }, x = y - T, g = Math.floor, v = String.fromCharCode;
+  function t(k) {
+    throw new RangeError(s[k]);
   }
-  function i(T, I) {
+  function i(k, j) {
     const M = [];
-    let L = T.length;
+    let L = k.length;
     for (; L--; )
-      M[L] = I(T[L]);
+      M[L] = j(k[L]);
     return M;
   }
-  function d(T, I) {
-    const M = T.split("@");
+  function d(k, j) {
+    const M = k.split("@");
     let L = "";
-    M.length > 1 && (L = M[0] + "@", T = M[1]), T = T.replace(c, ".");
-    const O = T.split("."), N = i(O, I).join(".");
+    M.length > 1 && (L = M[0] + "@", k = M[1]), k = k.replace(c, ".");
+    const O = k.split("."), N = i(O, j).join(".");
     return L + N;
   }
-  function a(T) {
-    const I = [];
+  function a(k) {
+    const j = [];
     let M = 0;
-    const L = T.length;
+    const L = k.length;
     for (; M < L; ) {
-      const O = T.charCodeAt(M++);
+      const O = k.charCodeAt(M++);
       if (O >= 55296 && O <= 56319 && M < L) {
-        const N = T.charCodeAt(M++);
-        (N & 64512) == 56320 ? I.push(((O & 1023) << 10) + (N & 1023) + 65536) : (I.push(O), M--);
+        const N = k.charCodeAt(M++);
+        (N & 64512) == 56320 ? j.push(((O & 1023) << 10) + (N & 1023) + 65536) : (j.push(O), M--);
       } else
-        I.push(O);
+        j.push(O);
     }
-    return I;
+    return j;
   }
-  const h = (T) => String.fromCodePoint(...T), u = function(T) {
-    return T >= 48 && T < 58 ? 26 + (T - 48) : T >= 65 && T < 91 ? T - 65 : T >= 97 && T < 123 ? T - 97 : y;
-  }, _ = function(T, I) {
-    return T + 22 + 75 * (T < 26) - ((I != 0) << 5);
-  }, w = function(T, I, M) {
+  const h = (k) => String.fromCodePoint(...k), u = function(k) {
+    return k >= 48 && k < 58 ? 26 + (k - 48) : k >= 65 && k < 91 ? k - 65 : k >= 97 && k < 123 ? k - 97 : y;
+  }, _ = function(k, j) {
+    return k + 22 + 75 * (k < 26) - ((j != 0) << 5);
+  }, w = function(k, j, M) {
     let L = 0;
     for (
-      T = M ? g(T / n) : T >> 1, T += g(T / I);
+      k = M ? g(k / n) : k >> 1, k += g(k / j);
       /* no initialization */
-      T > x * f >> 1;
+      k > x * f >> 1;
       L += y
     )
-      T = g(T / x);
-    return g(L + (x + 1) * T / (T + p));
-  }, E = function(T) {
-    const I = [], M = T.length;
-    let L = 0, O = r, N = o, R = T.lastIndexOf(m);
+      k = g(k / x);
+    return g(L + (x + 1) * k / (k + o));
+  }, E = function(k) {
+    const j = [], M = k.length;
+    let L = 0, O = p, N = r, R = k.lastIndexOf(m);
     R < 0 && (R = 0);
     for (let z = 0; z < R; ++z)
-      T.charCodeAt(z) >= 128 && t("not-basic"), I.push(T.charCodeAt(z));
+      k.charCodeAt(z) >= 128 && t("not-basic"), j.push(k.charCodeAt(z));
     for (let z = R > 0 ? R + 1 : 0; z < M; ) {
       const U = L;
       for (let B = 1, $ = y; ; $ += y) {
         z >= M && t("invalid-input");
-        const G = u(T.charCodeAt(z++));
+        const G = u(k.charCodeAt(z++));
         G >= y && t("invalid-input"), G > g((b - L) / B) && t("overflow"), L += G * B;
-        const W = $ <= N ? k : $ >= N + f ? f : $ - N;
+        const W = $ <= N ? T : $ >= N + f ? f : $ - N;
         if (G < W)
           break;
-        const X = y - W;
-        B > g(b / X) && t("overflow"), B *= X;
+        const J = y - W;
+        B > g(b / J) && t("overflow"), B *= J;
       }
-      const Q = I.length + 1;
-      N = w(L - U, Q, U == 0), g(L / Q) > b - O && t("overflow"), O += g(L / Q), L %= Q, I.splice(L++, 0, O);
+      const Q = j.length + 1;
+      N = w(L - U, Q, U == 0), g(L / Q) > b - O && t("overflow"), O += g(L / Q), L %= Q, j.splice(L++, 0, O);
     }
-    return String.fromCodePoint(...I);
-  }, S = function(T) {
-    const I = [];
-    T = a(T);
-    const M = T.length;
-    let L = r, O = 0, N = o;
-    for (const U of T)
-      U < 128 && I.push(v(U));
-    const R = I.length;
+    return String.fromCodePoint(...j);
+  }, S = function(k) {
+    const j = [];
+    k = a(k);
+    const M = k.length;
+    let L = p, O = 0, N = r;
+    for (const U of k)
+      U < 128 && j.push(v(U));
+    const R = j.length;
     let z = R;
-    for (R && I.push(m); z < M; ) {
+    for (R && j.push(m); z < M; ) {
       let U = b;
-      for (const B of T)
+      for (const B of k)
         B >= L && B < U && (U = B);
       const Q = z + 1;
       U - L > g((b - O) / Q) && t("overflow"), O += (U - L) * Q, L = U;
-      for (const B of T)
+      for (const B of k)
         if (B < L && ++O > b && t("overflow"), B === L) {
           let $ = O;
           for (let G = y; ; G += y) {
-            const W = G <= N ? k : G >= N + f ? f : G - N;
+            const W = G <= N ? T : G >= N + f ? f : G - N;
             if ($ < W)
               break;
-            const X = $ - W, Fe = y - W;
-            I.push(v(_(W + X % Fe, 0))), $ = g(X / Fe);
+            const J = $ - W, Fe = y - W;
+            j.push(v(_(W + J % Fe, 0))), $ = g(J / Fe);
           }
-          I.push(v(_($, 0))), N = w(O, Q, z === R), O = 0, ++z;
+          j.push(v(_($, 0))), N = w(O, Q, z === R), O = 0, ++z;
         }
       ++O, ++L;
     }
-    return I.join("");
+    return j.join("");
   };
   return ce = {
     /**
@@ -2875,14 +2875,14 @@ function Ot() {
     },
     decode: E,
     encode: S,
-    toASCII: function(T) {
-      return d(T, function(I) {
-        return l.test(I) ? "xn--" + S(I) : I;
+    toASCII: function(k) {
+      return d(k, function(j) {
+        return l.test(j) ? "xn--" + S(j) : j;
       });
     },
-    toUnicode: function(T) {
-      return d(T, function(I) {
-        return e.test(I) ? E(I.slice(4).toLowerCase()) : I;
+    toUnicode: function(k) {
+      return d(k, function(j) {
+        return e.test(j) ? E(j.slice(4).toLowerCase()) : j;
       });
     }
   }, ce;
@@ -2892,31 +2892,31 @@ function Nt() {
   if (Xe) return de;
   Xe = 1;
   const b = P.Transform;
-  function y(p) {
-    return typeof p == "string" && (p = Buffer.from(p, "utf-8")), p.toString("base64");
+  function y(o) {
+    return typeof o == "string" && (o = Buffer.from(o, "utf-8")), o.toString("base64");
   }
-  function k(p, n) {
-    if (p = (p || "").toString(), n = n || 76, p.length <= n)
-      return p;
-    let o = [], r = 0, m = n * 1024;
-    for (; r < p.length; ) {
-      let e = p.substr(r, m).replace(new RegExp(".{" + n + "}", "g"), `$&\r
+  function T(o, n) {
+    if (o = (o || "").toString(), n = n || 76, o.length <= n)
+      return o;
+    let r = [], p = 0, m = n * 1024;
+    for (; p < o.length; ) {
+      let e = o.substr(p, m).replace(new RegExp(".{" + n + "}", "g"), `$&\r
 `);
-      o.push(e), r += m;
+      r.push(e), p += m;
     }
-    return o.join("");
+    return r.join("");
   }
   class f extends b {
     constructor(n) {
       super(), this.options = n || {}, this.options.lineLength !== !1 && (this.options.lineLength = this.options.lineLength || 76), this._curLine = "", this._remainingBytes = !1, this.inputBytes = 0, this.outputBytes = 0;
     }
-    _transform(n, o, r) {
-      if (o !== "buffer" && (n = Buffer.from(n, o)), !n || !n.length)
-        return setImmediate(r);
+    _transform(n, r, p) {
+      if (r !== "buffer" && (n = Buffer.from(n, r)), !n || !n.length)
+        return setImmediate(p);
       this.inputBytes += n.length, this._remainingBytes && this._remainingBytes.length && (n = Buffer.concat([this._remainingBytes, n], this._remainingBytes.length + n.length), this._remainingBytes = !1), n.length % 3 ? (this._remainingBytes = n.slice(n.length - n.length % 3), n = n.slice(0, n.length - n.length % 3)) : this._remainingBytes = !1;
       let m = this._curLine + y(n);
       if (this.options.lineLength) {
-        m = k(m, this.options.lineLength);
+        m = T(m, this.options.lineLength);
         let e = m.lastIndexOf(`
 `);
         e < 0 ? (this._curLine = m, m = "") : (this._curLine = m.substring(e + 1), m = m.substring(0, e + 1), m && !m.endsWith(`\r
@@ -2924,7 +2924,7 @@ function Nt() {
 `));
       } else
         this._curLine = "";
-      m && (this.outputBytes += m.length, this.push(Buffer.from(m, "ascii"))), setImmediate(r);
+      m && (this.outputBytes += m.length, this.push(Buffer.from(m, "ascii"))), setImmediate(p);
     }
     _flush(n) {
       this._remainingBytes && this._remainingBytes.length && (this._curLine += y(this._remainingBytes)), this._curLine && (this.outputBytes += this._curLine.length, this.push(Buffer.from(this._curLine, "ascii")), this._curLine = ""), n();
@@ -2932,7 +2932,7 @@ function Nt() {
   }
   return de = {
     encode: y,
-    wrap: k,
+    wrap: T,
     Encoder: f
   }, de;
 }
@@ -2943,7 +2943,7 @@ function Ht() {
   const b = P.Transform;
   function y(n) {
     typeof n == "string" && (n = Buffer.from(n, "utf-8"));
-    let o = [
+    let r = [
       // https://tools.ietf.org/html/rfc2045#section-6.7
       [9],
       // <TAB>
@@ -2955,74 +2955,74 @@ function Ht() {
       // <SP>!"#$%&'()*+,-./0123456789:;
       [62, 126]
       // >?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}
-    ], r = "", m;
+    ], p = "", m;
     for (let e = 0, l = n.length; e < l; e++) {
-      if (m = n[e], f(m, o) && !((m === 32 || m === 9) && (e === l - 1 || n[e + 1] === 10 || n[e + 1] === 13))) {
-        r += String.fromCharCode(m);
+      if (m = n[e], f(m, r) && !((m === 32 || m === 9) && (e === l - 1 || n[e + 1] === 10 || n[e + 1] === 13))) {
+        p += String.fromCharCode(m);
         continue;
       }
-      r += "=" + (m < 16 ? "0" : "") + m.toString(16).toUpperCase();
+      p += "=" + (m < 16 ? "0" : "") + m.toString(16).toUpperCase();
     }
-    return r;
+    return p;
   }
-  function k(n, o) {
-    if (n = (n || "").toString(), o = o || 76, n.length <= o)
+  function T(n, r) {
+    if (n = (n || "").toString(), r = r || 76, n.length <= r)
       return n;
-    let r = 0, m = n.length, e, l, c, s = Math.floor(o / 3), x = "";
-    for (; r < m; ) {
-      if (c = n.substr(r, o), e = c.match(/\r\n/)) {
-        c = c.substr(0, e.index + e[0].length), x += c, r += c.length;
+    let p = 0, m = n.length, e, l, c, s = Math.floor(r / 3), x = "";
+    for (; p < m; ) {
+      if (c = n.substr(p, r), e = c.match(/\r\n/)) {
+        c = c.substr(0, e.index + e[0].length), x += c, p += c.length;
         continue;
       }
       if (c.substr(-1) === `
 `) {
-        x += c, r += c.length;
+        x += c, p += c.length;
         continue;
       } else if (e = c.substr(-s).match(/\n.*?$/)) {
-        c = c.substr(0, c.length - (e[0].length - 1)), x += c, r += c.length;
+        c = c.substr(0, c.length - (e[0].length - 1)), x += c, p += c.length;
         continue;
-      } else if (c.length > o - s && (e = c.substr(-s).match(/[ \t.,!?][^ \t.,!?]*$/)))
+      } else if (c.length > r - s && (e = c.substr(-s).match(/[ \t.,!?][^ \t.,!?]*$/)))
         c = c.substr(0, c.length - (e[0].length - 1));
       else if (c.match(/[=][\da-f]{0,2}$/i))
-        for ((e = c.match(/[=][\da-f]{0,1}$/i)) && (c = c.substr(0, c.length - e[0].length)); c.length > 3 && c.length < m - r && !c.match(/^(?:=[\da-f]{2}){1,4}$/i) && (e = c.match(/[=][\da-f]{2}$/gi)) && (l = parseInt(e[0].substr(1, 2), 16), !(l < 128 || (c = c.substr(0, c.length - 3), l >= 192))); )
+        for ((e = c.match(/[=][\da-f]{0,1}$/i)) && (c = c.substr(0, c.length - e[0].length)); c.length > 3 && c.length < m - p && !c.match(/^(?:=[\da-f]{2}){1,4}$/i) && (e = c.match(/[=][\da-f]{2}$/gi)) && (l = parseInt(e[0].substr(1, 2), 16), !(l < 128 || (c = c.substr(0, c.length - 3), l >= 192))); )
           ;
-      r + c.length < m && c.substr(-1) !== `
-` ? (c.length === o && c.match(/[=][\da-f]{2}$/i) ? c = c.substr(0, c.length - 3) : c.length === o && (c = c.substr(0, c.length - 1)), r += c.length, c += `=\r
-`) : r += c.length, x += c;
+      p + c.length < m && c.substr(-1) !== `
+` ? (c.length === r && c.match(/[=][\da-f]{2}$/i) ? c = c.substr(0, c.length - 3) : c.length === r && (c = c.substr(0, c.length - 1)), p += c.length, c += `=\r
+`) : p += c.length, x += c;
     }
     return x;
   }
-  function f(n, o) {
-    for (let r = o.length - 1; r >= 0; r--)
-      if (o[r].length && (o[r].length === 1 && n === o[r][0] || o[r].length === 2 && n >= o[r][0] && n <= o[r][1]))
+  function f(n, r) {
+    for (let p = r.length - 1; p >= 0; p--)
+      if (r[p].length && (r[p].length === 1 && n === r[p][0] || r[p].length === 2 && n >= r[p][0] && n <= r[p][1]))
         return !0;
     return !1;
   }
-  class p extends b {
-    constructor(o) {
-      super(), this.options = o || {}, this.options.lineLength !== !1 && (this.options.lineLength = this.options.lineLength || 76), this._curLine = "", this.inputBytes = 0, this.outputBytes = 0;
+  class o extends b {
+    constructor(r) {
+      super(), this.options = r || {}, this.options.lineLength !== !1 && (this.options.lineLength = this.options.lineLength || 76), this._curLine = "", this.inputBytes = 0, this.outputBytes = 0;
     }
-    _transform(o, r, m) {
+    _transform(r, p, m) {
       let e;
-      if (r !== "buffer" && (o = Buffer.from(o, r)), !o || !o.length)
+      if (p !== "buffer" && (r = Buffer.from(r, p)), !r || !r.length)
         return m();
-      this.inputBytes += o.length, this.options.lineLength ? (e = this._curLine + y(o), e = k(e, this.options.lineLength), e = e.replace(/(^|\n)([^\n]*)$/, (l, c, s) => (this._curLine = s, c)), e && (this.outputBytes += e.length, this.push(e))) : (e = y(o), this.outputBytes += e.length, this.push(e, "ascii")), m();
+      this.inputBytes += r.length, this.options.lineLength ? (e = this._curLine + y(r), e = T(e, this.options.lineLength), e = e.replace(/(^|\n)([^\n]*)$/, (l, c, s) => (this._curLine = s, c)), e && (this.outputBytes += e.length, this.push(e))) : (e = y(r), this.outputBytes += e.length, this.push(e, "ascii")), m();
     }
-    _flush(o) {
-      this._curLine && (this.outputBytes += this._curLine.length, this.push(this._curLine, "ascii")), o();
+    _flush(r) {
+      this._curLine && (this.outputBytes += this._curLine.length, this.push(this._curLine, "ascii")), r();
     }
   }
   return me = {
     encode: y,
-    wrap: k,
-    Encoder: p
+    wrap: T,
+    Encoder: o
   }, me;
 }
 var he, Ye;
 function ne() {
   if (Ye) return he;
   Ye = 1;
-  const b = Nt(), y = Ht(), k = Lt();
+  const b = Nt(), y = Ht(), T = Lt();
   return he = {
     /**
      * Checks if a value is plaintext string (uses only printable 7bit chars)
@@ -3030,8 +3030,8 @@ function ne() {
      * @param {String} value String to be tested
      * @returns {Boolean} true if it is a plaintext string
      */
-    isPlainText(f, p) {
-      return !(typeof f != "string" || (p ? /[\x00-\x08\x0b\x0c\x0e-\x1f"\u0080-\uFFFF]/ : /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/).test(f));
+    isPlainText(f, o) {
+      return !(typeof f != "string" || (o ? /[\x00-\x08\x0b\x0c\x0e-\x1f"\u0080-\uFFFF]/ : /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/).test(f));
     },
     /**
      * Checks if a multi line string containes lines longer than the selected value.
@@ -3044,8 +3044,8 @@ function ne() {
      * @param {Number} lineLength Max line length to check for
      * @returns {Boolean} Returns true if there is at least one line longer than lineLength chars
      */
-    hasLongerLines(f, p) {
-      return f.length > 128 * 1024 ? !0 : new RegExp("^.{" + (p + 1) + ",}", "m").test(f);
+    hasLongerLines(f, o) {
+      return f.length > 128 * 1024 ? !0 : new RegExp("^.{" + (o + 1) + ",}", "m").test(f);
     },
     /**
      * Encodes a string or an Buffer to an UTF-8 MIME Word (rfc2047)
@@ -3055,25 +3055,25 @@ function ne() {
      * @param {Number} [maxLength=0] If set, split mime words into several chunks if needed
      * @return {String} Single or several mime words joined together
      */
-    encodeWord(f, p, n) {
-      p = (p || "Q").toString().toUpperCase().trim().charAt(0), n = n || 0;
-      let o, r = "UTF-8";
-      if (n && n > 7 + r.length && (n -= 7 + r.length), p === "Q" ? o = y.encode(f).replace(/[^a-z0-9!*+\-/=]/gi, (m) => {
+    encodeWord(f, o, n) {
+      o = (o || "Q").toString().toUpperCase().trim().charAt(0), n = n || 0;
+      let r, p = "UTF-8";
+      if (n && n > 7 + p.length && (n -= 7 + p.length), o === "Q" ? r = y.encode(f).replace(/[^a-z0-9!*+\-/=]/gi, (m) => {
         let e = m.charCodeAt(0).toString(16).toUpperCase();
         return m === " " ? "_" : "=" + (e.length === 1 ? "0" + e : e);
-      }) : p === "B" && (o = typeof f == "string" ? f : b.encode(f), n = n ? Math.max(3, (n - n % 4) / 4 * 3) : 0), n && (p !== "B" ? o : b.encode(f)).length > n)
-        if (p === "Q")
-          o = this.splitMimeEncodedString(o, n).join("?= =?" + r + "?" + p + "?");
+      }) : o === "B" && (r = typeof f == "string" ? f : b.encode(f), n = n ? Math.max(3, (n - n % 4) / 4 * 3) : 0), n && (o !== "B" ? r : b.encode(f)).length > n)
+        if (o === "Q")
+          r = this.splitMimeEncodedString(r, n).join("?= =?" + p + "?" + o + "?");
         else {
           let m = [], e = "";
-          for (let l = 0, c = o.length; l < c; l++) {
-            let s = o.charAt(l);
-            /[\ud83c\ud83d\ud83e]/.test(s) && l < c - 1 && (s += o.charAt(++l)), Buffer.byteLength(e + s) <= n || l === 0 ? e += s : (m.push(b.encode(e)), e = s);
+          for (let l = 0, c = r.length; l < c; l++) {
+            let s = r.charAt(l);
+            /[\ud83c\ud83d\ud83e]/.test(s) && l < c - 1 && (s += r.charAt(++l)), Buffer.byteLength(e + s) <= n || l === 0 ? e += s : (m.push(b.encode(e)), e = s);
           }
-          e && m.push(b.encode(e)), m.length > 1 ? o = m.join("?= =?" + r + "?" + p + "?") : o = m.join("");
+          e && m.push(b.encode(e)), m.length > 1 ? r = m.join("?= =?" + p + "?" + o + "?") : r = m.join("");
         }
-      else p === "B" && (o = b.encode(f));
-      return "=?" + r + "?" + p + "?" + o + (o.substr(-2) === "?=" ? "" : "?=");
+      else o === "B" && (r = b.encode(f));
+      return "=?" + p + "?" + o + "?" + r + (r.substr(-2) === "?=" ? "" : "?=");
     },
     /**
      * Finds word sequences with non ascii text and converts these to mime words
@@ -3084,20 +3084,20 @@ function ne() {
      * @param {Boolean} [encodeAll=false] If true and the value needs encoding then encodes entire string, not just the smallest match
      * @return {String} String with possible mime words
      */
-    encodeWords(f, p, n, o) {
+    encodeWords(f, o, n, r) {
       n = n || 0;
-      let r, m = f.match(/(?:^|\s)([^\s]*["\u0080-\uFFFF])/);
+      let p, m = f.match(/(?:^|\s)([^\s]*["\u0080-\uFFFF])/);
       if (!m)
         return f;
-      if (o)
-        return this.encodeWord(f, p, n);
+      if (r)
+        return this.encodeWord(f, o, n);
       let e = f.match(/(["\u0080-\uFFFF][^\s]*)[^"\u0080-\uFFFF]*$/);
       if (!e)
         return f;
       let l = m.index + (m[0].match(/[^\s]/) || {
         index: 0
       }).index, c = e.index + (e[1] || "").length;
-      return r = (l ? f.substr(0, l) : "") + this.encodeWord(f.substring(l, c), p || "Q", n) + (c < f.length ? f.substr(c) : ""), r;
+      return p = (l ? f.substr(0, l) : "") + this.encodeWord(f.substring(l, c), o || "Q", n) + (c < f.length ? f.substr(c) : ""), p;
     },
     /**
      * Joins parsed header value together as 'value; param1=value1; param2=value2'
@@ -3107,13 +3107,13 @@ function ne() {
      * @return {String} joined header value
      */
     buildHeaderValue(f) {
-      let p = [];
+      let o = [];
       return Object.keys(f.params || {}).forEach((n) => {
-        let o = f.params[n];
-        !this.isPlainText(o, !0) || o.length >= 75 ? this.buildHeaderParam(n, o, 50).forEach((r) => {
-          !/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(r.value) || r.key.substr(-1) === "*" ? p.push(r.key + "=" + r.value) : p.push(r.key + "=" + JSON.stringify(r.value));
-        }) : /[\s'"\\;:/=(),<>@[\]?]|^-/.test(o) ? p.push(n + "=" + JSON.stringify(o)) : p.push(n + "=" + o);
-      }), f.value + (p.length ? "; " + p.join("; ") : "");
+        let r = f.params[n];
+        !this.isPlainText(r, !0) || r.length >= 75 ? this.buildHeaderParam(n, r, 50).forEach((p) => {
+          !/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(p.value) || p.key.substr(-1) === "*" ? o.push(p.key + "=" + p.value) : o.push(p.key + "=" + JSON.stringify(p.value));
+        }) : /[\s'"\\;:/=(),<>@[\]?]|^-/.test(r) ? o.push(n + "=" + JSON.stringify(r)) : o.push(n + "=" + r);
+      }), f.value + (o.length ? "; " + o.join("; ") : "");
     },
     /**
      * Encodes a string or an Buffer to an UTF-8 Parameter Value Continuation encoding (rfc2231)
@@ -3130,35 +3130,35 @@ function ne() {
      * @param {String} [fromCharset='UTF-8'] Source sharacter set
      * @return {Array} A list of encoded keys and headers
      */
-    buildHeaderParam(f, p, n) {
-      let o = [], r = typeof p == "string" ? p : (p || "").toString(), m, e, l, c, s = 0, x, g;
-      if (n = n || 50, this.isPlainText(p, !0)) {
-        if (r.length <= n)
+    buildHeaderParam(f, o, n) {
+      let r = [], p = typeof o == "string" ? o : (o || "").toString(), m, e, l, c, s = 0, x, g;
+      if (n = n || 50, this.isPlainText(o, !0)) {
+        if (p.length <= n)
           return [
             {
               key: f,
-              value: r
+              value: p
             }
           ];
-        r = r.replace(new RegExp(".{" + n + "}", "g"), (v) => (o.push({
+        p = p.replace(new RegExp(".{" + n + "}", "g"), (v) => (r.push({
           line: v
-        }), "")), r && o.push({
-          line: r
+        }), "")), p && r.push({
+          line: p
         });
       } else {
-        if (/[\uD800-\uDBFF]/.test(r)) {
-          for (m = [], x = 0, g = r.length; x < g; x++)
-            e = r.charAt(x), l = e.charCodeAt(0), l >= 55296 && l <= 56319 && x < g - 1 ? (e += r.charAt(x + 1), m.push(e), x++) : m.push(e);
-          r = m;
+        if (/[\uD800-\uDBFF]/.test(p)) {
+          for (m = [], x = 0, g = p.length; x < g; x++)
+            e = p.charAt(x), l = e.charCodeAt(0), l >= 55296 && l <= 56319 && x < g - 1 ? (e += p.charAt(x + 1), m.push(e), x++) : m.push(e);
+          p = m;
         }
         c = "utf-8''";
         let v = !0;
-        for (s = 0, x = 0, g = r.length; x < g; x++) {
-          if (e = r[x], v)
+        for (s = 0, x = 0, g = p.length; x < g; x++) {
+          if (e = p[x], v)
             e = this.safeEncodeURIComponent(e);
-          else if (e = e === " " ? e : this.safeEncodeURIComponent(e), e !== r[x])
+          else if (e = e === " " ? e : this.safeEncodeURIComponent(e), e !== p[x])
             if ((this.safeEncodeURIComponent(c) + e).length >= n)
-              o.push({
+              r.push({
                 line: c,
                 encoded: v
               }), c = "", s = x - 1;
@@ -3166,17 +3166,17 @@ function ne() {
               v = !0, x = s, c = "";
               continue;
             }
-          (c + e).length >= n ? (o.push({
+          (c + e).length >= n ? (r.push({
             line: c,
             encoded: v
-          }), c = e = r[x] === " " ? " " : this.safeEncodeURIComponent(r[x]), e === r[x] ? (v = !1, s = x - 1) : v = !0) : c += e;
+          }), c = e = p[x] === " " ? " " : this.safeEncodeURIComponent(p[x]), e === p[x] ? (v = !1, s = x - 1) : v = !0) : c += e;
         }
-        c && o.push({
+        c && r.push({
           line: c,
           encoded: v
         });
       }
-      return o.map((v, t) => ({
+      return r.map((v, t) => ({
         // encoded lines: {name}*{part}*
         // unencoded lines: {name}*{part}
         // if any line needs to be encoded then the first line (part==0) is always encoded
@@ -3200,39 +3200,39 @@ function ne() {
      * @return {Object} Header value as a parsed structure
      */
     parseHeaderValue(f) {
-      let p = {
+      let o = {
         value: !1,
         params: {}
-      }, n = !1, o = "", r = "value", m = !1, e = !1, l;
+      }, n = !1, r = "", p = "value", m = !1, e = !1, l;
       for (let c = 0, s = f.length; c < s; c++)
-        if (l = f.charAt(c), r === "key") {
+        if (l = f.charAt(c), p === "key") {
           if (l === "=") {
-            n = o.trim().toLowerCase(), r = "value", o = "";
+            n = r.trim().toLowerCase(), p = "value", r = "";
             continue;
           }
-          o += l;
+          r += l;
         } else {
           if (e)
-            o += l;
+            r += l;
           else if (l === "\\") {
             e = !0;
             continue;
-          } else m && l === m ? m = !1 : !m && l === '"' ? m = l : !m && l === ";" ? (n === !1 ? p.value = o.trim() : p.params[n] = o.trim(), r = "key", o = "") : o += l;
+          } else m && l === m ? m = !1 : !m && l === '"' ? m = l : !m && l === ";" ? (n === !1 ? o.value = r.trim() : o.params[n] = r.trim(), p = "key", r = "") : r += l;
           e = !1;
         }
-      return r === "value" ? n === !1 ? p.value = o.trim() : p.params[n] = o.trim() : o.trim() && (p.params[o.trim().toLowerCase()] = ""), Object.keys(p.params).forEach((c) => {
+      return p === "value" ? n === !1 ? o.value = r.trim() : o.params[n] = r.trim() : r.trim() && (o.params[r.trim().toLowerCase()] = ""), Object.keys(o.params).forEach((c) => {
         let s, x, g, v;
-        (g = c.match(/(\*(\d+)|\*(\d+)\*|\*)$/)) && (s = c.substr(0, g.index), x = Number(g[2] || g[3]) || 0, (!p.params[s] || typeof p.params[s] != "object") && (p.params[s] = {
+        (g = c.match(/(\*(\d+)|\*(\d+)\*|\*)$/)) && (s = c.substr(0, g.index), x = Number(g[2] || g[3]) || 0, (!o.params[s] || typeof o.params[s] != "object") && (o.params[s] = {
           charset: !1,
           values: []
-        }), v = p.params[c], x === 0 && g[0].substr(-1) === "*" && (g = v.match(/^([^']*)'[^']*'(.*)$/)) && (p.params[s].charset = g[1] || "iso-8859-1", v = g[2]), p.params[s].values[x] = v, delete p.params[c]);
-      }), Object.keys(p.params).forEach((c) => {
+        }), v = o.params[c], x === 0 && g[0].substr(-1) === "*" && (g = v.match(/^([^']*)'[^']*'(.*)$/)) && (o.params[s].charset = g[1] || "iso-8859-1", v = g[2]), o.params[s].values[x] = v, delete o.params[c]);
+      }), Object.keys(o.params).forEach((c) => {
         let s;
-        p.params[c] && Array.isArray(p.params[c].values) && (s = p.params[c].values.map((x) => x || "").join(""), p.params[c].charset ? p.params[c] = "=?" + p.params[c].charset + "?Q?" + s.replace(/[=?_\s]/g, (x) => {
+        o.params[c] && Array.isArray(o.params[c].values) && (s = o.params[c].values.map((x) => x || "").join(""), o.params[c].charset ? o.params[c] = "=?" + o.params[c].charset + "?Q?" + s.replace(/[=?_\s]/g, (x) => {
           let g = x.charCodeAt(0).toString(16);
           return x === " " ? "_" : "%" + (g.length < 2 ? "0" : "") + g;
-        }).replace(/%/g, "=") + "?=" : p.params[c] = s);
-      }), p;
+        }).replace(/%/g, "=") + "?=" : o.params[c] = s);
+      }), o;
     },
     /**
      * Returns file extension for a content type string. If no suitable extensions
@@ -3241,7 +3241,7 @@ function ne() {
      * @param {String} mimeType Content type to be checked for
      * @return {String} File extension
      */
-    detectExtension: (f) => k.detectExtension(f),
+    detectExtension: (f) => T.detectExtension(f),
     /**
      * Returns content type for a file extension. If no suitable content types
      * are found, 'application/octet-stream' is used as the default content type
@@ -3249,7 +3249,7 @@ function ne() {
      * @param {String} extension Extension to be checked for
      * @return {String} File extension
      */
-    detectMimeType: (f) => k.detectMimeType(f),
+    detectMimeType: (f) => T.detectMimeType(f),
     /**
      * Folds long lines, useful for folding header lines (afterSpace=false) and
      * flowed text (afterSpace=true)
@@ -3259,19 +3259,19 @@ function ne() {
      * @param {Boolean} afterSpace If true, leave a space in th end of a line
      * @return {String} String with folded lines
      */
-    foldLines(f, p, n) {
-      f = (f || "").toString(), p = p || 76;
-      let o = 0, r = f.length, m = "", e, l;
-      for (; o < r; ) {
-        if (e = f.substr(o, p), e.length < p) {
+    foldLines(f, o, n) {
+      f = (f || "").toString(), o = o || 76;
+      let r = 0, p = f.length, m = "", e, l;
+      for (; r < p; ) {
+        if (e = f.substr(r, o), e.length < o) {
           m += e;
           break;
         }
         if (l = e.match(/^[^\n\r]*(\r?\n|\r)/)) {
-          e = l[0], m += e, o += e.length;
+          e = l[0], m += e, r += e.length;
           continue;
-        } else (l = e.match(/(\s+)[^\s]*$/)) && l[0].length - (n ? (l[1] || "").length : 0) < e.length ? e = e.substr(0, e.length - (l[0].length - (n ? (l[1] || "").length : 0))) : (l = f.substr(o + e.length).match(/^[^\s]+(\s*)/)) && (e = e + l[0].substr(0, l[0].length - (n ? 0 : (l[1] || "").length)));
-        m += e, o += e.length, o < r && (m += `\r
+        } else (l = e.match(/(\s+)[^\s]*$/)) && l[0].length - (n ? (l[1] || "").length : 0) < e.length ? e = e.substr(0, e.length - (l[0].length - (n ? (l[1] || "").length : 0))) : (l = f.substr(r + e.length).match(/^[^\s]+(\s*)/)) && (e = e + l[0].substr(0, l[0].length - (n ? 0 : (l[1] || "").length)));
+        m += e, r += e.length, r < p && (m += `\r
 `);
       }
       return m;
@@ -3283,23 +3283,23 @@ function ne() {
      * @param {Number} maxlen Maximum length of characters for one part (minimum 12)
      * @return {Array} Split string
      */
-    splitMimeEncodedString: (f, p) => {
-      let n, o, r, m, e = [];
-      for (p = Math.max(p || 0, 12); f.length; ) {
-        for (n = f.substr(0, p), (o = n.match(/[=][0-9A-F]?$/i)) && (n = n.substr(0, o.index)), m = !1; !m; )
-          m = !0, (o = f.substr(n.length).match(/^[=]([0-9A-F]{2})/i)) && (r = parseInt(o[1], 16), r < 194 && r > 127 && (n = n.substr(0, n.length - 3), m = !1));
+    splitMimeEncodedString: (f, o) => {
+      let n, r, p, m, e = [];
+      for (o = Math.max(o || 0, 12); f.length; ) {
+        for (n = f.substr(0, o), (r = n.match(/[=][0-9A-F]?$/i)) && (n = n.substr(0, r.index)), m = !1; !m; )
+          m = !0, (r = f.substr(n.length).match(/^[=]([0-9A-F]{2})/i)) && (p = parseInt(r[1], 16), p < 194 && p > 127 && (n = n.substr(0, n.length - 3), m = !1));
         n.length && e.push(n), f = f.substr(n.length);
       }
       return e;
     },
     encodeURICharComponent: (f) => {
-      let p = "", n = f.charCodeAt(0).toString(16).toUpperCase();
+      let o = "", n = f.charCodeAt(0).toString(16).toUpperCase();
       if (n.length % 2 && (n = "0" + n), n.length > 2)
-        for (let o = 0, r = n.length / 2; o < r; o++)
-          p += "%" + n.substr(o, 2);
+        for (let r = 0, p = n.length / 2; r < p; r++)
+          o += "%" + n.substr(r, 2);
       else
-        p += "%" + n;
-      return p;
+        o += "%" + n;
+      return o;
     },
     safeEncodeURIComponent(f) {
       f = (f || "").toString();
@@ -3308,7 +3308,7 @@ function ne() {
       } catch {
         return f.replace(/[^\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]+/g, "");
       }
-      return f.replace(/[\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]/g, (p) => this.encodeURICharComponent(p));
+      return f.replace(/[\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]/g, (o) => this.encodeURICharComponent(o));
     }
   }, he;
 }
@@ -3316,8 +3316,8 @@ var ue, Ze;
 function ei() {
   if (Ze) return ue;
   Ze = 1;
-  function b(p, n) {
-    let o = !1, r = "text", m, e = [], l = {
+  function b(o, n) {
+    let r = !1, p = "text", m, e = [], l = {
       address: [],
       comment: [],
       group: [],
@@ -3325,29 +3325,29 @@ function ei() {
       textWasQuoted: []
       // Track which text tokens came from inside quotes
     }, c, s, x = !1;
-    for (c = 0, s = p.length; c < s; c++) {
-      let g = p[c], v = c ? p[c - 1] : null;
+    for (c = 0, s = o.length; c < s; c++) {
+      let g = o[c], v = c ? o[c - 1] : null;
       if (g.type === "operator")
         switch (g.value) {
           case "<":
-            r = "address", x = !1;
+            p = "address", x = !1;
             break;
           case "(":
-            r = "comment", x = !1;
+            p = "comment", x = !1;
             break;
           case ":":
-            r = "group", o = !0, x = !1;
+            p = "group", r = !0, x = !1;
             break;
           case '"':
-            x = !x, r = "text";
+            x = !x, p = "text";
             break;
           default:
-            r = "text", x = !1;
+            p = "text", x = !1;
             break;
         }
-      else g.value && (r === "address" && (g.value = g.value.replace(/^[^<]*<\s*/, "")), v && v.noBreak && l[r].length ? (l[r][l[r].length - 1] += g.value, r === "text" && x && (l.textWasQuoted[l.textWasQuoted.length - 1] = !0)) : (l[r].push(g.value), r === "text" && l.textWasQuoted.push(x)));
+      else g.value && (p === "address" && (g.value = g.value.replace(/^[^<]*<\s*/, "")), v && v.noBreak && l[p].length ? (l[p][l[p].length - 1] += g.value, p === "text" && x && (l.textWasQuoted[l.textWasQuoted.length - 1] = !0)) : (l[p].push(g.value), p === "text" && l.textWasQuoted.push(x)));
     }
-    if (!l.text.length && l.comment.length && (l.text = l.comment, l.comment = []), o) {
+    if (!l.text.length && l.comment.length && (l.text = l.comment, l.comment = []), r) {
       l.text = l.text.join(" ");
       let g = [];
       l.group.length && f(l.group.join(","), { _depth: n + 1 }).forEach((t) => {
@@ -3370,7 +3370,7 @@ function ei() {
           for (c = l.text.length - 1; c >= 0 && !(!l.textWasQuoted[c] && (l.text[c] = l.text[c].replace(/\s*\b[^@\s]+@[^\s]+\b\s*/, g).trim(), l.address.length)); c--)
             ;
       }
-      if (!l.text.length && l.comment.length && (l.text = l.comment, l.comment = []), l.address.length > 1 && (l.text = l.text.concat(l.address.splice(1))), l.text = l.text.join(" "), l.address = l.address.join(" "), !l.address && o)
+      if (!l.text.length && l.comment.length && (l.text = l.comment, l.comment = []), l.address.length > 1 && (l.text = l.text.concat(l.address.splice(1))), l.text = l.text.join(" "), l.address = l.address.join(" "), !l.address && r)
         return [];
       m = {
         address: l.address || l.text || "",
@@ -3403,12 +3403,12 @@ function ei() {
      */
     tokenize() {
       let n = [];
-      for (let o = 0, r = this.str.length; o < r; o++) {
-        let m = this.str.charAt(o), e = o < r - 1 ? this.str.charAt(o + 1) : null;
+      for (let r = 0, p = this.str.length; r < p; r++) {
+        let m = this.str.charAt(r), e = r < p - 1 ? this.str.charAt(r + 1) : null;
         this.checkChar(m, e);
       }
-      return this.list.forEach((o) => {
-        o.value = (o.value || "").toString().trim(), o.value && n.push(o);
+      return this.list.forEach((r) => {
+        r.value = (r.value || "").toString().trim(), r.value && n.push(r);
       }), n;
     }
     /**
@@ -3416,14 +3416,14 @@ function ei() {
      *
      * @param {String} chr Character from the address field
      */
-    checkChar(n, o) {
+    checkChar(n, r) {
       if (!this.escaped) {
         if (n === this.operatorExpecting) {
           this.node = {
             type: "operator",
             value: n
-          }, o && ![" ", "	", "\r", `
-`, ",", ";"].includes(o) && (this.node.noBreak = !0), this.list.push(this.node), this.node = null, this.operatorExpecting = "", this.escaped = !1;
+          }, r && ![" ", "	", "\r", `
+`, ",", ";"].includes(r) && (this.node.noBreak = !0), this.list.push(this.node), this.node = null, this.operatorExpecting = "", this.escaped = !1;
           return;
         } else if (!this.operatorExpecting && n in this.operators) {
           this.node = {
@@ -3443,17 +3443,17 @@ function ei() {
 ` && (n = " "), (n.charCodeAt(0) >= 33 || [" ", "	"].includes(n)) && (this.node.value += n), this.escaped = !1;
     }
   }
-  const k = 50;
-  function f(p, n) {
+  const T = 50;
+  function f(o, n) {
     n = n || {};
-    let o = n._depth || 0;
-    if (o > k)
+    let r = n._depth || 0;
+    if (r > T)
       return [];
-    let m = new y(p).tokenize(), e = [], l = [], c = [];
+    let m = new y(o).tokenize(), e = [], l = [], c = [];
     if (m.forEach((s) => {
       s.type === "operator" && (s.value === "," || s.value === ";") ? (l.length && e.push(l), l = []) : l.push(s);
     }), l.length && e.push(l), e.forEach((s) => {
-      s = b(s, o), s.length && (c = c.concat(s));
+      s = b(s, r), s.length && (c = c.concat(s));
     }), n.flatten) {
       let s = [], x = (g) => {
         g.forEach((v) => {
@@ -3477,7 +3477,7 @@ function ti() {
     constructor() {
       super(), this.lastByte = !1;
     }
-    _transform(f, p, n) {
+    _transform(f, o, n) {
       f.length && (this.lastByte = f[f.length - 1]), this.push(f), n();
     }
     _flush(f) {
@@ -3493,49 +3493,49 @@ function qt() {
   if (tt) return xe;
   tt = 1;
   const y = P.Transform;
-  class k extends y {
-    constructor(p) {
-      super(p), this.options = p || {}, this.lastByte = !1;
+  class T extends y {
+    constructor(o) {
+      super(o), this.options = o || {}, this.lastByte = !1;
     }
     /**
      * Escapes dots
      */
-    _transform(p, n, o) {
-      let r, m = 0;
-      for (let e = 0, l = p.length; e < l; e++)
-        p[e] === 10 && (e && p[e - 1] !== 13 || !e && this.lastByte !== 13) && (e > m && (r = p.slice(m, e), this.push(r)), this.push(Buffer.from(`\r
+    _transform(o, n, r) {
+      let p, m = 0;
+      for (let e = 0, l = o.length; e < l; e++)
+        o[e] === 10 && (e && o[e - 1] !== 13 || !e && this.lastByte !== 13) && (e > m && (p = o.slice(m, e), this.push(p)), this.push(Buffer.from(`\r
 `)), m = e + 1);
-      m && m < p.length ? (r = p.slice(m), this.push(r)) : m || this.push(p), this.lastByte = p[p.length - 1], o();
+      m && m < o.length ? (p = o.slice(m), this.push(p)) : m || this.push(o), this.lastByte = o[o.length - 1], r();
     }
   }
-  return xe = k, xe;
+  return xe = T, xe;
 }
 var ge, it;
 function ii() {
   if (it) return ge;
   it = 1;
   const y = P.Transform;
-  class k extends y {
-    constructor(p) {
-      super(p), this.options = p || {};
+  class T extends y {
+    constructor(o) {
+      super(o), this.options = o || {};
     }
     /**
      * Escapes dots
      */
-    _transform(p, n, o) {
-      let r, m = 0;
-      for (let e = 0, l = p.length; e < l; e++)
-        p[e] === 13 && (r = p.slice(m, e), m = e + 1, this.push(r));
-      m && m < p.length ? (r = p.slice(m), this.push(r)) : m || this.push(p), o();
+    _transform(o, n, r) {
+      let p, m = 0;
+      for (let e = 0, l = o.length; e < l; e++)
+        o[e] === 13 && (p = o.slice(m, e), m = e + 1, this.push(p));
+      m && m < o.length ? (p = o.slice(m), this.push(p)) : m || this.push(o), r();
     }
   }
-  return ge = k, ge;
+  return ge = T, ge;
 }
 var ve, st;
 function Be() {
   if (st) return ve;
   st = 1;
-  const b = K, y = Ue, k = Ot(), f = P.PassThrough, p = q(), n = ne(), o = Ht(), r = Nt(), m = ei(), e = ae(), l = F(), c = ti(), s = qt(), x = ii();
+  const b = V, y = Ue, T = Ot(), f = P.PassThrough, o = q(), n = ne(), r = Ht(), p = Nt(), m = ei(), e = ae(), l = F(), c = ti(), s = qt(), x = ii();
   class g {
     constructor(t, i) {
       this.nodeCounter = 0, i = i || {}, this.baseBoundary = i.baseBoundary || b.randomBytes(8).toString("hex"), this.boundaryPrefix = i.boundaryPrefix || "--_NmP", this.disableFileAccess = !!i.disableFileAccess, this.disableUrlAccess = !!i.disableUrlAccess, this.normalizeHeaderKey = i.normalizeHeaderKey, this.date = /* @__PURE__ */ new Date(), this.rootNode = i.rootNode || this, this.keepBcc = !!i.keepBcc, i.filename && (this.filename = i.filename, t || (t = n.detectMimeType(this.filename.split(".").pop()))), this.textEncoding = (i.textEncoding || "").toString().trim().charAt(0).toUpperCase(), this.parentNode = i.parentNode, this.hostname = i.hostname, this.newline = i.newline, this.childNodes = [], this._nodeId = ++this.rootNode.nodeCounter, this._headers = [], this._isPlainText = !1, this._hasLongLines = !1, this._envelope = !1, this._raw = !1, this._transforms = [], this._processFuncs = [], t && this.setHeader("Content-Type", t);
@@ -3661,7 +3661,7 @@ function Be() {
     build(t) {
       let i;
       t || (i = new Promise((_, w) => {
-        t = p.callbackPromise(_, w);
+        t = o.callbackPromise(_, w);
       }));
       let d = this.createReadStream(), a = [], h = 0, u = !1;
       return d.on("readable", () => {
@@ -3787,12 +3787,12 @@ function Be() {
             return t.write(`\r
 --` + this.boundary + `--\r
 `), w();
-          let j = this.childNodes[A++];
+          let I = this.childNodes[A++];
           t.write((A > 1 ? `\r
 ` : "") + "--" + this.boundary + `\r
-`), j.stream(t, i, (T) => {
-            if (T)
-              return w(T);
+`), I.stream(t, i, (k) => {
+            if (k)
+              return w(k);
             setImmediate(C);
           });
         };
@@ -3806,22 +3806,22 @@ function Be() {
             return w(this.content);
           typeof this.content.pipe == "function" && (this.content.removeListener("error", this._contentErrorHandler), this._contentErrorHandler = (C) => w(C), this.content.once("error", this._contentErrorHandler));
           let A = () => {
-            ["quoted-printable", "base64"].includes(a) ? (h = new (a === "base64" ? r : o).Encoder(i), h.pipe(t, {
+            ["quoted-printable", "base64"].includes(a) ? (h = new (a === "base64" ? p : r).Encoder(i), h.pipe(t, {
               end: !1
             }), h.once("end", E), h.once("error", (C) => w(C)), u = this._getStream(this.content), u.pipe(h)) : (u = this._getStream(this.content), u.pipe(t, {
               end: !1
             }), u.once("end", E)), u.once("error", (C) => w(C));
           };
           if (this.content._resolve) {
-            let C = [], j = 0, T = !1, I = this._getStream(this.content);
-            I.on("error", (M) => {
-              T || (T = !0, w(M));
-            }), I.on("readable", () => {
+            let C = [], I = 0, k = !1, j = this._getStream(this.content);
+            j.on("error", (M) => {
+              k || (k = !0, w(M));
+            }), j.on("readable", () => {
               let M;
-              for (; (M = I.read()) !== null; )
-                C.push(M), j += M.length;
-            }), I.on("end", () => {
-              T || (T = !0, this.content._resolve = !1, this.content._resolvedValue = Buffer.concat(C, j), setImmediate(A));
+              for (; (M = j.read()) !== null; )
+                C.push(M), I += M.length;
+            }), j.on("end", () => {
+              k || (k = !0, this.content._resolve = !1, this.content._resolvedValue = Buffer.concat(C, I), setImmediate(A));
             });
           } else
             setImmediate(A);
@@ -4042,7 +4042,7 @@ function Be() {
         return t;
       let d = t.substr(0, i), a = t.substr(i + 1), h;
       try {
-        h = k.toASCII(a.toLowerCase());
+        h = T.toASCII(a.toLowerCase());
       } catch {
       }
       return d.indexOf(" ") >= 0 && (d.charAt(0) !== '"' && (d = '"' + d), d.substr(-1) !== '"' && (d = d + '"')), `${d}@${h}`;
@@ -4096,7 +4096,7 @@ var we, at;
 function si() {
   if (at) return we;
   at = 1;
-  const b = Be(), y = ne(), k = q().parseDataURI;
+  const b = Be(), y = ne(), T = q().parseDataURI;
   class f {
     constructor(n) {
       this.mail = n || {}, this.message = !1;
@@ -4112,8 +4112,8 @@ function si() {
           content: ""
         }
       ), this.mail.headers && this.message.addHeader(this.mail.headers), ["from", "sender", "to", "cc", "bcc", "reply-to", "in-reply-to", "references", "subject", "message-id", "date"].forEach((n) => {
-        let o = n.replace(/-(\w)/g, (r, m) => m.toUpperCase());
-        this.mail[o] && this.message.setHeader(n, this.mail[o]);
+        let r = n.replace(/-(\w)/g, (p, m) => m.toUpperCase());
+        this.mail[r] && this.message.setHeader(n, this.mail[r]);
       }), this.mail.envelope && this.message.setEnvelope(this.mail.envelope), this.message.messageId(), this.message;
     }
     /**
@@ -4123,7 +4123,7 @@ function si() {
      * @returns {Object} An object of arrays (`related` and `attached`)
      */
     getAttachments(n) {
-      let o, r, m = [].concat(this.mail.attachments || []).map((e, l) => {
+      let r, p, m = [].concat(this.mail.attachments || []).map((e, l) => {
         let c;
         /^data:/i.test(e.path || e.href) && (e = this._processDataUrl(e));
         let s = e.contentType || y.detectMimeType(e.filename || e.path || e.href || "bin"), x = /^image\//i.test(s), g = /^message\//i.test(s), v = e.contentDisposition || (g || x && e.cid ? "inline" : "attachment"), t;
@@ -4138,15 +4138,15 @@ function si() {
           httpHeaders: e.httpHeaders
         } : c.content = e.content || "", e.encoding && (c.encoding = e.encoding), e.headers && (c.headers = e.headers), c;
       });
-      return this.mail.icalEvent && (typeof this.mail.icalEvent == "object" && (this.mail.icalEvent.content || this.mail.icalEvent.path || this.mail.icalEvent.href || this.mail.icalEvent.raw) ? o = this.mail.icalEvent : o = {
+      return this.mail.icalEvent && (typeof this.mail.icalEvent == "object" && (this.mail.icalEvent.content || this.mail.icalEvent.path || this.mail.icalEvent.href || this.mail.icalEvent.raw) ? r = this.mail.icalEvent : r = {
         content: this.mail.icalEvent
-      }, r = {}, Object.keys(o).forEach((e) => {
-        r[e] = o[e];
-      }), r.contentType = "application/ics", r.headers || (r.headers = {}), r.filename = r.filename || "invite.ics", r.headers["Content-Disposition"] = "attachment", r.headers["Content-Transfer-Encoding"] = "base64"), n ? {
-        attached: m.filter((e) => !e.cid).concat(r || []),
+      }, p = {}, Object.keys(r).forEach((e) => {
+        p[e] = r[e];
+      }), p.contentType = "application/ics", p.headers || (p.headers = {}), p.filename = p.filename || "invite.ics", p.headers["Content-Disposition"] = "attachment", p.headers["Content-Transfer-Encoding"] = "base64"), n ? {
+        attached: m.filter((e) => !e.cid).concat(p || []),
         related: m.filter((e) => !!e.cid)
       } : {
-        attached: m.concat(r || []),
+        attached: m.concat(p || []),
         related: []
       };
     }
@@ -4156,10 +4156,10 @@ function si() {
      * @returns {Array} An array of alternative elements. Includes the `text` and `html` values as well
      */
     getAlternatives() {
-      let n = [], o, r, m, e, l, c;
-      return this.mail.text && (typeof this.mail.text == "object" && (this.mail.text.content || this.mail.text.path || this.mail.text.href || this.mail.text.raw) ? o = this.mail.text : o = {
+      let n = [], r, p, m, e, l, c;
+      return this.mail.text && (typeof this.mail.text == "object" && (this.mail.text.content || this.mail.text.path || this.mail.text.href || this.mail.text.raw) ? r = this.mail.text : r = {
         content: this.mail.text
-      }, o.contentType = "text/plain; charset=utf-8"), this.mail.watchHtml && (typeof this.mail.watchHtml == "object" && (this.mail.watchHtml.content || this.mail.watchHtml.path || this.mail.watchHtml.href || this.mail.watchHtml.raw) ? m = this.mail.watchHtml : m = {
+      }, r.contentType = "text/plain; charset=utf-8"), this.mail.watchHtml && (typeof this.mail.watchHtml == "object" && (this.mail.watchHtml.content || this.mail.watchHtml.path || this.mail.watchHtml.href || this.mail.watchHtml.raw) ? m = this.mail.watchHtml : m = {
         content: this.mail.watchHtml
       }, m.contentType = "text/watch-html; charset=utf-8"), this.mail.amp && (typeof this.mail.amp == "object" && (this.mail.amp.content || this.mail.amp.path || this.mail.amp.href || this.mail.amp.raw) ? e = this.mail.amp : e = {
         content: this.mail.amp
@@ -4167,9 +4167,9 @@ function si() {
         content: this.mail.icalEvent
       }, c = {}, Object.keys(l).forEach((s) => {
         c[s] = l[s];
-      }), c.content && typeof c.content == "object" && (c.content._resolve = !0), c.filename = !1, c.contentType = "text/calendar; charset=utf-8; method=" + (c.method || "PUBLISH").toString().trim().toUpperCase(), c.headers || (c.headers = {})), this.mail.html && (typeof this.mail.html == "object" && (this.mail.html.content || this.mail.html.path || this.mail.html.href || this.mail.html.raw) ? r = this.mail.html : r = {
+      }), c.content && typeof c.content == "object" && (c.content._resolve = !0), c.filename = !1, c.contentType = "text/calendar; charset=utf-8; method=" + (c.method || "PUBLISH").toString().trim().toUpperCase(), c.headers || (c.headers = {})), this.mail.html && (typeof this.mail.html == "object" && (this.mail.html.content || this.mail.html.path || this.mail.html.href || this.mail.html.raw) ? p = this.mail.html : p = {
         content: this.mail.html
-      }, r.contentType = "text/html; charset=utf-8"), [].concat(o || []).concat(m || []).concat(e || []).concat(r || []).concat(c || []).concat(this.mail.alternatives || []).forEach((s) => {
+      }, p.contentType = "text/html; charset=utf-8"), [].concat(r || []).concat(m || []).concat(e || []).concat(p || []).concat(c || []).concat(this.mail.alternatives || []).forEach((s) => {
         let x;
         /^data:/i.test(s.path || s.href) && (s = this._processDataUrl(s)), x = {
           contentType: s.contentType || y.detectMimeType(s.filename || s.path || s.href || "txt"),
@@ -4189,13 +4189,13 @@ function si() {
      * @returns {Object} MimeNode node element
      */
     _createMixed(n) {
-      let o;
-      return n ? o = n.createChild("multipart/mixed", {
+      let r;
+      return n ? r = n.createChild("multipart/mixed", {
         disableUrlAccess: this.mail.disableUrlAccess,
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }) : o = new b("multipart/mixed", {
+      }) : r = new b("multipart/mixed", {
         baseBoundary: this.mail.baseBoundary,
         textEncoding: this.mail.textEncoding,
         boundaryPrefix: this.mail.boundaryPrefix,
@@ -4203,9 +4203,9 @@ function si() {
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }), this._useAlternative ? this._createAlternative(o) : this._useRelated && this._createRelated(o), [].concat(!this._useAlternative && this._alternatives || []).concat(this._attachments.attached || []).forEach((r) => {
-        (!this._useRelated || r !== this._htmlNode) && this._createContentNode(o, r);
-      }), o;
+      }), this._useAlternative ? this._createAlternative(r) : this._useRelated && this._createRelated(r), [].concat(!this._useAlternative && this._alternatives || []).concat(this._attachments.attached || []).forEach((p) => {
+        (!this._useRelated || p !== this._htmlNode) && this._createContentNode(r, p);
+      }), r;
     }
     /**
      * Builds multipart/alternative node. It should always contain same type of elements on the same level
@@ -4215,13 +4215,13 @@ function si() {
      * @returns {Object} MimeNode node element
      */
     _createAlternative(n) {
-      let o;
-      return n ? o = n.createChild("multipart/alternative", {
+      let r;
+      return n ? r = n.createChild("multipart/alternative", {
         disableUrlAccess: this.mail.disableUrlAccess,
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }) : o = new b("multipart/alternative", {
+      }) : r = new b("multipart/alternative", {
         baseBoundary: this.mail.baseBoundary,
         textEncoding: this.mail.textEncoding,
         boundaryPrefix: this.mail.boundaryPrefix,
@@ -4229,9 +4229,9 @@ function si() {
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }), this._alternatives.forEach((r) => {
-        this._useRelated && this._htmlNode === r ? this._createRelated(o) : this._createContentNode(o, r);
-      }), o;
+      }), this._alternatives.forEach((p) => {
+        this._useRelated && this._htmlNode === p ? this._createRelated(r) : this._createContentNode(r, p);
+      }), r;
     }
     /**
      * Builds multipart/related node. It should always contain html node with related attachments
@@ -4240,13 +4240,13 @@ function si() {
      * @returns {Object} MimeNode node element
      */
     _createRelated(n) {
-      let o;
-      return n ? o = n.createChild('multipart/related; type="text/html"', {
+      let r;
+      return n ? r = n.createChild('multipart/related; type="text/html"', {
         disableUrlAccess: this.mail.disableUrlAccess,
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }) : o = new b('multipart/related; type="text/html"', {
+      }) : r = new b('multipart/related; type="text/html"', {
         baseBoundary: this.mail.baseBoundary,
         textEncoding: this.mail.textEncoding,
         boundaryPrefix: this.mail.boundaryPrefix,
@@ -4254,7 +4254,7 @@ function si() {
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }), this._createContentNode(o, this._htmlNode), this._attachments.related.forEach((r) => this._createContentNode(o, r)), o;
+      }), this._createContentNode(r, this._htmlNode), this._attachments.related.forEach((p) => this._createContentNode(r, p)), r;
     }
     /**
      * Creates a regular node with contents
@@ -4263,18 +4263,18 @@ function si() {
      * @param {Object} element Node data
      * @returns {Object} MimeNode node element
      */
-    _createContentNode(n, o) {
-      o = o || {}, o.content = o.content || "";
-      let r, m = (o.encoding || "utf8").toString().toLowerCase().replace(/[-_\s]/g, "");
-      return n ? r = n.createChild(o.contentType, {
-        filename: o.filename,
+    _createContentNode(n, r) {
+      r = r || {}, r.content = r.content || "";
+      let p, m = (r.encoding || "utf8").toString().toLowerCase().replace(/[-_\s]/g, "");
+      return n ? p = n.createChild(r.contentType, {
+        filename: r.filename,
         textEncoding: this.mail.textEncoding,
         disableUrlAccess: this.mail.disableUrlAccess,
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }) : r = new b(o.contentType, {
-        filename: o.filename,
+      }) : p = new b(r.contentType, {
+        filename: r.filename,
         baseBoundary: this.mail.baseBoundary,
         textEncoding: this.mail.textEncoding,
         boundaryPrefix: this.mail.boundaryPrefix,
@@ -4282,10 +4282,10 @@ function si() {
         disableFileAccess: this.mail.disableFileAccess,
         normalizeHeaderKey: this.mail.normalizeHeaderKey,
         newline: this.mail.newline
-      }), o.headers && r.addHeader(o.headers), o.cid && r.setHeader("Content-Id", "<" + o.cid.replace(/[<>]/g, "") + ">"), o.contentTransferEncoding ? r.setHeader("Content-Transfer-Encoding", o.contentTransferEncoding) : this.mail.encoding && /^text\//i.test(o.contentType) && r.setHeader("Content-Transfer-Encoding", this.mail.encoding), (!/^text\//i.test(o.contentType) || o.contentDisposition) && r.setHeader(
+      }), r.headers && p.addHeader(r.headers), r.cid && p.setHeader("Content-Id", "<" + r.cid.replace(/[<>]/g, "") + ">"), r.contentTransferEncoding ? p.setHeader("Content-Transfer-Encoding", r.contentTransferEncoding) : this.mail.encoding && /^text\//i.test(r.contentType) && p.setHeader("Content-Transfer-Encoding", this.mail.encoding), (!/^text\//i.test(r.contentType) || r.contentDisposition) && p.setHeader(
         "Content-Disposition",
-        o.contentDisposition || (o.cid && /^image\//i.test(o.contentType) ? "inline" : "attachment")
-      ), typeof o.content == "string" && !["utf8", "usascii", "ascii"].includes(m) && (o.content = Buffer.from(o.content, m)), o.raw ? r.setRaw(o.raw) : r.setContent(o.content), r;
+        r.contentDisposition || (r.cid && /^image\//i.test(r.contentType) ? "inline" : "attachment")
+      ), typeof r.content == "string" && !["utf8", "usascii", "ascii"].includes(m) && (r.content = Buffer.from(r.content, m)), r.raw ? p.setRaw(r.raw) : p.setContent(r.content), p;
     }
     /**
      * Parses data uri and converts it to a Buffer
@@ -4294,14 +4294,14 @@ function si() {
      * @return {Object} Parsed element
      */
     _processDataUrl(n) {
-      const o = n.path || n.href;
-      if (!o || typeof o != "string" || !o.startsWith("data:"))
+      const r = n.path || n.href;
+      if (!r || typeof r != "string" || !r.startsWith("data:"))
         return n;
-      if (o.length > 52428800) {
+      if (r.length > 52428800) {
         let m = "application/octet-stream";
-        const e = o.indexOf(",");
+        const e = r.indexOf(",");
         if (e > 0 && e < 200) {
-          const c = o.substring(5, e).split(";");
+          const c = r.substring(5, e).split(";");
           c[0] && c[0].includes("/") && (m = c[0].trim());
         }
         return Object.assign({}, n, {
@@ -4311,13 +4311,13 @@ function si() {
           contentType: n.contentType || m
         });
       }
-      let r;
+      let p;
       try {
-        r = k(o);
+        p = T(r);
       } catch {
         return n;
       }
-      return r && (n.content = r.data, n.contentType = n.contentType || r.contentType, "path" in n && (n.path = !1), "href" in n && (n.href = !1)), n;
+      return p && (n.content = p.data, n.contentType = n.contentType || p.contentType, "path" in n && (n.path = !1), "href" in n && (n.href = !1)), n;
     }
   }
   return we = f, we;
@@ -4337,11 +4337,11 @@ function ai() {
      * @param {Buffer} data Next data chunk from the stream
      */
     updateLastBytes(f) {
-      let p = this.lastBytes.length, n = Math.min(f.length, p);
-      for (let o = 0, r = p - n; o < r; o++)
-        this.lastBytes[o] = this.lastBytes[o + n];
-      for (let o = 1; o <= n; o++)
-        this.lastBytes[p - o] = f[f.length - o];
+      let o = this.lastBytes.length, n = Math.min(f.length, o);
+      for (let r = 0, p = o - n; r < p; r++)
+        this.lastBytes[r] = this.lastBytes[r + n];
+      for (let r = 1; r <= n; r++)
+        this.lastBytes[o - r] = f[f.length - r];
     }
     /**
      * Finds and removes message headers from the remaining body. We want to keep
@@ -4353,58 +4353,58 @@ function ai() {
     checkHeaders(f) {
       if (this.headersParsed)
         return !0;
-      let p = this.lastBytes.length, n = 0;
+      let o = this.lastBytes.length, n = 0;
       this.curLinePos = 0;
-      for (let o = 0, r = this.lastBytes.length + f.length; o < r; o++) {
+      for (let r = 0, p = this.lastBytes.length + f.length; r < p; r++) {
         let m;
-        if (o < p ? m = this.lastBytes[o] : m = f[o - p], m === 10 && o) {
-          let e = o - 1 < p ? this.lastBytes[o - 1] : f[o - 1 - p], l = o > 1 ? o - 2 < p ? this.lastBytes[o - 2] : f[o - 2 - p] : !1;
+        if (r < o ? m = this.lastBytes[r] : m = f[r - o], m === 10 && r) {
+          let e = r - 1 < o ? this.lastBytes[r - 1] : f[r - 1 - o], l = r > 1 ? r - 2 < o ? this.lastBytes[r - 2] : f[r - 2 - o] : !1;
           if (e === 10) {
-            this.headersParsed = !0, n = o - p + 1, this.headerBytes += n;
+            this.headersParsed = !0, n = r - o + 1, this.headerBytes += n;
             break;
           } else if (e === 13 && l === 10) {
-            this.headersParsed = !0, n = o - p + 1, this.headerBytes += n;
+            this.headersParsed = !0, n = r - o + 1, this.headerBytes += n;
             break;
           }
         }
       }
       if (this.headersParsed) {
         if (this.headerChunks.push(f.slice(0, n)), this.rawHeaders = Buffer.concat(this.headerChunks, this.headerBytes), this.headerChunks = null, this.emit("headers", this.parseHeaders()), f.length - 1 > n) {
-          let o = f.slice(n);
-          this.bodySize += o.length, setImmediate(() => this.push(o));
+          let r = f.slice(n);
+          this.bodySize += r.length, setImmediate(() => this.push(r));
         }
         return !1;
       } else
         this.headerBytes += f.length, this.headerChunks.push(f);
       return this.updateLastBytes(f), !1;
     }
-    _transform(f, p, n) {
+    _transform(f, o, n) {
       if (!f || !f.length)
         return n();
-      typeof f == "string" && (f = Buffer.from(f, p));
-      let o;
+      typeof f == "string" && (f = Buffer.from(f, o));
+      let r;
       try {
-        o = this.checkHeaders(f);
-      } catch (r) {
-        return n(r);
+        r = this.checkHeaders(f);
+      } catch (p) {
+        return n(p);
       }
-      o && (this.bodySize += f.length, this.push(f)), setImmediate(n);
+      r && (this.bodySize += f.length, this.push(f)), setImmediate(n);
     }
     _flush(f) {
       if (this.headerChunks) {
-        let p = Buffer.concat(this.headerChunks, this.headerBytes);
-        this.bodySize += p.length, this.push(p), this.headerChunks = null;
+        let o = Buffer.concat(this.headerChunks, this.headerBytes);
+        this.bodySize += o.length, this.push(o), this.headerChunks = null;
       }
       f();
     }
     parseHeaders() {
       let f = (this.rawHeaders || "").toString().split(/\r?\n/);
-      for (let p = f.length - 1; p > 0; p--)
-        /^\s/.test(f[p]) && (f[p - 1] += `
-` + f[p], f.splice(p, 1));
-      return f.filter((p) => p.trim()).map((p) => ({
-        key: p.substr(0, p.indexOf(":")).trim().toLowerCase(),
-        line: p
+      for (let o = f.length - 1; o > 0; o--)
+        /^\s/.test(f[o]) && (f[o - 1] += `
+` + f[o], f.splice(o, 1));
+      return f.filter((o) => o.trim()).map((o) => ({
+        key: o.substr(0, o.indexOf(":")).trim().toLowerCase(),
+        line: o
       }));
     }
   }
@@ -4414,80 +4414,80 @@ var be, ot;
 function ni() {
   if (ot) return be;
   ot = 1;
-  const b = P.Transform, y = K;
-  class k extends b {
-    constructor(p) {
-      super(), p = p || {}, this.chunkBuffer = [], this.chunkBufferLen = 0, this.bodyHash = y.createHash(p.hashAlgo || "sha1"), this.remainder = "", this.byteLength = 0, this.debug = p.debug, this._debugBody = p.debug ? [] : !1;
+  const b = P.Transform, y = V;
+  class T extends b {
+    constructor(o) {
+      super(), o = o || {}, this.chunkBuffer = [], this.chunkBufferLen = 0, this.bodyHash = y.createHash(o.hashAlgo || "sha1"), this.remainder = "", this.byteLength = 0, this.debug = o.debug, this._debugBody = o.debug ? [] : !1;
     }
-    updateHash(p) {
-      let n, o = "", r = "file";
-      for (let e = p.length - 1; e >= 0; e--) {
-        let l = p[e];
-        if (!(r === "file" && (l === 10 || l === 13))) {
-          if (r === "file" && (l === 9 || l === 32))
-            r = "line";
-          else if (!(r === "line" && (l === 9 || l === 32))) {
-            if ((r === "file" || r === "line") && (r = "body", e === p.length - 1))
+    updateHash(o) {
+      let n, r = "", p = "file";
+      for (let e = o.length - 1; e >= 0; e--) {
+        let l = o[e];
+        if (!(p === "file" && (l === 10 || l === 13))) {
+          if (p === "file" && (l === 9 || l === 32))
+            p = "line";
+          else if (!(p === "line" && (l === 9 || l === 32))) {
+            if ((p === "file" || p === "line") && (p = "body", e === o.length - 1))
               break;
           }
         }
         if (e === 0) {
-          if (r === "file" && (!this.remainder || /[\r\n]$/.test(this.remainder)) || r === "line" && (!this.remainder || /[ \t]$/.test(this.remainder))) {
-            this.remainder += p.toString("binary");
+          if (p === "file" && (!this.remainder || /[\r\n]$/.test(this.remainder)) || p === "line" && (!this.remainder || /[ \t]$/.test(this.remainder))) {
+            this.remainder += o.toString("binary");
             return;
-          } else if (r === "line" || r === "file") {
-            o = p.toString("binary"), p = !1;
+          } else if (p === "line" || p === "file") {
+            r = o.toString("binary"), o = !1;
             break;
           }
         }
-        if (r === "body") {
-          o = p.slice(e + 1).toString("binary"), p = p.slice(0, e + 1);
+        if (p === "body") {
+          r = o.slice(e + 1).toString("binary"), o = o.slice(0, e + 1);
           break;
         }
       }
       let m = !!this.remainder;
-      if (p && !m) {
-        for (let e = 0, l = p.length; e < l; e++)
-          if (e && p[e] === 10 && p[e - 1] !== 13) {
+      if (o && !m) {
+        for (let e = 0, l = o.length; e < l; e++)
+          if (e && o[e] === 10 && o[e - 1] !== 13) {
             m = !0;
             break;
-          } else if (e && p[e] === 13 && p[e - 1] === 32) {
+          } else if (e && o[e] === 13 && o[e - 1] === 32) {
             m = !0;
             break;
-          } else if (e && p[e] === 32 && p[e - 1] === 32) {
+          } else if (e && o[e] === 32 && o[e - 1] === 32) {
             m = !0;
             break;
-          } else if (p[e] === 9) {
+          } else if (o[e] === 9) {
             m = !0;
             break;
           }
       }
-      m ? (n = this.remainder + (p ? p.toString("binary") : ""), this.remainder = o, n = n.replace(/\r?\n/g, `
+      m ? (n = this.remainder + (o ? o.toString("binary") : ""), this.remainder = r, n = n.replace(/\r?\n/g, `
 `).replace(/[ \t]*$/gm, "").replace(/[ \t]+/gm, " ").replace(/\n/g, `\r
-`), p = Buffer.from(n, "binary")) : o && (this.remainder = o), this.debug && this._debugBody.push(p), this.bodyHash.update(p);
+`), o = Buffer.from(n, "binary")) : r && (this.remainder = r), this.debug && this._debugBody.push(o), this.bodyHash.update(o);
     }
-    _transform(p, n, o) {
-      if (!p || !p.length)
-        return o();
-      typeof p == "string" && (p = Buffer.from(p, n)), this.updateHash(p), this.byteLength += p.length, this.push(p), o();
+    _transform(o, n, r) {
+      if (!o || !o.length)
+        return r();
+      typeof o == "string" && (o = Buffer.from(o, n)), this.updateHash(o), this.byteLength += o.length, this.push(o), r();
     }
-    _flush(p) {
+    _flush(o) {
       /[\r\n]$/.test(this.remainder) && this.byteLength > 2 && this.bodyHash.update(Buffer.from(`\r
 `)), this.byteLength || this.push(Buffer.from(`\r
-`)), this.emit("hash", this.bodyHash.digest("base64"), this.debug ? Buffer.concat(this._debugBody) : !1), p();
+`)), this.emit("hash", this.bodyHash.digest("base64"), this.debug ? Buffer.concat(this._debugBody) : !1), o();
     }
   }
-  return be = k, be;
+  return be = T, be;
 }
 var se = { exports: {} }, rt;
 function oi() {
   if (rt) return se.exports;
   rt = 1;
-  const b = Ot(), y = ne(), k = K;
-  se.exports = (o, r, m, e) => {
+  const b = Ot(), y = ne(), T = V;
+  se.exports = (r, p, m, e) => {
     e = e || {};
-    let c = e.headerFieldNames || "From:Sender:Reply-To:Subject:Date:Message-ID:To:Cc:MIME-Version:Content-Type:Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive", s = p(o, c, e.skipFields), x = f(e.domainName, e.keySelector, s.fieldNames, r, m), g, v;
-    s.headers += "dkim-signature:" + n(x), g = k.createSign(("rsa-" + r).toUpperCase()), g.update(s.headers);
+    let c = e.headerFieldNames || "From:Sender:Reply-To:Subject:Date:Message-ID:To:Cc:MIME-Version:Content-Type:Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive", s = o(r, c, e.skipFields), x = f(e.domainName, e.keySelector, s.fieldNames, p, m), g, v;
+    s.headers += "dkim-signature:" + n(x), g = T.createSign(("rsa-" + p).toUpperCase()), g.update(s.headers);
     try {
       v = g.sign(e.privateKey, "base64");
     } catch {
@@ -4495,30 +4495,30 @@ function oi() {
     }
     return x + v.replace(/(^.{73}|.{75}(?!\r?\n|\r))/g, `$&\r
  `).trim();
-  }, se.exports.relaxedHeaders = p;
-  function f(o, r, m, e, l) {
+  }, se.exports.relaxedHeaders = o;
+  function f(r, p, m, e, l) {
     let c = [
       "v=1",
       "a=rsa-" + e,
       "c=relaxed/relaxed",
-      "d=" + b.toASCII(o),
+      "d=" + b.toASCII(r),
       "q=dns/txt",
-      "s=" + r,
+      "s=" + p,
       "bh=" + l,
       "h=" + m
     ].join("; ");
     return y.foldLines("DKIM-Signature: " + c, 76) + `;\r
  b=`;
   }
-  function p(o, r, m) {
+  function o(r, p, m) {
     let e = /* @__PURE__ */ new Set(), l = /* @__PURE__ */ new Set(), c = /* @__PURE__ */ new Map();
     (m || "").toLowerCase().split(":").forEach((g) => {
       l.add(g.trim());
-    }), (r || "").toLowerCase().split(":").filter((g) => !l.has(g.trim())).forEach((g) => {
+    }), (p || "").toLowerCase().split(":").filter((g) => !l.has(g.trim())).forEach((g) => {
       e.add(g.trim());
     });
-    for (let g = o.length - 1; g >= 0; g--) {
-      let v = o[g];
+    for (let g = r.length - 1; g >= 0; g--) {
+      let v = r[g];
       e.has(v.key) && !c.has(v.key) && c.set(v.key, n(v.line));
     }
     let s = [], x = [];
@@ -4531,8 +4531,8 @@ function oi() {
       fieldNames: x.join(":")
     };
   }
-  function n(o) {
-    return o.substr(o.indexOf(":") + 1).replace(/\r?\n/g, "").replace(/\s+/g, " ").trim();
+  function n(r) {
+    return r.substr(r.indexOf(":") + 1).replace(/\r?\n/g, "").replace(/\s+/g, " ").trim();
   }
   return se.exports;
 }
@@ -4540,18 +4540,18 @@ var Ee, pt;
 function ri() {
   if (pt) return Ee;
   pt = 1;
-  const b = ai(), y = ni(), k = oi(), f = P.PassThrough, p = Ue, n = At, o = K, r = "sha256", m = 2 * 1024 * 1024;
+  const b = ai(), y = ni(), T = oi(), f = P.PassThrough, o = Ue, n = At, r = V, p = "sha256", m = 2 * 1024 * 1024;
   class e {
     constructor(s, x, g, v) {
-      this.options = s || {}, this.keys = x, this.cacheTreshold = Number(this.options.cacheTreshold) || m, this.hashAlgo = this.options.hashAlgo || r, this.cacheDir = this.options.cacheDir || !1, this.chunks = [], this.chunklen = 0, this.readPos = 0, this.cachePath = this.cacheDir ? n.join(this.cacheDir, "message." + Date.now() + "-" + o.randomBytes(14).toString("hex")) : !1, this.cache = !1, this.headers = !1, this.bodyHash = !1, this.parser = !1, this.relaxedBody = !1, this.input = g, this.output = v, this.output.usingCache = !1, this.hasErrored = !1, this.input.on("error", (t) => {
+      this.options = s || {}, this.keys = x, this.cacheTreshold = Number(this.options.cacheTreshold) || m, this.hashAlgo = this.options.hashAlgo || p, this.cacheDir = this.options.cacheDir || !1, this.chunks = [], this.chunklen = 0, this.readPos = 0, this.cachePath = this.cacheDir ? n.join(this.cacheDir, "message." + Date.now() + "-" + r.randomBytes(14).toString("hex")) : !1, this.cache = !1, this.headers = !1, this.bodyHash = !1, this.parser = !1, this.relaxedBody = !1, this.input = g, this.output = v, this.output.usingCache = !1, this.hasErrored = !1, this.input.on("error", (t) => {
         this.hasErrored = !0, this.cleanup(), v.emit("error", t);
       });
     }
     cleanup() {
-      !this.cache || !this.cachePath || p.unlink(this.cachePath, () => !1);
+      !this.cache || !this.cachePath || o.unlink(this.cachePath, () => !1);
     }
     createReadCache() {
-      this.cache = p.createReadStream(this.cachePath), this.cache.once("error", (s) => {
+      this.cache = o.createReadStream(this.cachePath), this.cache.once("error", (s) => {
         this.cleanup(), this.output.emit("error", s);
       }), this.cache.once("close", () => {
         this.cleanup();
@@ -4573,7 +4573,7 @@ function ri() {
       let s = 0, x = () => {
         if (s >= this.keys.length)
           return this.output.write(this.parser.rawHeaders), setImmediate(() => this.sendNextChunk());
-        let g = this.keys[s++], v = k(this.headers, this.hashAlgo, this.bodyHash, {
+        let g = this.keys[s++], v = T(this.headers, this.hashAlgo, this.bodyHash, {
           domainName: g.domainName,
           keySelector: g.keySelector,
           privateKey: g.privateKey,
@@ -4588,7 +4588,7 @@ function ri() {
       this.output.write(this.parser.rawHeaders), this.sendNextChunk();
     }
     createWriteCache() {
-      this.output.usingCache = !0, this.cache = p.createWriteStream(this.cachePath), this.cache.once("error", (s) => {
+      this.output.usingCache = !0, this.cache = o.createWriteStream(this.cachePath), this.cache.once("error", (s) => {
         this.cleanup(), this.relaxedBody.unpipe(this.cache), this.relaxedBody.on("readable", () => {
           for (; this.relaxedBody.read() !== null; )
             ;
@@ -4649,9 +4649,9 @@ var ye, lt;
 function pi() {
   if (lt) return ye;
   lt = 1;
-  const b = te, y = Mt, k = ee, f = F();
-  function p(n, o, r, m) {
-    let e = k.parse(n), l, c, s;
+  const b = te, y = Mt, T = ee, f = F();
+  function o(n, r, p, m) {
+    let e = T.parse(n), l, c, s;
     l = {
       host: e.hostname,
       port: Number(e.port) ? Number(e.port) : e.protocol === "https:" ? 443 : 80
@@ -4673,12 +4673,12 @@ function pi() {
       if (x)
         return;
       let t = {
-        Host: r + ":" + o,
+        Host: p + ":" + r,
         Connection: "close"
       };
       e.auth && (t["Proxy-Authorization"] = "Basic " + Buffer.from(e.auth).toString("base64")), s.write(
         // HTTP method
-        "CONNECT " + r + ":" + o + ` HTTP/1.1\r
+        "CONNECT " + p + ":" + r + ` HTTP/1.1\r
 ` + // HTTP request headers
         Object.keys(t).map((a) => a + ": " + t[a]).join(`\r
 `) + // End request
@@ -4701,34 +4701,34 @@ function pi() {
         }
       };
       s.on("data", d);
-    }), s.setTimeout(p.timeout || 30 * 1e3), s.on("timeout", v), s.once("error", g);
+    }), s.setTimeout(o.timeout || 30 * 1e3), s.on("timeout", v), s.once("error", g);
   }
-  return ye = p, ye;
+  return ye = o, ye;
 }
 var Se, ct;
 function li() {
   if (ct) return Se;
   ct = 1;
-  const b = q(), y = Be(), k = ne();
+  const b = q(), y = Be(), T = ne();
   class f {
-    constructor(n, o) {
-      this.mailer = n, this.data = {}, this.message = null, o = o || {};
-      let r = n.options || {}, m = n._defaults || {};
-      Object.keys(o).forEach((e) => {
-        this.data[e] = o[e];
+    constructor(n, r) {
+      this.mailer = n, this.data = {}, this.message = null, r = r || {};
+      let p = n.options || {}, m = n._defaults || {};
+      Object.keys(r).forEach((e) => {
+        this.data[e] = r[e];
       }), this.data.headers = this.data.headers || {}, Object.keys(m).forEach((e) => {
         e in this.data ? e === "headers" && Object.keys(m.headers).forEach((l) => {
           l in this.data.headers || (this.data.headers[l] = m.headers[l]);
         }) : this.data[e] = m[e];
       }), ["disableFileAccess", "disableUrlAccess", "normalizeHeaderKey"].forEach((e) => {
-        e in r && (this.data[e] = r[e]);
+        e in p && (this.data[e] = p[e]);
       });
     }
     resolveContent(...n) {
       return b.resolveContent(...n);
     }
     resolveAll(n) {
-      let o = [
+      let r = [
         [this.data, "html"],
         [this.data, "text"],
         [this.data, "watchHtml"],
@@ -4736,21 +4736,21 @@ function li() {
         [this.data, "icalEvent"]
       ];
       this.data.alternatives && this.data.alternatives.length && this.data.alternatives.forEach((s, x) => {
-        o.push([this.data.alternatives, x]);
+        r.push([this.data.alternatives, x]);
       }), this.data.attachments && this.data.attachments.length && this.data.attachments.forEach((s, x) => {
-        s.filename || (s.filename = (s.path || s.href || "").split("/").pop().split("?").shift() || "attachment-" + (x + 1), s.filename.indexOf(".") < 0 && (s.filename += "." + k.detectExtension(s.contentType))), s.contentType || (s.contentType = k.detectMimeType(s.filename || s.path || s.href || "bin")), o.push([this.data.attachments, x]);
+        s.filename || (s.filename = (s.path || s.href || "").split("/").pop().split("?").shift() || "attachment-" + (x + 1), s.filename.indexOf(".") < 0 && (s.filename += "." + T.detectExtension(s.contentType))), s.contentType || (s.contentType = T.detectMimeType(s.filename || s.path || s.href || "bin")), r.push([this.data.attachments, x]);
       });
-      let r = new y();
+      let p = new y();
       ["from", "to", "cc", "bcc", "sender", "replyTo"].forEach((s) => {
         let x;
-        this.message ? x = [].concat(r._parseAddresses(this.message.getHeader(s === "replyTo" ? "reply-to" : s)) || []) : this.data[s] && (x = [].concat(r._parseAddresses(this.data[s]) || [])), x && x.length ? this.data[s] = x : s in this.data && (this.data[s] = null);
+        this.message ? x = [].concat(p._parseAddresses(this.message.getHeader(s === "replyTo" ? "reply-to" : s)) || []) : this.data[s] && (x = [].concat(p._parseAddresses(this.data[s]) || [])), x && x.length ? this.data[s] = x : s in this.data && (this.data[s] = null);
       }), ["from", "sender"].forEach((s) => {
         this.data[s] && (this.data[s] = this.data[s].shift());
       });
       let l = 0, c = () => {
-        if (l >= o.length)
+        if (l >= r.length)
           return n(null, this.data);
-        let s = o[l++];
+        let s = r[l++];
         if (!s[0] || !s[0][s[1]])
           return c();
         b.resolveContent(...s, (x, g) => {
@@ -4767,8 +4767,8 @@ function li() {
       setImmediate(() => c());
     }
     normalize(n) {
-      let o = this.data.envelope || this.message.getEnvelope(), r = this.message.messageId();
-      this.resolveAll((m, e) => m ? n(m) : (e.envelope = o, e.messageId = r, ["html", "text", "watchHtml", "amp"].forEach((l) => {
+      let r = this.data.envelope || this.message.getEnvelope(), p = this.message.messageId();
+      this.resolveAll((m, e) => m ? n(m) : (e.envelope = r, e.messageId = p, ["html", "text", "watchHtml", "amp"].forEach((l) => {
         e[l] && e[l].content && (typeof e[l].content == "string" ? e[l] = e[l].content : Buffer.isBuffer(e[l].content) && (e[l] = e[l].content.toString()));
       }), e.icalEvent && Buffer.isBuffer(e.icalEvent.content) && (e.icalEvent.content = e.icalEvent.content.toString("base64"), e.icalEvent.encoding = "base64"), e.alternatives && e.alternatives.length && e.alternatives.forEach((l) => {
         l && l.content && Buffer.isBuffer(l.content) && (l.content = l.content.toString("base64"), l.encoding = "base64");
@@ -4797,27 +4797,27 @@ function li() {
     }
     setListHeaders() {
       !this.message || !this.data.list || typeof this.data.list != "object" || this.data.list && typeof this.data.list == "object" && this._getListHeaders(this.data.list).forEach((n) => {
-        n.value.forEach((o) => {
-          this.message.addHeader(n.key, o);
+        n.value.forEach((r) => {
+          this.message.addHeader(n.key, r);
         });
       });
     }
     _getListHeaders(n) {
-      return Object.keys(n).map((o) => ({
-        key: "list-" + o.toLowerCase().trim(),
-        value: [].concat(n[o] || []).map((r) => ({
+      return Object.keys(n).map((r) => ({
+        key: "list-" + r.toLowerCase().trim(),
+        value: [].concat(n[r] || []).map((p) => ({
           prepared: !0,
           foldLines: !0,
-          value: [].concat(r || []).map((m) => {
+          value: [].concat(p || []).map((m) => {
             if (typeof m == "string" && (m = {
               url: m
             }), m && m.url) {
-              if (o.toLowerCase().trim() === "id") {
+              if (r.toLowerCase().trim() === "id") {
                 let l = m.comment || "";
-                return k.isPlainText(l) ? l = '"' + l + '"' : l = k.encodeWord(l), (m.comment ? l + " " : "") + this._formatListUrl(m.url).replace(/^<[^:]+\/{,2}/, "");
+                return T.isPlainText(l) ? l = '"' + l + '"' : l = T.encodeWord(l), (m.comment ? l + " " : "") + this._formatListUrl(m.url).replace(/^<[^:]+\/{,2}/, "");
               }
               let e = m.comment || "";
-              return k.isPlainText(e) || (e = k.encodeWord(e)), this._formatListUrl(m.url) + (m.comment ? " (" + e + ")" : "");
+              return T.isPlainText(e) || (e = T.encodeWord(e)), this._formatListUrl(m.url) + (m.comment ? " (" + e + ")" : "");
             }
             return "";
           }).filter((m) => m).join(", ")
@@ -4834,7 +4834,7 @@ var Te, dt;
 function ci() {
   if (dt) return Te;
   dt = 1;
-  const b = V, y = q(), k = Lt(), f = si(), p = ri(), n = pi(), o = F(), r = Ct, m = ee, e = D, l = li(), c = te, s = It, x = K;
+  const b = X, y = q(), T = Lt(), f = si(), o = ri(), n = pi(), r = F(), p = Ct, m = ee, e = D, l = li(), c = te, s = jt, x = V;
   class g extends b {
     constructor(t, i, d) {
       super(), this.options = i || {}, this._defaults = d || {}, this._defaultPlugins = {
@@ -4843,7 +4843,7 @@ function ci() {
       }, this._userPlugins = {
         compile: [],
         stream: []
-      }, this.meta = /* @__PURE__ */ new Map(), this.dkim = this.options.dkim ? new p(this.options.dkim) : !1, this.transporter = t, this.transporter.mailer = this, this.logger = y.getLogger(this.options, {
+      }, this.meta = /* @__PURE__ */ new Map(), this.dkim = this.options.dkim ? new o(this.options.dkim) : !1, this.transporter = t, this.transporter.mailer = this, this.logger = y.getLogger(this.options, {
         component: this.options.component || "mail"
       }), this.logger.debug(
         {
@@ -4932,7 +4932,7 @@ function ci() {
               u.message
             ), i(u);
           (a.data.dkim || this.dkim) && a.message.processFunc((_) => {
-            let w = a.data.dkim ? new p(a.data.dkim) : this.dkim;
+            let w = a.data.dkim ? new o(a.data.dkim) : this.dkim;
             return this.logger.debug(
               {
                 tnx: "DKIM",
@@ -4957,7 +4957,7 @@ function ci() {
       }), d;
     }
     getVersionString() {
-      return r.format(
+      return p.format(
         "%s (%s; +%s; %s/%s)",
         e.name,
         e.version,
@@ -5022,7 +5022,7 @@ function ci() {
           case "socks4a": {
             if (!this.meta.has("proxy_socks_module")) {
               let w = new Error("Socks module not loaded");
-              return w.code = o.EPROXY, a(w);
+              return w.code = r.EPROXY, a(w);
             }
             let _ = (w) => {
               let E = !!this.meta.get("proxy_socks_module").SocksClient, S = E ? this.meta.get("proxy_socks_module").SocksClient : this.meta.get("proxy_socks_module"), A = Number(i.protocol.replace(/\D/g, "")) || 5, C = {
@@ -5038,14 +5038,14 @@ function ci() {
                 command: "connect"
               };
               if (i.auth) {
-                let j = decodeURIComponent(i.auth.split(":").shift()), T = decodeURIComponent(i.auth.split(":").pop());
-                E ? (C.proxy.userId = j, C.proxy.password = T) : A === 4 ? C.userid = j : C.authentication = {
-                  username: j,
-                  password: T
+                let I = decodeURIComponent(i.auth.split(":").shift()), k = decodeURIComponent(i.auth.split(":").pop());
+                E ? (C.proxy.userId = I, C.proxy.password = k) : A === 4 ? C.userid = I : C.authentication = {
+                  username: I,
+                  password: k
                 };
               }
-              S.createConnection(C, (j, T) => j ? a(j) : a(null, {
-                connection: T.socket || T
+              S.createConnection(C, (I, k) => I ? a(I) : a(null, {
+                connection: k.socket || k
               }));
             };
             return c.isIP(i.hostname) ? _(i.hostname) : s.resolve(i.hostname, (w, E) => {
@@ -5056,7 +5056,7 @@ function ci() {
           }
         }
         let u = new Error("Unknown proxy configuration");
-        u.code = o.EPROXY, a(u);
+        u.code = r.EPROXY, a(u);
       };
     }
     _convertDataImages(t, i) {
@@ -5071,7 +5071,7 @@ function ci() {
           return t.data.attachments || (t.data.attachments = []), Array.isArray(t.data.attachments) || (t.data.attachments = [].concat(t.data.attachments || [])), t.data.attachments.push({
             path: w,
             cid: S,
-            filename: "image-" + ++h + "." + k.detectExtension(E)
+            filename: "image-" + ++h + "." + T.detectExtension(E)
           }), _ + "cid:" + S;
         }), t.data.html = a, i();
       });
@@ -5090,46 +5090,46 @@ function di() {
   if (mt) return ke;
   mt = 1;
   const y = P.Transform;
-  class k extends y {
-    constructor(p) {
-      super(p), this.options = p || {}, this._curLine = "", this.inByteCount = 0, this.outByteCount = 0, this.lastByte = !1;
+  class T extends y {
+    constructor(o) {
+      super(o), this.options = o || {}, this._curLine = "", this.inByteCount = 0, this.outByteCount = 0, this.lastByte = !1;
     }
     /**
      * Escapes dots
      */
-    _transform(p, n, o) {
-      let r = [], m = 0, e, l, c = 0, s;
-      if (!p || !p.length)
-        return o();
-      for (typeof p == "string" && (p = Buffer.from(p)), this.inByteCount += p.length, e = 0, l = p.length; e < l; e++)
-        p[e] === 46 ? (e && p[e - 1] === 10 || !e && (!this.lastByte || this.lastByte === 10)) && (s = p.slice(c, e + 1), r.push(s), r.push(Buffer.from(".")), m += s.length + 1, c = e + 1) : p[e] === 10 && (e && p[e - 1] !== 13 || !e && this.lastByte !== 13) && (e > c ? (s = p.slice(c, e), r.push(s), m += s.length + 2) : m += 2, r.push(Buffer.from(`\r
+    _transform(o, n, r) {
+      let p = [], m = 0, e, l, c = 0, s;
+      if (!o || !o.length)
+        return r();
+      for (typeof o == "string" && (o = Buffer.from(o)), this.inByteCount += o.length, e = 0, l = o.length; e < l; e++)
+        o[e] === 46 ? (e && o[e - 1] === 10 || !e && (!this.lastByte || this.lastByte === 10)) && (s = o.slice(c, e + 1), p.push(s), p.push(Buffer.from(".")), m += s.length + 1, c = e + 1) : o[e] === 10 && (e && o[e - 1] !== 13 || !e && this.lastByte !== 13) && (e > c ? (s = o.slice(c, e), p.push(s), m += s.length + 2) : m += 2, p.push(Buffer.from(`\r
 `)), c = e + 1);
-      m ? (c < p.length && (s = p.slice(c), r.push(s), m += s.length), this.outByteCount += m, this.push(Buffer.concat(r, m))) : (this.outByteCount += p.length, this.push(p)), this.lastByte = p[p.length - 1], o();
+      m ? (c < o.length && (s = o.slice(c), p.push(s), m += s.length), this.outByteCount += m, this.push(Buffer.concat(p, m))) : (this.outByteCount += o.length, this.push(o)), this.lastByte = o[o.length - 1], r();
     }
     /**
      * Finalizes the stream with a dot on a single line
      */
-    _flush(p) {
+    _flush(o) {
       let n;
       this.lastByte === 10 ? n = Buffer.from(`.\r
 `) : this.lastByte === 13 ? n = Buffer.from(`
 .\r
 `) : n = Buffer.from(`\r
 .\r
-`), this.outByteCount += n.length, this.push(n), p();
+`), this.outByteCount += n.length, this.push(n), o();
     }
   }
-  return ke = k, ke;
+  return ke = T, ke;
 }
 var Ae, ht;
 function De() {
   if (ht) return Ae;
   ht = 1;
-  const b = D, y = V.EventEmitter, k = te, f = Mt, p = jt, n = K, o = di(), r = P.PassThrough, m = q(), e = 120 * 1e3, l = 600 * 1e3, c = 30 * 1e3, s = 30 * 1e3, x = () => {
+  const b = D, y = X.EventEmitter, T = te, f = Mt, o = It, n = V, r = di(), p = P.PassThrough, m = q(), e = 120 * 1e3, l = 600 * 1e3, c = 30 * 1e3, s = 30 * 1e3, x = () => {
   };
   class g extends y {
     constructor(t) {
-      super(t), this.id = n.randomBytes(8).toString("base64").replace(/\W/g, ""), this.stage = "init", this.options = t || {}, this.secureConnection = !!this.options.secure, this.alreadySecured = !!this.options.secured, this.port = Number(this.options.port) || (this.secureConnection ? 465 : 587), this.host = this.options.host || "localhost", this.servername = this.options.servername ? this.options.servername : k.isIP(this.host) ? !1 : this.host, this.allowInternalNetworkInterfaces = this.options.allowInternalNetworkInterfaces || !1, typeof this.options.secure > "u" && this.port === 465 && (this.secureConnection = !0), this.name = this.options.name || this._getHostname(), this.logger = m.getLogger(this.options, {
+      super(t), this.id = n.randomBytes(8).toString("base64").replace(/\W/g, ""), this.stage = "init", this.options = t || {}, this.secureConnection = !!this.options.secure, this.alreadySecured = !!this.options.secured, this.port = Number(this.options.port) || (this.secureConnection ? 465 : 587), this.host = this.options.host || "localhost", this.servername = this.options.servername ? this.options.servername : T.isIP(this.host) ? !1 : this.host, this.allowInternalNetworkInterfaces = this.options.allowInternalNetworkInterfaces || !1, typeof this.options.secure > "u" && this.port === 465 && (this.secureConnection = !0), this.name = this.options.name || this._getHostname(), this.logger = m.getLogger(this.options, {
         component: this.options.component || "smtp-connection",
         sid: this.id
       }), this.customAuth = /* @__PURE__ */ new Map(), Object.keys(this.options.customAuth || {}).forEach((i) => {
@@ -5243,7 +5243,7 @@ function De() {
     _connectToHost(t, i) {
       this._connectionAttemptId++;
       const d = this._connectionAttemptId;
-      let a = i ? f.connect : k.connect;
+      let a = i ? f.connect : T.connect;
       try {
         this._socket = a(t, () => {
           this._connectionAttemptId === d && (this._socket.setKeepAlive(!0), this._onConnect());
@@ -5358,15 +5358,15 @@ function De() {
           maxAllowedSize: this._maxAllowedSize || !1,
           sendCommand: (S, A) => {
             let C;
-            return A || (C = new Promise((j, T) => {
-              A = m.callbackPromise(j, T);
-            })), this._responseActions.push((j) => {
-              h = j;
-              let T = j.match(/^(\d+)(?:\s(\d+\.\d+\.\d+))?\s/), I = {
+            return A || (C = new Promise((I, k) => {
+              A = m.callbackPromise(I, k);
+            })), this._responseActions.push((I) => {
+              h = I;
+              let k = I.match(/^(\d+)(?:\s(\d+\.\d+\.\d+))?\s/), j = {
                 command: S,
-                response: j
+                response: I
               };
-              T ? (I.status = Number(T[1]) || 0, T[2] && (I.code = T[2]), I.text = j.substr(T[0].length)) : (I.text = j, I.status = 0), A(null, I);
+              k ? (j.status = Number(k[1]) || 0, k[2] && (j.code = k[2]), j.text = I.substr(k[0].length)) : (j.text = I, j.status = 0), A(null, j);
             }), setImmediate(() => this._sendCommand(S)), C;
           },
           resolve: _,
@@ -5435,10 +5435,10 @@ function De() {
       let _ = Date.now();
       this._setEnvelope(t, (w, E) => {
         if (w) {
-          let C = new r();
+          let C = new p();
           return typeof i.pipe == "function" ? i.pipe(C) : (C.write(i), C.end()), u(w);
         }
-        let S = Date.now(), A = this._createSendStream((C, j) => C ? u(C) : (E.envelopeTime = S - _, E.messageTime = Date.now() - S, E.messageSize = A.outByteCount, E.response = j, u(null, E)));
+        let S = Date.now(), A = this._createSendStream((C, I) => C ? u(C) : (E.envelopeTime = S - _, E.messageTime = Date.now() - S, E.messageSize = A.outByteCount, E.response = I, u(null, E)));
         typeof i.pipe == "function" ? i.pipe(A) : (A.write(i), A.end());
       });
     }
@@ -5708,7 +5708,7 @@ function De() {
       return this._envelope.dsn && this._supportedExtensions.includes("DSN") && (this._envelope.dsn.notify && t.push("NOTIFY=" + m.encodeXText(this._envelope.dsn.notify)), this._envelope.dsn.orcpt && t.push("ORCPT=" + m.encodeXText(this._envelope.dsn.orcpt))), t.length ? " " + t.join(" ") : "";
     }
     _createSendStream(t) {
-      let i = new o(), d;
+      let i = new r(), d;
       return this.options.lmtp ? this._envelope.accepted.forEach((a, h) => {
         let u = h === this._envelope.accepted.length - 1;
         this._responseActions.push((_) => {
@@ -5718,7 +5718,7 @@ function De() {
         this._actionSMTPStream(a, t);
       }), i.pipe(this._socket, {
         end: !1
-      }), this.options.debug && (d = new r(), d.on("readable", () => {
+      }), this.options.debug && (d = new p(), d.on("readable", () => {
         let a;
         for (; a = d.read(); )
           this.logger.debug(
@@ -6087,7 +6087,7 @@ function De() {
     _getHostname() {
       let t;
       try {
-        t = p.hostname() || "";
+        t = o.hostname() || "";
       } catch {
         t = "localhost";
       }
@@ -6100,13 +6100,13 @@ var Ce, ut;
 function Rt() {
   if (ut) return Ce;
   ut = 1;
-  const b = P.Stream, y = ae(), k = K, f = q(), p = F();
+  const b = P.Stream, y = ae(), T = V, f = q(), o = F();
   class n extends b {
-    constructor(r, m) {
-      if (super(), this.options = r || {}, r && r.serviceClient) {
-        if (!r.privateKey || !r.user) {
+    constructor(p, m) {
+      if (super(), this.options = p || {}, p && p.serviceClient) {
+        if (!p.privateKey || !p.user) {
           let l = new Error('Options "privateKey" and "user" are required for service account!');
-          l.code = p.EOAUTH2, setImmediate(() => this.emit("error", l));
+          l.code = o.EOAUTH2, setImmediate(() => this.emit("error", l));
           return;
         }
         let e = Math.min(Math.max(Number(this.options.serviceRequestTimeout) || 0, 0), 3600);
@@ -6133,8 +6133,8 @@ function Rt() {
      * @param {Boolean} renew If false then use cached access token (if available)
      * @param {Function} callback Callback function with error object and token string
      */
-    getToken(r, m) {
-      if (!r && this.accessToken && (!this.expires || this.expires > Date.now()))
+    getToken(p, m) {
+      if (!p && this.accessToken && (!this.expires || this.expires > Date.now()))
         return this.logger.debug(
           {
             tnx: "OAUTH2",
@@ -6165,10 +6165,10 @@ function Rt() {
           this.options.user
         );
         let l = new Error("Can't create new access token for user");
-        return l.code = p.EOAUTH2, m(l);
+        return l.code = o.EOAUTH2, m(l);
       }
       if (this.renewing)
-        return this.renewalQueue.push({ renew: r, callback: m });
+        return this.renewalQueue.push({ renew: p, callback: m });
       this.renewing = !0;
       const e = (l, c) => {
         this.renewalQueue.forEach((s) => s.callback(l, c)), this.renewalQueue = [], this.renewing = !1, l ? this.logger.error(
@@ -6190,7 +6190,7 @@ function Rt() {
           this.options.user
         ), m(l, c);
       };
-      this.provisionCallback ? this.provisionCallback(this.options.user, !!r, (l, c, s) => {
+      this.provisionCallback ? this.provisionCallback(this.options.user, !!p, (l, c, s) => {
         !l && c && (this.accessToken = c, this.expires = s || 0), e(l, c);
       }) : this.generateToken(e);
     }
@@ -6202,10 +6202,10 @@ function Rt() {
      *
      * Emits 'token': { user: User email-address, accessToken: the new accessToken, timeout: TTL in seconds}
      */
-    updateToken(r, m) {
-      this.accessToken = r, m = Math.max(Number(m) || 0, 0), this.expires = m && Date.now() + m * 1e3 || 0, this.emit("token", {
+    updateToken(p, m) {
+      this.accessToken = p, m = Math.max(Number(m) || 0, 0), this.expires = m && Date.now() + m * 1e3 || 0, this.emit("token", {
         user: this.options.user,
-        accessToken: r || "",
+        accessToken: p || "",
         expires: this.expires
       });
     }
@@ -6214,7 +6214,7 @@ function Rt() {
      *
      * @param {Function} callback Callback function with error object and token string
      */
-    generateToken(r) {
+    generateToken(p) {
       let m, e;
       if (this.options.serviceClient) {
         let l = Math.floor(Date.now() / 1e3), c = {
@@ -6229,7 +6229,7 @@ function Rt() {
           s = this.jwtSignRS256(c);
         } catch {
           let g = new Error("Can't generate token. Check your auth options");
-          return g.code = p.EOAUTH2, r(g);
+          return g.code = o.EOAUTH2, p(g);
         }
         m = {
           grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
@@ -6241,7 +6241,7 @@ function Rt() {
       } else {
         if (!this.options.refreshToken) {
           let l = new Error("Can't create new access token for user");
-          return l.code = p.EOAUTH2, r(l);
+          return l.code = o.EOAUTH2, p(l);
         }
         m = {
           client_id: this.options.clientId || "",
@@ -6268,11 +6268,11 @@ function Rt() {
       ), this.postRequest(this.options.accessUrl, m, this.options, (l, c) => {
         let s;
         if (l)
-          return r(l);
+          return p(l);
         try {
           s = JSON.parse(c.toString());
         } catch (v) {
-          return r(v);
+          return p(v);
         }
         if (!s || typeof s != "object") {
           this.logger.debug(
@@ -6285,7 +6285,7 @@ function Rt() {
             (c || "").toString()
           );
           let v = new Error("Invalid authentication response");
-          return v.code = p.EOAUTH2, r(v);
+          return v.code = o.EOAUTH2, p(v);
         }
         let x = {};
         if (Object.keys(s).forEach((v) => {
@@ -6302,12 +6302,12 @@ function Rt() {
           let v = s.error;
           s.error_description && (v += ": " + s.error_description), s.error_uri && (v += " (" + s.error_uri + ")");
           let t = new Error(v);
-          return t.code = p.EOAUTH2, r(t);
+          return t.code = o.EOAUTH2, p(t);
         }
         if (s.access_token)
-          return this.updateToken(s.access_token, s.expires_in), r(null, this.accessToken);
+          return this.updateToken(s.access_token, s.expires_in), p(null, this.accessToken);
         let g = new Error("No access token");
-        return g.code = p.EOAUTH2, r(g);
+        return g.code = o.EOAUTH2, p(g);
       });
     }
     /**
@@ -6316,8 +6316,8 @@ function Rt() {
      * @param {String} [accessToken] Access token string
      * @return {String} Base64 encoded token for IMAP or SMTP login
      */
-    buildXOAuth2Token(r) {
-      let m = ["user=" + (this.options.user || ""), "auth=Bearer " + (r || this.accessToken), "", ""];
+    buildXOAuth2Token(p) {
+      let m = ["user=" + (this.options.user || ""), "auth=Bearer " + (p || this.accessToken), "", ""];
       return Buffer.from(m.join(""), "utf-8").toString("base64");
     }
     /**
@@ -6332,8 +6332,8 @@ function Rt() {
      * @param {String|Buffer} payload Payload to POST
      * @param {Function} callback Callback function with (err, buff)
      */
-    postRequest(r, m, e, l) {
-      let c = !1, s = [], x = 0, g = y(r, {
+    postRequest(p, m, e, l) {
+      let c = !1, s = [], x = 0, g = y(p, {
         method: "post",
         headers: e.customHeaders,
         body: m,
@@ -6357,8 +6357,8 @@ function Rt() {
      * @param {Buffer|String} data The data to convert
      * @return {String} The encoded string
      */
-    toBase64URL(r) {
-      return typeof r == "string" && (r = Buffer.from(r)), r.toString("base64").replace(/[=]+/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    toBase64URL(p) {
+      return typeof p == "string" && (p = Buffer.from(p)), p.toString("base64").replace(/[=]+/g, "").replace(/\+/g, "-").replace(/\//g, "_");
     }
     /**
      * Creates a JSON Web Token signed with RS256 (SHA256 + RSA)
@@ -6366,25 +6366,25 @@ function Rt() {
      * @param {Object} payload The payload to include in the generated token
      * @return {String} The generated and signed token
      */
-    jwtSignRS256(r) {
-      r = ['{"alg":"RS256","typ":"JWT"}', JSON.stringify(r)].map((e) => this.toBase64URL(e)).join(".");
-      let m = k.createSign("RSA-SHA256").update(r).sign(this.options.privateKey);
-      return r + "." + this.toBase64URL(m);
+    jwtSignRS256(p) {
+      p = ['{"alg":"RS256","typ":"JWT"}', JSON.stringify(p)].map((e) => this.toBase64URL(e)).join(".");
+      let m = T.createSign("RSA-SHA256").update(p).sign(this.options.privateKey);
+      return p + "." + this.toBase64URL(m);
     }
   }
   return Ce = n, Ce;
 }
-var Ie, ft;
+var je, ft;
 function mi() {
-  if (ft) return Ie;
+  if (ft) return je;
   ft = 1;
-  const b = De(), y = q().assign, k = Rt(), f = F(), p = V;
-  class n extends p {
-    constructor(r) {
-      if (super(), this.pool = r, this.options = r.options, this.logger = this.pool.logger, this.options.auth)
+  const b = De(), y = q().assign, T = Rt(), f = F(), o = X;
+  class n extends o {
+    constructor(p) {
+      if (super(), this.pool = p, this.options = p.options, this.logger = this.pool.logger, this.options.auth)
         switch ((this.options.auth.type || "").toString().toUpperCase()) {
           case "OAUTH2": {
-            let m = new k(this.options.auth, this.logger);
+            let m = new T(this.options.auth, this.logger);
             m.provisionCallback = this.pool.mailer && this.pool.mailer.get("oauth2_provision_cb") || m.provisionCallback, this.auth = {
               type: "OAUTH2",
               user: this.options.auth.user,
@@ -6414,10 +6414,10 @@ function mi() {
      *
      * @param {Function} callback Callback function to run once the connection is established or failed
      */
-    connect(r) {
+    connect(p) {
       this.pool.getSocket(this.options, (m, e) => {
         if (m)
-          return r(m);
+          return p(m);
         let l = !1, c = this.options;
         e && e.connection && (this.logger.info(
           {
@@ -6437,7 +6437,7 @@ function mi() {
           c[s] = e[s];
         })), this.connection = new b(c), this.connection.once("error", (s) => {
           if (this.emit("error", s), !l)
-            return l = !0, r(s);
+            return l = !0, p(s);
         }), this.connection.once("end", () => {
           if (this.close(), l)
             return;
@@ -6446,7 +6446,7 @@ function mi() {
             if (l)
               return;
             let x = new Error("Unexpected socket close");
-            this.connection && this.connection._socket && this.connection._socket.upgrading && (x.code = f.ETLS), r(x);
+            this.connection && this.connection._socket && this.connection._socket.upgrading && (x.code = f.ETLS), p(x);
           }, 1e3);
           try {
             s.unref();
@@ -6458,12 +6458,12 @@ function mi() {
               this.connection.login(this.auth, (s) => {
                 if (!l) {
                   if (l = !0, s)
-                    return this.connection.close(), this.emit("error", s), r(s);
-                  this._connected = !0, r(null, !0);
+                    return this.connection.close(), this.emit("error", s), p(s);
+                  this._connected = !0, p(null, !0);
                 }
               });
             else
-              return l = !0, this._connected = !0, r(null, !0);
+              return l = !0, this._connected = !0, p(null, !0);
         });
       });
     }
@@ -6473,10 +6473,10 @@ function mi() {
      * @param {Object} mail Mail object
      * @param {Function} callback Callback function
      */
-    send(r, m) {
+    send(p, m) {
       if (!this._connected)
-        return this.connect((s) => s ? m(s) : this.send(r, m));
-      let e = r.message.getEnvelope(), l = r.message.messageId(), c = [].concat(e.to || []);
+        return this.connect((s) => s ? m(s) : this.send(p, m));
+      let e = p.message.getEnvelope(), l = p.message.messageId(), c = [].concat(e.to || []);
       c.length > 3 && c.push("...and " + c.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
@@ -6487,7 +6487,7 @@ function mi() {
         l,
         this.id,
         c.join(", ")
-      ), r.data.dsn && (e.dsn = r.data.dsn), r.data.requireTLSExtensionEnabled && (e.requireTLSExtensionEnabled = r.data.requireTLSExtensionEnabled), this.connection.send(e, r.message.createReadStream(), (s, x) => {
+      ), p.data.dsn && (e.dsn = p.data.dsn), p.data.requireTLSExtensionEnabled && (e.requireTLSExtensionEnabled = p.data.requireTLSExtensionEnabled), this.connection.send(e, p.message.createReadStream(), (s, x) => {
         if (this.messages++, s)
           return this.connection.close(), this.emit("error", s), m(s);
         x.envelope = {
@@ -6508,9 +6508,9 @@ function mi() {
       this._connected = !1, this.auth && this.auth.oauth2 && this.auth.oauth2.removeAllListeners(), this.connection && this.connection.close(), this.emit("close");
     }
   }
-  return Ie = n, Ie;
+  return je = n, je;
 }
-const hi = { description: "Alibaba Cloud Mail", domains: ["aliyun.com"], host: "smtp.aliyun.com", port: 465, secure: !0 }, ui = { description: "Alibaba Cloud Enterprise Mail", host: "smtp.qiye.aliyun.com", port: 465, secure: !0 }, fi = { description: "AOL Mail", domains: ["aol.com"], host: "smtp.aol.com", port: 587 }, xi = { description: "Aruba PEC (Italian email provider)", domains: ["aruba.it", "pec.aruba.it"], aliases: ["Aruba PEC"], host: "smtps.aruba.it", port: 465, secure: !0, authMethod: "LOGIN" }, gi = { description: "Bluewin (Swiss email provider)", host: "smtpauths.bluewin.ch", domains: ["bluewin.ch"], port: 465 }, vi = { description: "BOL Mail (Brazilian provider)", domains: ["bol.com.br"], host: "smtp.bol.com.br", port: 587, requireTLS: !0 }, wi = { description: "DebugMail (email testing service)", host: "debugmail.io", port: 25 }, _i = { description: "Disroot (privacy-focused provider)", domains: ["disroot.org"], host: "disroot.org", port: 587, secure: !1, authMethod: "LOGIN" }, bi = { description: "Dyn Email Delivery", aliases: ["Dynect"], host: "smtp.dynect.net", port: 25 }, Ei = { description: "Elastic Email", aliases: ["Elastic Email"], host: "smtp.elasticemail.com", port: 465, secure: !0 }, yi = { description: "Ethereal Email (email testing service)", aliases: ["ethereal.email"], host: "smtp.ethereal.email", port: 587 }, Si = { description: "FastMail", domains: ["fastmail.fm"], host: "smtp.fastmail.com", port: 465, secure: !0 }, Ti = { description: "Gandi Mail", aliases: ["Gandi", "Gandi Mail"], host: "mail.gandi.net", port: 587 }, ki = { description: "Gmail", aliases: ["Google Mail"], domains: ["gmail.com", "googlemail.com"], host: "smtp.gmail.com", port: 465, secure: !0 }, Ai = { description: "Gmail Workspace", aliases: ["Google Workspace Mail"], host: "smtp-relay.gmail.com", port: 465, secure: !0 }, Ci = { description: "GMX Mail", domains: ["gmx.com", "gmx.net", "gmx.de"], host: "mail.gmx.com", port: 587 }, Ii = { description: "GoDaddy Email (US)", host: "smtpout.secureserver.net", port: 25 }, ji = { description: "GoDaddy Email (Asia)", host: "smtp.asia.secureserver.net", port: 25 }, Mi = { description: "GoDaddy Email (Europe)", host: "smtp.europe.secureserver.net", port: 25 }, Li = { description: "Outlook.com / Hotmail", aliases: ["Outlook", "Outlook.com", "Hotmail.com"], domains: ["hotmail.com", "outlook.com"], host: "smtp-mail.outlook.com", port: 587 }, Oi = { description: "iCloud Mail", aliases: ["Me", "Mac"], domains: ["me.com", "mac.com"], host: "smtp.mail.me.com", port: 587 }, Ni = { description: "Infomaniak Mail (Swiss hosting provider)", host: "mail.infomaniak.com", domains: ["ik.me", "ikmail.com", "etik.com"], port: 587 }, Hi = { description: "KolabNow (secure email service)", domains: ["kolabnow.com"], aliases: ["Kolab"], host: "smtp.kolabnow.com", port: 465, secure: !0, authMethod: "LOGIN" }, qi = { description: "Loopia (Swedish hosting provider)", host: "mailcluster.loopia.se", port: 465 }, Ri = { description: "Loops", host: "smtp.loops.so", port: 587 }, zi = { description: "MailDev (local email testing)", port: 1025, ignoreTLS: !0 }, Pi = { description: "MailerSend", host: "smtp.mailersend.net", port: 587 }, Ui = { description: "Mailgun", host: "smtp.mailgun.org", port: 465, secure: !0 }, Bi = { description: "Mailjet", host: "in.mailjet.com", port: 587 }, Di = { description: "Mailosaur (email testing service)", host: "mailosaur.io", port: 25 }, Fi = { description: "Mailtrap", host: "live.smtp.mailtrap.io", port: 587 }, $i = { description: "Mandrill (by Mailchimp)", host: "smtp.mandrillapp.com", port: 587 }, Gi = { description: "Naver Mail (Korean email provider)", host: "smtp.naver.com", port: 587 }, Qi = { description: "OhMySMTP (email delivery service)", host: "smtp.ohmysmtp.com", port: 587, secure: !1 }, Wi = { description: "One.com Email", host: "send.one.com", port: 465, secure: !0 }, Ki = { description: "OpenMailBox", aliases: ["OMB", "openmailbox.org"], host: "smtp.openmailbox.org", port: 465, secure: !0 }, Vi = { description: "Microsoft 365 / Office 365", host: "smtp.office365.com", port: 587, secure: !1 }, Xi = { description: "Postmark", aliases: ["PostmarkApp"], host: "smtp.postmarkapp.com", port: 2525 }, Ji = { description: "Proton Mail", aliases: ["ProtonMail", "Proton.me", "Protonmail.com", "Protonmail.ch"], domains: ["proton.me", "protonmail.com", "pm.me", "protonmail.ch"], host: "smtp.protonmail.ch", port: 587, requireTLS: !0 }, Yi = { description: "QQ Mail", domains: ["qq.com"], host: "smtp.qq.com", port: 465, secure: !0 }, Zi = { description: "QQ Enterprise Mail", aliases: ["QQ Enterprise"], domains: ["exmail.qq.com"], host: "smtp.exmail.qq.com", port: 465, secure: !0 }, es = { description: "Resend", host: "smtp.resend.com", port: 465, secure: !0 }, ts = { description: "Runbox (Norwegian email provider)", domains: ["runbox.com"], host: "smtp.runbox.com", port: 465, secure: !0 }, is = { description: "SendCloud (Chinese email delivery)", host: "smtp.sendcloud.net", port: 2525 }, ss = { description: "SendGrid", host: "smtp.sendgrid.net", port: 587 }, as = { description: "Brevo (formerly Sendinblue)", aliases: ["Brevo"], host: "smtp-relay.brevo.com", port: 587 }, ns = { description: "SendPulse", host: "smtp-pulse.com", port: 465, secure: !0 }, os = { description: "AWS SES US East (N. Virginia)", host: "email-smtp.us-east-1.amazonaws.com", port: 465, secure: !0 }, rs = { description: "Seznam Email (Czech email provider)", aliases: ["Seznam Email"], domains: ["seznam.cz", "email.cz", "post.cz", "spoluzaci.cz"], host: "smtp.seznam.cz", port: 465, secure: !0 }, ps = { description: "SMTP2GO", host: "mail.smtp2go.com", port: 2525 }, ls = { description: "SparkPost", aliases: ["SparkPost", "SparkPost Mail"], domains: ["sparkpost.com"], host: "smtp.sparkpostmail.com", port: 587, secure: !1 }, cs = { description: "Tipimail (email delivery service)", host: "smtp.tipimail.com", port: 587 }, ds = { description: "Tutanota (Tuta Mail)", domains: ["tutanota.com", "tuta.com", "tutanota.de", "tuta.io"], host: "smtp.tutanota.com", port: 465, secure: !0 }, ms = { description: "Yahoo Mail", domains: ["yahoo.com"], host: "smtp.mail.yahoo.com", port: 465, secure: !0 }, hs = { description: "Yandex Mail", domains: ["yandex.ru"], host: "smtp.yandex.ru", port: 465, secure: !0 }, us = { description: "Zimbra Mail Server", aliases: ["Zimbra Collaboration"], host: "smtp.zimbra.com", port: 587, requireTLS: !0 }, fs = { description: "Zoho Mail", host: "smtp.zoho.com", port: 465, secure: !0, authMethod: "LOGIN" }, xs = {
+const hi = { description: "Alibaba Cloud Mail", domains: ["aliyun.com"], host: "smtp.aliyun.com", port: 465, secure: !0 }, ui = { description: "Alibaba Cloud Enterprise Mail", host: "smtp.qiye.aliyun.com", port: 465, secure: !0 }, fi = { description: "AOL Mail", domains: ["aol.com"], host: "smtp.aol.com", port: 587 }, xi = { description: "Aruba PEC (Italian email provider)", domains: ["aruba.it", "pec.aruba.it"], aliases: ["Aruba PEC"], host: "smtps.aruba.it", port: 465, secure: !0, authMethod: "LOGIN" }, gi = { description: "Bluewin (Swiss email provider)", host: "smtpauths.bluewin.ch", domains: ["bluewin.ch"], port: 465 }, vi = { description: "BOL Mail (Brazilian provider)", domains: ["bol.com.br"], host: "smtp.bol.com.br", port: 587, requireTLS: !0 }, wi = { description: "DebugMail (email testing service)", host: "debugmail.io", port: 25 }, _i = { description: "Disroot (privacy-focused provider)", domains: ["disroot.org"], host: "disroot.org", port: 587, secure: !1, authMethod: "LOGIN" }, bi = { description: "Dyn Email Delivery", aliases: ["Dynect"], host: "smtp.dynect.net", port: 25 }, Ei = { description: "Elastic Email", aliases: ["Elastic Email"], host: "smtp.elasticemail.com", port: 465, secure: !0 }, yi = { description: "Ethereal Email (email testing service)", aliases: ["ethereal.email"], host: "smtp.ethereal.email", port: 587 }, Si = { description: "FastMail", domains: ["fastmail.fm"], host: "smtp.fastmail.com", port: 465, secure: !0 }, Ti = { description: "Gandi Mail", aliases: ["Gandi", "Gandi Mail"], host: "mail.gandi.net", port: 587 }, ki = { description: "Gmail", aliases: ["Google Mail"], domains: ["gmail.com", "googlemail.com"], host: "smtp.gmail.com", port: 465, secure: !0 }, Ai = { description: "Gmail Workspace", aliases: ["Google Workspace Mail"], host: "smtp-relay.gmail.com", port: 465, secure: !0 }, Ci = { description: "GMX Mail", domains: ["gmx.com", "gmx.net", "gmx.de"], host: "mail.gmx.com", port: 587 }, ji = { description: "GoDaddy Email (US)", host: "smtpout.secureserver.net", port: 25 }, Ii = { description: "GoDaddy Email (Asia)", host: "smtp.asia.secureserver.net", port: 25 }, Mi = { description: "GoDaddy Email (Europe)", host: "smtp.europe.secureserver.net", port: 25 }, Li = { description: "Outlook.com / Hotmail", aliases: ["Outlook", "Outlook.com", "Hotmail.com"], domains: ["hotmail.com", "outlook.com"], host: "smtp-mail.outlook.com", port: 587 }, Oi = { description: "iCloud Mail", aliases: ["Me", "Mac"], domains: ["me.com", "mac.com"], host: "smtp.mail.me.com", port: 587 }, Ni = { description: "Infomaniak Mail (Swiss hosting provider)", host: "mail.infomaniak.com", domains: ["ik.me", "ikmail.com", "etik.com"], port: 587 }, Hi = { description: "KolabNow (secure email service)", domains: ["kolabnow.com"], aliases: ["Kolab"], host: "smtp.kolabnow.com", port: 465, secure: !0, authMethod: "LOGIN" }, qi = { description: "Loopia (Swedish hosting provider)", host: "mailcluster.loopia.se", port: 465 }, Ri = { description: "Loops", host: "smtp.loops.so", port: 587 }, zi = { description: "MailDev (local email testing)", port: 1025, ignoreTLS: !0 }, Pi = { description: "MailerSend", host: "smtp.mailersend.net", port: 587 }, Ui = { description: "Mailgun", host: "smtp.mailgun.org", port: 465, secure: !0 }, Bi = { description: "Mailjet", host: "in.mailjet.com", port: 587 }, Di = { description: "Mailosaur (email testing service)", host: "mailosaur.io", port: 25 }, Fi = { description: "Mailtrap", host: "live.smtp.mailtrap.io", port: 587 }, $i = { description: "Mandrill (by Mailchimp)", host: "smtp.mandrillapp.com", port: 587 }, Gi = { description: "Naver Mail (Korean email provider)", host: "smtp.naver.com", port: 587 }, Qi = { description: "OhMySMTP (email delivery service)", host: "smtp.ohmysmtp.com", port: 587, secure: !1 }, Wi = { description: "One.com Email", host: "send.one.com", port: 465, secure: !0 }, Ki = { description: "OpenMailBox", aliases: ["OMB", "openmailbox.org"], host: "smtp.openmailbox.org", port: 465, secure: !0 }, Vi = { description: "Microsoft 365 / Office 365", host: "smtp.office365.com", port: 587, secure: !1 }, Xi = { description: "Postmark", aliases: ["PostmarkApp"], host: "smtp.postmarkapp.com", port: 2525 }, Ji = { description: "Proton Mail", aliases: ["ProtonMail", "Proton.me", "Protonmail.com", "Protonmail.ch"], domains: ["proton.me", "protonmail.com", "pm.me", "protonmail.ch"], host: "smtp.protonmail.ch", port: 587, requireTLS: !0 }, Yi = { description: "QQ Mail", domains: ["qq.com"], host: "smtp.qq.com", port: 465, secure: !0 }, Zi = { description: "QQ Enterprise Mail", aliases: ["QQ Enterprise"], domains: ["exmail.qq.com"], host: "smtp.exmail.qq.com", port: 465, secure: !0 }, es = { description: "Resend", host: "smtp.resend.com", port: 465, secure: !0 }, ts = { description: "Runbox (Norwegian email provider)", domains: ["runbox.com"], host: "smtp.runbox.com", port: 465, secure: !0 }, is = { description: "SendCloud (Chinese email delivery)", host: "smtp.sendcloud.net", port: 2525 }, ss = { description: "SendGrid", host: "smtp.sendgrid.net", port: 587 }, as = { description: "Brevo (formerly Sendinblue)", aliases: ["Brevo"], host: "smtp-relay.brevo.com", port: 587 }, ns = { description: "SendPulse", host: "smtp-pulse.com", port: 465, secure: !0 }, os = { description: "AWS SES US East (N. Virginia)", host: "email-smtp.us-east-1.amazonaws.com", port: 465, secure: !0 }, rs = { description: "Seznam Email (Czech email provider)", aliases: ["Seznam Email"], domains: ["seznam.cz", "email.cz", "post.cz", "spoluzaci.cz"], host: "smtp.seznam.cz", port: 465, secure: !0 }, ps = { description: "SMTP2GO", host: "mail.smtp2go.com", port: 2525 }, ls = { description: "SparkPost", aliases: ["SparkPost", "SparkPost Mail"], domains: ["sparkpost.com"], host: "smtp.sparkpostmail.com", port: 587, secure: !1 }, cs = { description: "Tipimail (email delivery service)", host: "smtp.tipimail.com", port: 587 }, ds = { description: "Tutanota (Tuta Mail)", domains: ["tutanota.com", "tuta.com", "tutanota.de", "tuta.io"], host: "smtp.tutanota.com", port: 465, secure: !0 }, ms = { description: "Yahoo Mail", domains: ["yahoo.com"], host: "smtp.mail.yahoo.com", port: 465, secure: !0 }, hs = { description: "Yandex Mail", domains: ["yandex.ru"], host: "smtp.yandex.ru", port: 465, secure: !0 }, us = { description: "Zimbra Mail Server", aliases: ["Zimbra Collaboration"], host: "smtp.zimbra.com", port: 587, requireTLS: !0 }, fs = { description: "Zoho Mail", host: "smtp.zoho.com", port: 465, secure: !0, authMethod: "LOGIN" }, xs = {
   126: { description: "126 Mail (NetEase)", host: "smtp.126.com", port: 465, secure: !0 },
   163: { description: "163 Mail (NetEase)", host: "smtp.163.com", port: 465, secure: !0 },
   "1und1": { description: "1&1 Mail (German hosting provider)", host: "smtp.1und1.de", port: 465, secure: !0, authMethod: "LOGIN" },
@@ -6532,8 +6532,8 @@ const hi = { description: "Alibaba Cloud Mail", domains: ["aliyun.com"], host: "
   Gmail: ki,
   GmailWorkspace: Ai,
   GMX: Ci,
-  Godaddy: Ii,
-  GodaddyAsia: ji,
+  Godaddy: ji,
+  GodaddyAsia: Ii,
   GodaddyEurope: Mi,
   "hot.ee": { description: "Hot.ee (Estonian email provider)", host: "mail.hot.ee" },
   Hotmail: Li,
@@ -6598,44 +6598,44 @@ const hi = { description: "Alibaba Cloud Mail", domains: ["aliyun.com"], host: "
   Zimbra: us,
   Zoho: fs
 };
-var je, xt;
+var Ie, xt;
 function zt() {
-  if (xt) return je;
+  if (xt) return Ie;
   xt = 1;
   const b = xs, y = {};
-  Object.keys(b).forEach((p) => {
-    let n = b[p];
-    y[k(p)] = f(n), [].concat(n.aliases || []).forEach((o) => {
-      y[k(o)] = f(n);
-    }), [].concat(n.domains || []).forEach((o) => {
-      y[k(o)] = f(n);
+  Object.keys(b).forEach((o) => {
+    let n = b[o];
+    y[T(o)] = f(n), [].concat(n.aliases || []).forEach((r) => {
+      y[T(r)] = f(n);
+    }), [].concat(n.domains || []).forEach((r) => {
+      y[T(r)] = f(n);
     });
   });
-  function k(p) {
-    return p.replace(/[^a-zA-Z0-9.-]/g, "").toLowerCase();
+  function T(o) {
+    return o.replace(/[^a-zA-Z0-9.-]/g, "").toLowerCase();
   }
-  function f(p) {
-    let n = ["domains", "aliases"], o = {};
-    return Object.keys(p).forEach((r) => {
-      n.indexOf(r) < 0 && (o[r] = p[r]);
-    }), o;
+  function f(o) {
+    let n = ["domains", "aliases"], r = {};
+    return Object.keys(o).forEach((p) => {
+      n.indexOf(p) < 0 && (r[p] = o[p]);
+    }), r;
   }
-  return je = function(p) {
-    return p = k(p.split("@").pop()), y[p] || !1;
-  }, je;
+  return Ie = function(o) {
+    return o = T(o.split("@").pop()), y[o] || !1;
+  }, Ie;
 }
 var Me, gt;
 function gs() {
   if (gt) return Me;
   gt = 1;
-  const b = V, y = mi(), k = De(), f = zt(), p = q(), n = F(), o = D;
-  class r extends b {
+  const b = X, y = mi(), T = De(), f = zt(), o = q(), n = F(), r = D;
+  class p extends b {
     constructor(e) {
       super(), e = e || {}, typeof e == "string" && (e = {
         url: e
       });
       let l, c = e.service;
-      typeof e.getSocket == "function" && (this.getSocket = e.getSocket), e.url && (l = p.parseConnectionUrl(e.url), c = c || l.service), this.options = p.assign(
+      typeof e.getSocket == "function" && (this.getSocket = e.getSocket), e.url && (l = o.parseConnectionUrl(e.url), c = c || l.service), this.options = o.assign(
         !1,
         // create new object
         e,
@@ -6644,11 +6644,11 @@ function gs() {
         // url options
         c && f(c)
         // wellknown options
-      ), this.options.maxConnections = this.options.maxConnections || 5, this.options.maxMessages = this.options.maxMessages || 100, this.logger = p.getLogger(this.options, {
+      ), this.options.maxConnections = this.options.maxConnections || 5, this.options.maxMessages = this.options.maxMessages || 100, this.logger = o.getLogger(this.options, {
         component: this.options.component || "smtp-pool"
       });
-      let s = new k(this.options);
-      this.name = "SMTP (pool)", this.version = o.version + "[client:" + s.version + "]", this._rateLimit = {
+      let s = new T(this.options);
+      this.name = "SMTP (pool)", this.version = r.version + "[client:" + s.version + "]", this._rateLimit = {
         counter: 0,
         timeout: null,
         waiting: [],
@@ -6954,7 +6954,7 @@ function gs() {
     verify(e) {
       let l;
       e || (l = new Promise((s, x) => {
-        e = p.callbackPromise(s, x);
+        e = o.callbackPromise(s, x);
       }));
       let c = new y(this).auth;
       return this.getSocket(this.options, (s, x) => {
@@ -6975,10 +6975,10 @@ function gs() {
           x.connection.remotePort,
           g.host || "",
           g.port || ""
-        ), g = p.assign(!1, g), Object.keys(x).forEach((d) => {
+        ), g = o.assign(!1, g), Object.keys(x).forEach((d) => {
           g[d] = x[d];
         }));
-        let v = new k(g), t = !1;
+        let v = new T(g), t = !1;
         v.once("error", (d) => {
           if (!t)
             return t = !0, v.close(), e(d);
@@ -7009,14 +7009,14 @@ function gs() {
       }), l;
     }
   }
-  return Me = r, Me;
+  return Me = p, Me;
 }
 var Le, vt;
 function vs() {
   if (vt) return Le;
   vt = 1;
-  const b = V, y = De(), k = zt(), f = q(), p = Rt(), n = F(), o = D;
-  class r extends b {
+  const b = X, y = De(), T = zt(), f = q(), o = Rt(), n = F(), r = D;
+  class p extends b {
     constructor(e) {
       super(), e = e || {}, typeof e == "string" && (e = {
         url: e
@@ -7029,13 +7029,13 @@ function vs() {
         // regular options
         l,
         // url options
-        c && k(c)
+        c && T(c)
         // wellknown options
       ), this.logger = f.getLogger(this.options, {
         component: this.options.component || "smtp-transport"
       });
       let s = new y(this.options);
-      this.name = "SMTP", this.version = o.version + "[client:" + s.version + "]", this.options.auth && (this.auth = this.getAuth({}));
+      this.name = "SMTP", this.version = r.version + "[client:" + s.version + "]", this.options.auth && (this.auth = this.getAuth({}));
     }
     /**
      * Placeholder function for creating proxy sockets. This method immediatelly returns
@@ -7061,7 +7061,7 @@ function vs() {
         case "OAUTH2": {
           if (!c.service && !c.user)
             return !1;
-          let s = new p(c, this.logger);
+          let s = new o(c, this.logger);
           return s.provisionCallback = this.mailer && this.mailer.get("oauth2_provision_cb") || s.provisionCallback, s.on("token", (x) => this.mailer.emit("token", x)), s.on("error", (x) => this.emit("error", x)), {
             type: "OAUTH2",
             user: c.user,
@@ -7252,19 +7252,19 @@ function vs() {
       this.auth && this.auth.oauth2 && this.auth.oauth2.removeAllListeners(), this.emit("close");
     }
   }
-  return Le = r, Le;
+  return Le = p, Le;
 }
 var Oe, wt;
 function ws() {
   if (wt) return Oe;
   wt = 1;
-  const b = Kt.spawn, y = D, k = q(), f = F();
-  class p {
-    constructor(o) {
-      o = o || {}, this._spawn = b, this.options = o || {}, this.name = "Sendmail", this.version = y.version, this.path = "sendmail", this.args = !1, this.winbreak = !1, this.logger = k.getLogger(this.options, {
+  const b = Kt.spawn, y = D, T = q(), f = F();
+  class o {
+    constructor(r) {
+      r = r || {}, this._spawn = b, this.options = r || {}, this.name = "Sendmail", this.version = y.version, this.path = "sendmail", this.args = !1, this.winbreak = !1, this.logger = T.getLogger(this.options, {
         component: this.options.component || "sendmail"
-      }), o && (typeof o == "string" ? this.path = o : typeof o == "object" && (o.path && (this.path = o.path), Array.isArray(o.args) && (this.args = o.args), this.winbreak = ["win", "windows", "dos", `\r
-`].includes((o.newline || "").toString().toLowerCase())));
+      }), r && (typeof r == "string" ? this.path = r : typeof r == "object" && (r.path && (this.path = r.path), Array.isArray(r.args) && (this.args = r.args), this.winbreak = ["win", "windows", "dos", `\r
+`].includes((r.newline || "").toString().toLowerCase())));
     }
     /**
      * <p>Compiles a mailcomposer message and forwards it to handler that sends it.</p>
@@ -7272,18 +7272,18 @@ function ws() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(o, r) {
-      o.message.keepBcc = !0;
-      let m = o.data.envelope || o.message.getEnvelope(), e = o.message.messageId(), l, c, s;
+    send(r, p) {
+      r.message.keepBcc = !0;
+      let m = r.data.envelope || r.message.getEnvelope(), e = r.message.messageId(), l, c, s;
       if ([].concat(m.from || []).concat(m.to || []).some((v) => /^-/.test(v))) {
         let v = new Error("Can not send mail. Invalid envelope addresses.");
-        return v.code = f.ESENDMAIL, r(v);
+        return v.code = f.ESENDMAIL, p(v);
       }
       this.args ? l = ["-i"].concat(this.args).concat(m.to) : l = ["-i"].concat(m.from ? ["-f", m.from] : []).concat(m.to);
       let g = (v) => {
-        if (!s && (s = !0, typeof r == "function"))
-          return v ? r(v) : r(null, {
-            envelope: o.data.envelope || o.message.getEnvelope(),
+        if (!s && (s = !0, typeof p == "function"))
+          return v ? p(v) : p(null, {
+            envelope: r.data.envelope || r.message.getEnvelope(),
             messageId: e,
             response: "Messages queued for delivery"
           });
@@ -7349,7 +7349,7 @@ function ws() {
           e,
           v.join(", ")
         );
-        let t = o.message.createReadStream();
+        let t = r.message.createReadStream();
         t.once("error", (i) => {
           this.logger.error(
             {
@@ -7368,19 +7368,19 @@ function ws() {
       }
     }
   }
-  return Oe = p, Oe;
+  return Oe = o, Oe;
 }
 var Ne, _t;
 function _s() {
   if (_t) return Ne;
   _t = 1;
   const b = D, y = q();
-  class k {
-    constructor(p) {
-      p = p || {}, this.options = p || {}, this.name = "StreamTransport", this.version = b.version, this.logger = y.getLogger(this.options, {
+  class T {
+    constructor(o) {
+      o = o || {}, this.options = o || {}, this.name = "StreamTransport", this.version = b.version, this.logger = y.getLogger(this.options, {
         component: this.options.component || "stream-transport"
       }), this.winbreak = ["win", "windows", "dos", `\r
-`].includes((p.newline || "").toString().toLowerCase());
+`].includes((o.newline || "").toString().toLowerCase());
     }
     /**
      * Compiles a mailcomposer message and forwards it to handler that sends it
@@ -7388,31 +7388,31 @@ function _s() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(p, n) {
-      p.message.keepBcc = !0;
-      let o = p.data.envelope || p.message.getEnvelope(), r = p.message.messageId(), m = [].concat(o.to || []);
+    send(o, n) {
+      o.message.keepBcc = !0;
+      let r = o.data.envelope || o.message.getEnvelope(), p = o.message.messageId(), m = [].concat(r.to || []);
       m.length > 3 && m.push("...and " + m.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
-          messageId: r
+          messageId: p
         },
         "Sending message %s to <%s> using %s line breaks",
-        r,
+        p,
         m.join(", "),
         this.winbreak ? "<CR><LF>" : "<LF>"
       ), setImmediate(() => {
         let e;
         try {
-          e = p.message.createReadStream();
+          e = o.message.createReadStream();
         } catch (s) {
           return this.logger.error(
             {
               err: s,
               tnx: "send",
-              messageId: r
+              messageId: p
             },
             "Creating send stream failed for %s. %s",
-            r,
+            p,
             s.message
           ), n(s);
         }
@@ -7422,15 +7422,15 @@ function _s() {
               {
                 err: s,
                 tnx: "send",
-                messageId: r
+                messageId: p
               },
               "Failed creating message for %s. %s",
-              r,
+              p,
               s.message
             );
           }), n(null, {
-            envelope: p.data.envelope || p.message.getEnvelope(),
-            messageId: r,
+            envelope: o.data.envelope || o.message.getEnvelope(),
+            messageId: p,
             message: e
           });
         let l = [], c = 0;
@@ -7442,32 +7442,32 @@ function _s() {
           {
             err: s,
             tnx: "send",
-            messageId: r
+            messageId: p
           },
           "Failed creating message for %s. %s",
-          r,
+          p,
           s.message
         ), n(s))), e.on(
           "end",
           () => n(null, {
-            envelope: p.data.envelope || p.message.getEnvelope(),
-            messageId: r,
+            envelope: o.data.envelope || o.message.getEnvelope(),
+            messageId: p,
             message: Buffer.concat(l, c)
           })
         );
       });
     }
   }
-  return Ne = k, Ne;
+  return Ne = T, Ne;
 }
 var He, bt;
 function bs() {
   if (bt) return He;
   bt = 1;
   const b = D, y = q();
-  class k {
-    constructor(p) {
-      p = p || {}, this.options = p || {}, this.name = "JSONTransport", this.version = b.version, this.logger = y.getLogger(this.options, {
+  class T {
+    constructor(o) {
+      o = o || {}, this.options = o || {}, this.name = "JSONTransport", this.version = b.version, this.logger = y.getLogger(this.options, {
         component: this.options.component || "json-transport"
       });
     }
@@ -7477,50 +7477,50 @@ function bs() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(p, n) {
-      p.message.keepBcc = !0;
-      let o = p.data.envelope || p.message.getEnvelope(), r = p.message.messageId(), m = [].concat(o.to || []);
+    send(o, n) {
+      o.message.keepBcc = !0;
+      let r = o.data.envelope || o.message.getEnvelope(), p = o.message.messageId(), m = [].concat(r.to || []);
       m.length > 3 && m.push("...and " + m.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
-          messageId: r
+          messageId: p
         },
         "Composing JSON structure of %s to <%s>",
-        r,
+        p,
         m.join(", ")
       ), setImmediate(() => {
-        p.normalize((e, l) => e ? (this.logger.error(
+        o.normalize((e, l) => e ? (this.logger.error(
           {
             err: e,
             tnx: "send",
-            messageId: r
+            messageId: p
           },
           "Failed building JSON structure for %s. %s",
-          r,
+          p,
           e.message
         ), n(e)) : (delete l.envelope, delete l.normalizedHeaders, n(null, {
-          envelope: o,
-          messageId: r,
+          envelope: r,
+          messageId: p,
           message: this.options.skipEncoding ? l : JSON.stringify(l)
         })));
       });
     }
   }
-  return He = k, He;
+  return He = T, He;
 }
 var qe, Et;
 function Es() {
   if (Et) return qe;
   Et = 1;
-  const b = V, y = D, k = q(), f = qt(), p = Be();
+  const b = X, y = D, T = q(), f = qt(), o = Be();
   class n extends b {
-    constructor(r) {
-      super(), r = r || {}, this.options = r || {}, this.ses = this.options.SES, this.name = "SESTransport", this.version = y.version, this.logger = k.getLogger(this.options, {
+    constructor(p) {
+      super(), p = p || {}, this.options = p || {}, this.ses = this.options.SES, this.name = "SESTransport", this.version = y.version, this.logger = T.getLogger(this.options, {
         component: this.options.component || "ses-transport"
       });
     }
-    getRegion(r) {
-      return this.ses.sesClient.config && typeof this.ses.sesClient.config.region == "function" ? this.ses.sesClient.config.region().then((m) => r(null, m)).catch((m) => r(m)) : r(null, !1);
+    getRegion(p) {
+      return this.ses.sesClient.config && typeof this.ses.sesClient.config.region == "function" ? this.ses.sesClient.config.region().then((m) => p(null, m)).catch((m) => p(m)) : p(null, !1);
     }
     /**
      * Compiles a mailcomposer message and forwards it to SES
@@ -7528,13 +7528,13 @@ function Es() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(r, m) {
-      let e = r.message._headers.find((g) => /^from$/i.test(g.key));
+    send(p, m) {
+      let e = p.message._headers.find((g) => /^from$/i.test(g.key));
       if (e) {
-        let g = new p("text/plain");
+        let g = new o("text/plain");
         e = g._convertAddresses(g._parseAddresses(e.value));
       }
-      let l = r.data.envelope || r.message.getEnvelope(), c = r.message.messageId(), s = [].concat(l.to || []);
+      let l = p.data.envelope || p.message.getEnvelope(), c = p.message.messageId(), s = [].concat(l.to || []);
       s.length > 3 && s.push("...and " + s.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
@@ -7545,8 +7545,8 @@ function Es() {
         s.join(", ")
       );
       let x = (g) => {
-        r.data._dkim || (r.data._dkim = {}), r.data._dkim.skipFields && typeof r.data._dkim.skipFields == "string" ? r.data._dkim.skipFields += ":date:message-id" : r.data._dkim.skipFields = "date:message-id";
-        let v = r.message.createReadStream(), t = v.pipe(new f()), i = [], d = 0;
+        p.data._dkim || (p.data._dkim = {}), p.data._dkim.skipFields && typeof p.data._dkim.skipFields == "string" ? p.data._dkim.skipFields += ":date:message-id" : p.data._dkim.skipFields = "date:message-id";
+        let v = p.message.createReadStream(), t = v.pipe(new f()), i = [], d = 0;
         t.on("readable", () => {
           let a;
           for (; (a = t.read()) !== null; )
@@ -7581,8 +7581,8 @@ function Es() {
               ToAddresses: l.to
             }
           };
-          Object.keys(r.data.ses || {}).forEach((i) => {
-            t[i] = r.data.ses[i];
+          Object.keys(p.data.ses || {}).forEach((i) => {
+            t[i] = p.data.ses[i];
           }), this.getRegion((i, d) => {
             (i || !d) && (d = "us-east-1");
             const a = new this.ses.SendEmailCommand(t);
@@ -7616,12 +7616,12 @@ function Es() {
      *
      * @param {Function} callback Callback function
      */
-    verify(r) {
+    verify(p) {
       let m;
-      r || (m = new Promise((c, s) => {
-        r = k.callbackPromise(c, s);
+      p || (m = new Promise((c, s) => {
+        p = T.callbackPromise(c, s);
       }));
-      const e = (c) => c && !["InvalidParameterValue", "MessageRejected"].includes(c.code || c.Code || c.name) ? r(c) : r(null, !0), l = {
+      const e = (c) => c && !["InvalidParameterValue", "MessageRejected"].includes(c.code || c.Code || c.name) ? p(c) : p(null, !0), l = {
         Content: {
           Raw: {
             Data: Buffer.from(`From: <invalid@invalid>\r
@@ -7648,7 +7648,7 @@ var yt;
 function ys() {
   if (yt) return Y;
   yt = 1;
-  const b = ci(), y = q(), k = gs(), f = vs(), p = ws(), n = _s(), o = bs(), r = Es(), m = F(), e = ae(), l = D, c = (process.env.ETHEREAL_API || "https://api.nodemailer.com").replace(/\/+$/, ""), s = (process.env.ETHEREAL_WEB || "https://ethereal.email").replace(/\/+$/, ""), x = (process.env.ETHEREAL_API_KEY || "").replace(/\s*/g, "") || null, g = ["true", "yes", "y", "1"].includes((process.env.ETHEREAL_CACHE || "yes").toString().trim().toLowerCase());
+  const b = ci(), y = q(), T = gs(), f = vs(), o = ws(), n = _s(), r = bs(), p = Es(), m = F(), e = ae(), l = D, c = (process.env.ETHEREAL_API || "https://api.nodemailer.com").replace(/\/+$/, ""), s = (process.env.ETHEREAL_WEB || "https://ethereal.email").replace(/\/+$/, ""), x = (process.env.ETHEREAL_API_KEY || "").replace(/\s*/g, "") || null, g = ["true", "yes", "y", "1"].includes((process.env.ETHEREAL_CACHE || "yes").toString().trim().toLowerCase());
   let v = !1;
   return Y.createTransport = function(t, i) {
     let d, a, h;
@@ -7658,13 +7658,13 @@ function ys() {
       typeof t == "string" && /^(smtps?|direct):/i.test(t)
     )
       if ((d = typeof t == "string" ? t : t.url) ? a = y.parseConnectionUrl(d) : a = t, a.pool)
-        t = new k(a);
+        t = new T(a);
       else if (a.sendmail)
-        t = new p(a);
+        t = new o(a);
       else if (a.streamTransport)
         t = new n(a);
       else if (a.jsonTransport)
-        t = new o(a);
+        t = new r(a);
       else if (a.SES) {
         if (a.SES.ses && a.SES.aws) {
           let u = new Error(
@@ -7672,7 +7672,7 @@ function ys() {
           );
           throw u.code = m.ECONFIG, u;
         }
-        t = new r(a);
+        t = new p(a);
       } else
         t = new f(a);
     return h = new b(t, a, i), h;
@@ -7765,12 +7765,16 @@ function Tt() {
       contextIsolation: !0,
       sandbox: !0
     }
-  }), b.isMaximized && H.maximize(), Pt ? (H.loadURL(process.env.VITE_DEV_SERVER_URL), H.webContents.openDevTools()) : H.loadFile(ze(St, "../dist/index.html")), H.on("close", Re), H.on("resize", Re), H.on("move", Re), J.on("window-minimize", () => H.minimize()), J.on("window-maximize", () => {
+  }), b.isMaximized && H.maximize(), Pt ? (H.loadURL(process.env.VITE_DEV_SERVER_URL), H.webContents.openDevTools()) : H.loadFile(ze(St, "../dist/index.html")), H.on("close", Re), H.on("resize", Re), H.on("move", Re), K.on("window-minimize", () => H.minimize()), K.on("window-maximize", () => {
     H.isMaximized() ? H.restore() : H.maximize();
-  }), J.on("window-close", () => H.close()), J.removeHandler("mail-send"), J.handle("mail-send", async (y, k) => {
+  }), K.on("window-close", () => H.close()), K.removeHandler("mail-send"), K.handle("mail-send", async (y, T) => {
     try {
-      const f = k?.smtp || {}, p = k?.message || {}, n = Array.isArray(p.to) ? p.to : [p.to].filter(Boolean);
-      return !f.host || !f.port || !f.user || !f.pass ? { ok: !1, error: "SMTP configuration is incomplete." } : n.length ? (await Ts.createTransport({
+      const f = T?.smtp || {}, o = T?.message || {}, n = Array.isArray(o.to) ? o.to : [o.to].filter(Boolean), r = Array.isArray(o.cc) ? o.cc.filter(Boolean) : [o.cc].filter(Boolean), p = Array.isArray(o.bcc) ? o.bcc.filter(Boolean) : [o.bcc].filter(Boolean);
+      if (!f.host || !f.port || !f.user || !f.pass)
+        return { ok: !1, error: "SMTP configuration is incomplete." };
+      if (!n.length)
+        return { ok: !1, error: "Recipient email is required." };
+      const m = Ts.createTransport({
         host: String(f.host),
         port: Number(f.port),
         secure: Number(f.port) === 465,
@@ -7778,16 +7782,46 @@ function Tt() {
           user: String(f.user),
           pass: String(f.pass)
         }
-      }).sendMail({
+      }), e = Array.isArray(o.attachments) ? o.attachments.filter((l) => l && l.filename && l.content).map((l) => ({
+        filename: String(l.filename),
+        content: String(l.content),
+        encoding: String(l.encoding || "base64")
+      })) : [];
+      return await m.sendMail({
         from: f.fromName && f.fromEmail ? `"${String(f.fromName)}" <${String(f.fromEmail)}>` : String(f.fromEmail || f.user),
         replyTo: f.replyTo ? String(f.replyTo) : void 0,
         to: n,
-        subject: String(p.subject || ""),
-        html: String(p.html || ""),
-        text: String(p.text || "")
-      }), { ok: !0 }) : { ok: !1, error: "Recipient email is required." };
+        cc: r.length ? r : void 0,
+        bcc: p.length ? p : void 0,
+        subject: String(o.subject || ""),
+        html: String(o.html || ""),
+        text: String(o.text || ""),
+        attachments: e
+      }), { ok: !0 };
     } catch (f) {
       return { ok: !1, error: f?.message || "Failed to send email." };
+    }
+  }), K.removeHandler("sms-send"), K.handle("sms-send", async (y, T) => {
+    try {
+      const f = String(T?.connectorUrl || "").trim(), o = String(T?.to || "").trim(), n = String(T?.message || "").trim();
+      if (!f)
+        return { ok: !1, error: "SMS connector URL is missing." };
+      if (!o)
+        return { ok: !1, error: "Recipient mobile number is required." };
+      if (!n)
+        return { ok: !1, error: "SMS body is required." };
+      const r = await fetch(f, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: o, message: n, meta: T?.meta || {} })
+      });
+      if (!r.ok) {
+        const p = await r.text();
+        return { ok: !1, error: `Connector responded ${r.status}: ${p || "unknown"}` };
+      }
+      return { ok: !0 };
+    } catch (f) {
+      return { ok: !1, error: f?.message || "Failed to send SMS." };
     }
   });
 }

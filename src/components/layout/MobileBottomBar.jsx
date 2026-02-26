@@ -1,11 +1,11 @@
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
-import { BellIcon, HomeIcon, PortalIcon, SearchIcon, StarIcon } from '../icons/AppIcons';
+import { BellIcon, HomeIcon, PaymentIcon, PortalIcon, SearchIcon, StarIcon } from '../icons/AppIcons';
 import { isVisibleOnPlatform, NAV_ITEMS } from '../../config/appNavigation';
 import { useAuth } from '../../context/AuthContext';
 import { getRuntimePlatform } from '../../lib/runtimePlatform';
 
 const MOBILE_ITEMS_KEY = 'acis_mobile_items_v1';
-const allMobileItemKeys = ['dashboard', 'notifications', 'favorites', 'profile', 'portalManagement'];
+const allMobileItemKeys = ['dashboard', 'notifications', 'favorites', 'profile', 'portalManagement', 'clientPayments'];
 const defaultItems = ['dashboard', 'notifications', 'portalManagement', 'profile'];
 
 const readMobileItems = () => {
@@ -36,6 +36,7 @@ const renderNavIcon = (iconKey, user) => {
     );
   }
   if (iconKey === 'portal') return <PortalIcon className="h-5 w-5" />;
+  if (iconKey === 'payment') return <PaymentIcon className="h-5 w-5" />;
   return null;
 };
 

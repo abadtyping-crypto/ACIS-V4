@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
-import { fetchTenantMailConfig, sendTenantWelcomeEmail, upsertTenantMailConfig } from '../../lib/backendStore';
+import {
+    fetchTenantMailConfig,
+    fetchTenantSmsConfig,
+    sendTenantWelcomeEmail,
+    upsertTenantMailConfig,
+    upsertTenantSmsConfig,
+} from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import SettingCard from './SettingCard';
 
@@ -26,6 +32,8 @@ const MailConfigurationSection = () => {
         welcomeHtml: '<h3>Welcome {{clientName}}</h3><p>Your client ID: <strong>{{displayClientId}}</strong></p><p>Thank you for joining {{tenantName}}.</p>',
         documentEmailSubject: '{{tenantName}} - Your {{cleanType}}',
         documentEmailBodyHtml: '',
+        documentEmailCc: '',
+        documentEmailBcc: '',
         emailLogoUrl: '',
         contactCardUrl: '',
         contactPhone: '',
@@ -35,6 +43,8 @@ const MailConfigurationSection = () => {
         signaturePhone: '',
         signatureAddress: '',
         emailSignatureHtml: '',
+        enablePaymentSms: false,
+        connectorUrl: '',
     });
     const [testWelcomeTo, setTestWelcomeTo] = useState('');
     const [status, setStatus] = useState({ message: '', type: '' });
@@ -42,11 +52,12 @@ const MailConfigurationSection = () => {
 
     useEffect(() => {
         let active = true;
-        fetchTenantMailConfig(tenantId).then((result) => {
-            if (!active || !result.ok || !result.data) return;
+        Promise.all([fetchTenantMailConfig(tenantId), fetchTenantSmsConfig(tenantId)]).then(([mailRes, smsRes]) => {
+            if (!active) return;
             setConfig((prev) => ({
                 ...prev,
-                ...result.data,
+                ...(mailRes.ok && mailRes.data ? mailRes.data : {}),
+                ...(smsRes.ok && smsRes.data ? smsRes.data : {}),
             }));
         });
         return () => { active = false; };
@@ -56,14 +67,30 @@ const MailConfigurationSection = () => {
         setIsSaving(true);
         setStatus({ message: 'Saving mail configuration...', type: 'info' });
 
+        const {
+            enablePaymentSms,
+            connectorUrl,
+            ...mailConfigPayload
+        } = config;
+
         const payload = {
-            ...config,
+            ...mailConfigPayload,
             updatedBy: user.uid,
         };
 
         const res = await upsertTenantMailConfig(tenantId, payload);
         if (!res.ok) {
             setStatus({ message: `Save failed: ${res.error}`, type: 'error' });
+            setIsSaving(false);
+            return;
+        }
+        const smsRes = await upsertTenantSmsConfig(tenantId, {
+            enablePaymentSms: !!enablePaymentSms,
+            connectorUrl: String(connectorUrl || '').trim(),
+            updatedBy: user.uid,
+        });
+        if (!smsRes.ok) {
+            setStatus({ message: `SMS config save failed: ${smsRes.error}`, type: 'error' });
             setIsSaving(false);
             return;
         }
@@ -162,6 +189,34 @@ const MailConfigurationSection = () => {
                 <hr className="border-[var(--c-border)]" />
 
                 <div className="space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">SMS Connector (Optional)</h3>
+                    <label className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+                        <input
+                            type="checkbox"
+                            checked={!!config.enablePaymentSms}
+                            onChange={(e) => setConfig({ ...config, enablePaymentSms: e.target.checked })}
+                            className="h-4 w-4 accent-[var(--c-accent)]"
+                        />
+                        <span className="text-sm font-semibold text-[var(--c-text)]">Enable payment acknowledgement SMS</span>
+                    </label>
+                    <div className={rowClass}>
+                        <label className="text-xs font-bold text-[var(--c-muted)]">Connector URL</label>
+                        <input
+                            type="text"
+                            placeholder="http://127.0.0.1:8081/sms/send"
+                            value={config.connectorUrl || ''}
+                            onChange={(e) => setConfig({ ...config, connectorUrl: e.target.value })}
+                            className={inputClass}
+                        />
+                    </div>
+                    <p className="text-[10px] text-[var(--c-muted)]">
+                        The app will POST JSON {'{ to, message, meta }'} to this URL via Electron bridge.
+                    </p>
+                </div>
+
+                <hr className="border-[var(--c-border)]" />
+
+                <div className="space-y-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Invoice/Document Email Branding</h3>
                     <div className={rowClass}>
                         <label className="text-xs font-bold text-[var(--c-muted)]">Email Subject</label>
@@ -179,10 +234,33 @@ const MailConfigurationSection = () => {
                         <label className="text-xs font-bold text-[var(--c-muted)]">Main Contact Number</label>
                         <input type="text" value={config.contactPhone || ''} onChange={(e) => setConfig({ ...config, contactPhone: e.target.value })} className={inputClass} placeholder="+971 50 000 0000" />
                     </div>
+                    <div className={rowClass}>
+                        <label className="text-xs font-bold text-[var(--c-muted)]">Default CC</label>
+                        <input
+                            type="text"
+                            value={config.documentEmailCc || ''}
+                            onChange={(e) => setConfig({ ...config, documentEmailCc: e.target.value })}
+                            className={inputClass}
+                            placeholder="ops@yourdomain.com, manager@yourdomain.com"
+                        />
+                    </div>
+                    <div className={rowClass}>
+                        <label className="text-xs font-bold text-[var(--c-muted)]">Default BCC</label>
+                        <input
+                            type="text"
+                            value={config.documentEmailBcc || ''}
+                            onChange={(e) => setConfig({ ...config, documentEmailBcc: e.target.value })}
+                            className={inputClass}
+                            placeholder="archive@yourdomain.com"
+                        />
+                    </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-[var(--c-muted)]">Document Email Body (optional)</label>
                         <textarea rows={5} value={config.documentEmailBodyHtml || ''} onChange={(e) => setConfig({ ...config, documentEmailBodyHtml: e.target.value })} className={inputClass} placeholder="<p>Dear {{clientName}}, please find attached your {{cleanType}}.</p>" />
                     </div>
+                    <p className="text-[10px] text-[var(--c-muted)]">
+                        Use comma or semicolon to add multiple addresses.
+                    </p>
                 </div>
 
                 <div className="space-y-4 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)]/40 p-4">

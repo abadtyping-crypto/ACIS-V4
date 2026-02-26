@@ -515,3 +515,54 @@ Rule:
 - [ ] Dependent records are saved under parent dependents subcollection path.
 - [ ] Save confirmation popup follows user toggle + duration preferences.
 - [ ] `/syncEvents` write occurs for each data-changing action.
+
+---
+
+## 12) Launch Email Plan (Phased)
+
+### Phase 1: Launch-Safe Outbound Email
+
+1. Keep outbound SMTP only for document emails (invoice, receipt, quotation, statement).
+2. Sender pattern:
+   - `From`: `no-reply@yourdomain.com` (or `documents@yourdomain.com`)
+   - `Reply-To`: `support@yourdomain.com`
+   - `BCC` default: `archive@yourdomain.com`
+3. Keep `CC/BCC` configurable in Mail Configuration.
+4. Add fallback recipient for invalid/missing customer email (recommended next patch).
+5. Keep daily operation logs for sent/failed email events.
+
+### Phase 2: Deliverability Hardening
+
+1. Confirm DNS authentication:
+   - SPF
+   - DKIM
+   - DMARC (`p=none` during testing, tighten later)
+2. Validate Gmail/Outlook inbox placement.
+3. Monitor bounce/reject/deferred status in provider logs.
+4. Warm up sender domain gradually.
+
+### Phase 3: Post-Launch Two-Way Email
+
+1. Add inbound reply capture using provider webhook/API (not desktop client based).
+2. Store incoming email + attachments in cloud storage and DB.
+3. Map each thread to client and transaction/document ID.
+4. Add operator view for reply history and status.
+
+### Phase 4: Branding Upgrade
+
+1. Add mailbox profile branding in provider panel.
+2. Add BIMI after DMARC alignment for better logo visibility in inboxes.
+
+### Operational Minimum Mailboxes
+
+1. `no-reply@yourdomain.com` (sending identity)
+2. `support@yourdomain.com` (reply handling)
+3. `archive@yourdomain.com` (audit copy via BCC)
+
+### Go-Live Gate (Email)
+
+- [ ] SMTP credentials working in production environment
+- [ ] SPF, DKIM, DMARC configured and validated
+- [ ] Default CC/BCC rules verified
+- [ ] Fallback recipient behavior confirmed
+- [ ] Gmail + Outlook test complete

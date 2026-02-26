@@ -49,6 +49,14 @@ export const NAV_ITEMS = [
     description: 'Register companies, individuals, or dependents.',
     platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
   },
+  {
+    key: 'clientPayments',
+    label: 'Client Payments',
+    icon: 'payment',
+    path: 'client-payments',
+    description: 'Receive client payments and review intake history.',
+    platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
+  },
 ];
 
 export const SEARCH_ITEMS = [
@@ -99,6 +107,13 @@ export const SEARCH_ITEMS = [
     label: 'Client Onboarding',
     description: 'Register companies, individuals, or dependents',
     path: 'client-onboarding',
+    platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
+  },
+  {
+    key: 'clientPayments',
+    label: 'Client Payments',
+    description: 'Receive and track client payments',
+    path: 'client-payments',
     platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
   },
 ];

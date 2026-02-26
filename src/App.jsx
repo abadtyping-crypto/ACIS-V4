@@ -13,6 +13,7 @@ import FavoritesPage from './pages/FavoritesPage';
 import LoginPage from './pages/LoginPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PortalManagementPage from './pages/PortalManagementPage';
+import ClientPaymentsPage from './pages/ClientPaymentsPage';
 import ProfilePage from './pages/ProfilePage';
 import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage';
@@ -41,6 +42,7 @@ const App = () => {
                     <Route path="profile" element={<AdaptiveProfilePage />} />
                     <Route path="profile/edit" element={<ProfilePage />} />
                     <Route path="portal-management" element={<PortalManagementPage />} />
+                    <Route path="client-payments" element={<ClientPaymentsPage />} />
                     <Route path="client-onboarding" element={<ClientsOnboardingPage />} />
                     <Route path="clients/:clientId" element={<ClientDetailsPage />} />
                     <Route path="favorites" element={<FavoritesPage />} />
