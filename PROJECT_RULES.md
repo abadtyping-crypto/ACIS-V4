@@ -137,3 +137,29 @@
 - **Native Interops**: Any native OS feature (file system, printing, native notifications) must be gated behind IPC.
 - **Event Token Persistence**: The "Event Token" (Sync Event issuing) must be consistent across all open windows/pages.
 - **Distribution**: Target Windows platform primarily.
+
+## 19) Dropdown Icon Consistency Rules (Mandatory)
+
+- Every dropdown option must show its related domain icon in a premium, consistent style across all pages.
+- Existing icon mappings already defined in the app are the baseline and must be reused (do not introduce random replacements).
+- "All" options in dropdowns must use the approved "All" icon style.
+- Domain-specific examples that must always keep their own icon:
+  - Portal
+  - Portal transaction method
+  - Company client
+  - Individual client
+- If a dropdown field is missing an icon, stop and confirm with product owner before finalizing; owner may provide the exact asset manually.
+- During pagination/listing views, related icons must continue to appear correctly on every page state.
+
+## 20) Currency Icon Rules (AED/Dirham)
+
+- For AED-related UI, always use the approved Dirham icon/symbol in the interface.
+- Do **not** use the dollar icon for AED fields, labels, summaries, or transaction visuals.
+- Currency presentation must be visually consistent in forms, tables, cards, and reports.
+
+## 21) Portal Fund Flow Rules (Core Business Logic)
+
+- This app is a service-provider portal workflow, not a product selling workflow.
+- All fund operations (receiving, spending, sending) are handled through the portal balance flow.
+- Profit computation and operational movement of money must be represented as portal-led transactions.
+- Any new financial UI or logic must preserve this same portal-centric flow model.
