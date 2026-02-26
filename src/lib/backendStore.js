@@ -635,6 +635,90 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
   }
 };
 
+export const recordClientPayment = async (tenantId, {
+  clientId,
+  portalId,
+  method,
+  amount,
+  date,
+  description,
+  dependentIds,
+  displayTxId,
+  createdBy,
+}) => {
+  try {
+    const paymentAmount = Math.abs(Number(amount || 0));
+    if (!clientId || !portalId || !method) throw new Error('Client, portal, and method are required.');
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) throw new Error('Payment amount must be greater than zero.');
+
+    const [clientSnap, portalSnap] = await Promise.all([
+      getDoc(doc(db, 'tenants', tenantId, 'clients', clientId)),
+      getDoc(doc(db, 'tenants', tenantId, 'portals', portalId)),
+    ]);
+
+    if (!clientSnap.exists()) throw new Error('Selected client was not found.');
+    if (!portalSnap.exists()) throw new Error('Selected portal was not found.');
+
+    const eventDate = date || new Date().toISOString();
+    const batchId = `pay_${Date.now()}`;
+
+    const clientTxRes = await upsertTenantTransaction(tenantId, `${batchId}_client`, {
+      displayTransactionId: displayTxId,
+      clientId,
+      portalId,
+      amount: paymentAmount,
+      type: 'Client Payment',
+      description: description || `Payment received via ${method}`,
+      method,
+      dependentIds: dependentIds || [],
+      date: eventDate,
+      batchId,
+      affectsPortalBalance: false,
+      createdBy,
+    });
+    if (!clientTxRes.ok) throw new Error(clientTxRes.error || 'Failed to create client transaction.');
+
+    const portalTxRes = await upsertTenantTransaction(tenantId, `${batchId}_portal`, {
+      displayTransactionId: `${displayTxId}-P`,
+      portalId,
+      amount: paymentAmount,
+      type: 'Portal Payment Credit',
+      description: `Client payment from ${clientId}`,
+      method,
+      linkedClientId: clientId,
+      linkedTransactionId: displayTxId,
+      date: eventDate,
+      batchId,
+      createdBy,
+    });
+    if (!portalTxRes.ok) throw new Error(portalTxRes.error || 'Failed to create portal transaction.');
+
+    const clientData = clientSnap.data() || {};
+    const currentBalance = Number(clientData.currentBalance ?? clientData.openingBalance ?? 0);
+    await setDoc(doc(db, 'tenants', tenantId, 'clients', clientId), {
+      currentBalance: currentBalance + paymentAmount,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    await upsertTenantSyncEvent(tenantId, `se_pay_${clientId}_${Date.now()}`, {
+      tenantId,
+      eventType: 'create',
+      entityType: 'transaction',
+      entityId: displayTxId,
+      changedFields: ['amount', 'portalId', 'clientId', 'method', 'description', 'currentBalance'],
+      createdAt: serverTimestamp(),
+      createdBy: createdBy || 'unknown',
+      syncStatus: 'pending',
+    });
+
+    return { ok: true, batchId };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] client payment failed: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
 /**
  * Recycle Bin Logic
  */
@@ -767,6 +851,40 @@ export const fetchTenantClients = async (tenantId) => {
     const message = toSafeError(error);
     console.warn(`[backendStore] clients read failed tenants/${tenantId}/clients: ${message}`);
     return { ok: false, error: message, rows: [], usersByUid: {} };
+  }
+};
+
+
+export const fetchTenantClientsLite = async (tenantId) => {
+  try {
+    const clientsSnap = await getDocs(collection(db, 'tenants', tenantId, 'clients'));
+    const rows = clientsSnap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item.deletedAt);
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] clients lite read failed tenants/${tenantId}/clients: ${message}`);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
+export const fetchTenantPortalsLite = async (tenantId) => {
+  try {
+    const portalSnap = await getDocs(collection(db, 'tenants', tenantId, 'portals'));
+    const rows = portalSnap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item.deletedAt)
+      .map((item) => ({
+        ...item,
+        balance: Number(item.balance || 0),
+        balanceType: Number(item.balance || 0) < 0 ? 'negative' : 'positive',
+      }));
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] portals lite read failed tenants/${tenantId}/portals: ${message}`);
+    return { ok: false, error: message, rows: [] };
   }
 };
 
@@ -1001,12 +1119,118 @@ export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdf
   }
 };
 
+export const sendPaymentAcknowledgementEmail = async (tenantId, {
+  email,
+  clientName,
+  amount,
+  date,
+  portalName,
+  method,
+  transactionId,
+}) => {
+  try {
+    const tenantRef = doc(db, 'tenants', tenantId);
+    const tenantSnap = await getDoc(tenantRef);
+    const tenantName = tenantSnap.exists() ? tenantSnap.data().name : 'ACIS Platform';
+
+    await setDoc(doc(collection(db, 'mails')), {
+      to: [email],
+      message: {
+        subject: `${tenantName} payment acknowledgement`,
+        html: `
+          <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
+            <h2>Hello ${clientName || 'Client'},</h2>
+            <p>We acknowledge receipt of your payment.</p>
+            <ul>
+              <li><strong>Transaction:</strong> ${transactionId}</li>
+              <li><strong>Amount:</strong> ${Number(amount || 0).toLocaleString()}</li>
+              <li><strong>Date:</strong> ${date || '-'}</li>
+              <li><strong>Portal:</strong> ${portalName || '-'}</li>
+              <li><strong>Method:</strong> ${method || '-'}</li>
+            </ul>
+            <p>Thank you.</p>
+          </div>
+        `,
+      },
+      createdAt: serverTimestamp(),
+    });
+
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: toSafeError(error) };
+  }
+};
+
 export const fetchTenantMailConfig = async (tenantId) => {
   return getTenantSettingDoc(tenantId, 'mailConfiguration');
 };
 
 export const upsertTenantMailConfig = async (tenantId, payload) => {
   return upsertTenantSettingDoc(tenantId, 'mailConfiguration', payload);
+};
+
+export const fetchTenantSmsConfig = async (tenantId) => {
+  return getTenantSettingDoc(tenantId, 'smsConfiguration');
+};
+
+export const upsertTenantSmsConfig = async (tenantId, payload) => {
+  return upsertTenantSettingDoc(tenantId, 'smsConfiguration', payload);
+};
+
+const trySendViaElectronSms = async ({ connectorUrl, to, message, meta }) => {
+  try {
+    if (typeof window === 'undefined') return { ok: false, skipped: true, reason: 'no_window' };
+    const send = window?.electron?.sms?.send;
+    if (typeof send !== 'function') return { ok: false, skipped: true, reason: 'not_electron' };
+    const res = await send({ connectorUrl, to, message, meta });
+    if (res?.ok) return { ok: true, skipped: false };
+    return { ok: false, skipped: false, error: res?.error || 'SMS send failed.' };
+  } catch (error) {
+    return { ok: false, skipped: false, error: toSafeError(error) };
+  }
+};
+
+export const sendTenantPaymentSms = async (tenantId, {
+  toMobile,
+  clientName,
+  amount,
+  date,
+  portalName,
+  method,
+  transactionId,
+}) => {
+  try {
+    const configRes = await fetchTenantSmsConfig(tenantId);
+    const cfg = configRes.ok && configRes.data ? configRes.data : {};
+    if (!cfg.enablePaymentSms) return { ok: true, skipped: true, reason: 'disabled' };
+
+    const mobile = String(toMobile || '').trim();
+    if (!mobile) return { ok: true, skipped: true, reason: 'missing_mobile' };
+
+    const tenantSnap = await getDoc(doc(db, 'tenants', tenantId));
+    const tenantName = tenantSnap.exists() ? tenantSnap.data().name : 'ACIS Platform';
+
+    const body = [
+      `Hi ${clientName || 'Client'},`,
+      `We received your payment (${transactionId || '-'}) of ${Number(amount || 0).toLocaleString()}.`,
+      `Date: ${date || '-'}`,
+      `Portal: ${portalName || '-'}`,
+      `Method: ${method || '-'}`,
+      `${tenantName}`,
+    ].join(' ');
+
+    const sendRes = await trySendViaElectronSms({
+      connectorUrl: cfg.connectorUrl,
+      to: mobile,
+      message: body,
+      meta: { tenantId, type: 'payment_ack', transactionId },
+    });
+    if (sendRes.ok) return { ok: true, skipped: false, channel: 'connector' };
+    if (!sendRes.skipped) return { ok: false, error: sendRes.error || 'SMS send failed.' };
+    return { ok: true, skipped: true, reason: sendRes.reason || 'not_available' };
+  } catch (error) {
+    return { ok: false, error: toSafeError(error) };
+  }
 };
 
 const applyTemplateTokens = (template, tokens) => {

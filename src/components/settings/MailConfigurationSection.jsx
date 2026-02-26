@@ -24,6 +24,8 @@ const MailConfigurationSection = () => {
         welcomeForIndividual: true,
         welcomeSubject: 'Welcome to {{tenantName}}',
         welcomeHtml: '<h3>Welcome {{clientName}}</h3><p>Your client ID: <strong>{{displayClientId}}</strong></p><p>Thank you for joining {{tenantName}}.</p>',
+        enablePaymentSms: false,
+        connectorUrl: '',
     });
     const [testWelcomeTo, setTestWelcomeTo] = useState('');
     const [status, setStatus] = useState({ message: '', type: '' });
@@ -229,6 +231,35 @@ const MailConfigurationSection = () => {
                             Send Test Welcome
                         </button>
                     </div>
+                </div>
+
+                <hr className="border-[var(--c-border)]" />
+
+                <div className="space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">SMS Connector (Optional)</h3>
+                    <label className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+                        <input
+                            type="checkbox"
+                            checked={!!config.enablePaymentSms}
+                            onChange={(e) => setConfig({ ...config, enablePaymentSms: e.target.checked })}
+                            className="h-4 w-4"
+                        />
+                        <span className="text-sm font-semibold text-[var(--c-text)]">Enable payment acknowledgement SMS</span>
+                    </label>
+
+                    <div className={rowClass}>
+                        <label className="text-xs font-bold text-[var(--c-muted)]">Connector URL</label>
+                        <input
+                            type="text"
+                            placeholder="http://127.0.0.1:8081/sms/send"
+                            value={config.connectorUrl || ''}
+                            onChange={(e) => setConfig({ ...config, connectorUrl: e.target.value })}
+                            className={inputClass}
+                        />
+                    </div>
+                    <p className="text-[10px] text-[var(--c-muted)]">
+                        This is your local/mobile connector endpoint. The app will POST {'{ to, message, meta }'} to this URL.
+                    </p>
                 </div>
 
                 <hr className="border-[var(--c-border)]" />

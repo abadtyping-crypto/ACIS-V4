@@ -130,6 +130,40 @@ function createWindow() {
             return { ok: false, error: error?.message || 'Failed to send email.' };
         }
     });
+
+    ipcMain.removeHandler('sms-send');
+    ipcMain.handle('sms-send', async (_event, payload) => {
+        try {
+            const connectorUrl = String(payload?.connectorUrl || '').trim();
+            const to = String(payload?.to || '').trim();
+            const message = String(payload?.message || '').trim();
+
+            if (!connectorUrl) {
+                return { ok: false, error: 'SMS connector URL is missing.' };
+            }
+            if (!to) {
+                return { ok: false, error: 'Recipient mobile number is required.' };
+            }
+            if (!message) {
+                return { ok: false, error: 'SMS body is required.' };
+            }
+
+            const response = await fetch(connectorUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to, message, meta: payload?.meta || {} }),
+            });
+
+            if (!response.ok) {
+                const body = await response.text();
+                return { ok: false, error: `Connector responded ${response.status}: ${body || 'unknown'}` };
+            }
+
+            return { ok: true };
+        } catch (error) {
+            return { ok: false, error: error?.message || 'Failed to send SMS.' };
+        }
+    });
 }
 
 app.whenReady().then(() => {

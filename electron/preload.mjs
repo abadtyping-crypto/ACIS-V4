@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld(
     mail: {
         send: (payload) => ipcRenderer.invoke('mail-send', payload),
     },
+    sms: {
+        send: (payload) => ipcRenderer.invoke('sms-send', payload),
+    },
     // We can add specific event subscription methods here later
     onSyncEvent: (callback) => ipcRenderer.on('sync-event', (event, data) => callback(data))
 }
