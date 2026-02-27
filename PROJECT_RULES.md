@@ -161,6 +161,10 @@
 - Portal transaction storage path is mandatory:
   - Portal-only transactions (opening balance, internal transfer, loan portal-side entries, portal reports/history) must read/write `tenants/{tenantId}/portalTransactions`.
   - Do not write portal-only transaction records into `tenants/{tenantId}/transactions`.
+- Currency/icon rule (strict):
+  - Do not use dollar symbols/icons or USD labels anywhere in UI or documents.
+  - All monetary displays must use AED and the shared `DirhamIcon`/`CurrencyValue` components (or plain `AED` text in select labels where icons aren’t supported).
+  - Print/PDF outputs must also show AED (no `$` glyphs).
 - Portal transaction ID consistency:
   - For portal transactions, `displayTransactionId` and document ID strategy must stay deterministic (`toSafeDocId(displayTransactionId, 'portal_tx')` or deterministic suffix variant).
   - No random UID fallback for portal transaction docs.

@@ -9,11 +9,13 @@ import {
   fetchPortalTransactions,
   fetchTenantPortals,
   fetchTenantUsersMap,
+  sendTenantDocumentEmail,
   upsertTenantPortal,
 } from '../lib/backendStore';
 import { createSyncEvent } from '../lib/syncEvents';
 import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
 import { generateDisplayTxId } from '../lib/txIdGenerator';
+import { generateTenantPdf } from '../lib/pdfGenerator';
 import { canUserPerformAction } from '../lib/userControlPreferences';
 
 const portalTypes = [
@@ -110,6 +112,8 @@ const PortalDetailPage = () => {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isTransferSaving, setIsTransferSaving] = useState(false);
   const [isStatementOpen, setIsStatementOpen] = useState(false);
+  const [statementEmail, setStatementEmail] = useState(user?.email || '');
+  const [isStatementSending, setIsStatementSending] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
   const [selectedTx, setSelectedTx] = useState(null);
@@ -365,21 +369,7 @@ const PortalDetailPage = () => {
     setIsTransferOpen(true);
   };
 
-  const handleMonthSelect = (value) => {
-    if (!value) return;
-    const [year, month] = value.split('-').map(Number);
-    const start = new Date(Date.UTC(year, month - 1, 1));
-    const end = new Date(Date.UTC(year, month, 0));
-    const max = new Date(`${maxTxDate}T23:59:59Z`);
-    const clampedEnd = end > max ? max : end;
-    setStatementRange({
-      start: start.toISOString().slice(0, 10),
-      end: clampedEnd.toISOString().slice(0, 10),
-    });
-  };
-
-  const handlePrintStatement = () => {
-    if (!selectedTx && !portal) return;
+  const computeStatement = useCallback(() => {
     const startMillis = toMillis(statementRange.start);
     const endMillis = toMillis(statementRange.end) + 24 * 60 * 60 * 1000 - 1;
     const sorted = [...txRows].sort((a, b) => toMillis(a.date || a.createdAt || a.updatedAt) - toMillis(b.date || b.createdAt || b.updatedAt));
@@ -406,6 +396,24 @@ const PortalDetailPage = () => {
     }, 0);
     const closingBalance = openingBalance + inRange.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
+    return { inRange, openingBalance, closingBalance, creditTotal, debitTotal, startMillis, endMillis };
+  }, [statementRange, txRows]);
+
+  const handleMonthSelect = (value) => {
+    if (!value) return;
+    const [year, month] = value.split('-').map(Number);
+    const start = new Date(Date.UTC(year, month - 1, 1));
+    const end = new Date(Date.UTC(year, month, 0));
+    const max = new Date(`${maxTxDate}T23:59:59Z`);
+    const clampedEnd = end > max ? max : end;
+    setStatementRange({
+      start: start.toISOString().slice(0, 10),
+      end: clampedEnd.toISOString().slice(0, 10),
+    });
+  };
+
+  const handlePrintStatement = () => {
+    const { inRange, openingBalance, closingBalance, creditTotal, debitTotal } = computeStatement();
     const rowsHtml = inRange.map((row) => {
       const ts = toDateText(row.date || row.createdAt || row.updatedAt);
       const amt = Number(row.amount || 0);
@@ -491,6 +499,91 @@ const PortalDetailPage = () => {
     win.document.close();
     win.focus();
     setTimeout(() => win.print(), 250);
+  };
+
+  const buildStatementPdfData = () => {
+    const { inRange, openingBalance, closingBalance, creditTotal, debitTotal } = computeStatement();
+    const txId = `${portalId}_${statementRange.start}_${statementRange.end}`;
+    const items = [
+      { name: 'Opening Balance', qty: 1, price: openingBalance, total: openingBalance },
+      ...inRange.map((row) => ({
+        name: `${toDateText(row.date || row.createdAt || row.updatedAt)} • ${row.displayTransactionId || row.id} • ${row.type || ''}`,
+        qty: 1,
+        price: Number(row.amount || 0),
+        total: Number(row.amount || 0),
+      })),
+      { name: 'Total Credits', qty: 1, price: creditTotal, total: creditTotal },
+      { name: 'Total Debits', qty: 1, price: -debitTotal, total: -debitTotal },
+      { name: 'Closing Balance', qty: 1, price: closingBalance, total: closingBalance },
+    ];
+    return { txId, items, closingBalance };
+  };
+
+  const handleDownloadStatementPdf = async () => {
+    const data = buildStatementPdfData();
+    await generateTenantPdf({
+      tenantId,
+      documentType: 'portalStatement',
+      data: {
+        txId: data.txId,
+        date: statementRange.end,
+        amount: data.closingBalance,
+        recipientName: portal?.name || portalId,
+        description: `Portal statement ${statementRange.start} to ${statementRange.end}`,
+        items: data.items,
+      },
+      save: true,
+      returnBase64: false,
+      filename: `portalStatement_${portalId}_${statementRange.start}_${statementRange.end}.pdf`,
+    });
+  };
+
+  const handleEmailStatementPdf = async () => {
+    const data = buildStatementPdfData();
+    setIsStatementSending(true);
+    const pdfRes = await generateTenantPdf({
+      tenantId,
+      documentType: 'portalStatement',
+      data: {
+        txId: data.txId,
+        date: statementRange.end,
+        amount: data.closingBalance,
+        recipientName: portal?.name || portalId,
+        description: `Portal statement ${statementRange.start} to ${statementRange.end}`,
+        items: data.items,
+      },
+      save: false,
+      returnBase64: true,
+      filename: `portalStatement_${portalId}_${statementRange.start}_${statementRange.end}.pdf`,
+    });
+    if (!pdfRes.ok) {
+      setIsStatementSending(false);
+      setMessageType('error');
+      setMessage(pdfRes.error || 'Failed to generate statement PDF.');
+      return;
+    }
+    const email = statementEmail || user?.email;
+    if (!email) {
+      setIsStatementSending(false);
+      setMessageType('error');
+      setMessage('Please provide an email to send the statement.');
+      return;
+    }
+    const emailRes = await sendTenantDocumentEmail(
+      tenantId,
+      email,
+      'portalStatement',
+      pdfRes.base64,
+      { txId: data.txId }
+    );
+    setIsStatementSending(false);
+    if (!emailRes.ok) {
+      setMessageType('error');
+      setMessage(emailRes.error || 'Failed to send email.');
+      return;
+    }
+    setMessageType('success');
+    setMessage(`Statement emailed to ${email}.`);
   };
 
   const handleTransfer = async (event) => {
@@ -747,7 +840,7 @@ const PortalDetailPage = () => {
                   </div>
                   <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
                     <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Type</p>
-                    <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1">
+                    <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-panel)_55%,white)] px-2 py-1 shadow-sm">
                       <img
                         src={fallbackPortalIcon(portal.type)}
                         alt={portal.type || 'Portal'}
@@ -762,7 +855,7 @@ const PortalDetailPage = () => {
                   </div>
                   <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
                     <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Status</p>
-                    <span className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(portal.status)}`}>
+                    <span className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm ${getStatusBadgeClass(portal.status)}`}>
                       {String(portal.status || 'active').charAt(0).toUpperCase() + String(portal.status || 'active').slice(1)}
                     </span>
                   </div>
@@ -778,7 +871,7 @@ const PortalDetailPage = () => {
                           return (
                             <span
                               key={methodId}
-                              className="inline-flex items-center gap-1 rounded-full border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-0.5 text-[11px] font-semibold text-[var(--c-text)]"
+                              className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-panel)_60%,white)] px-2.5 py-1 text-[11px] font-semibold text-[var(--c-text)] shadow-sm"
                             >
                               <img src={methodMeta.icon} alt={methodMeta.label} className="h-3.5 w-3.5 object-contain" />
                               {methodMeta.label}
@@ -1023,7 +1116,7 @@ const PortalDetailPage = () => {
                     max={maxTxDate}
                     value={statementRange.start}
                     onChange={(e) => setStatementRange((prev) => ({ ...prev, start: e.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none dark:[color-scheme:dark] [color-scheme:dark]"
                   />
                 </label>
                 <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
@@ -1034,7 +1127,7 @@ const PortalDetailPage = () => {
                     max={maxTxDate}
                     value={statementRange.end}
                     onChange={(e) => setStatementRange((prev) => ({ ...prev, end: e.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none dark:[color-scheme:dark] [color-scheme:dark]"
                   />
                 </label>
               </div>
@@ -1060,6 +1153,35 @@ const PortalDetailPage = () => {
                 >
                   Reset
                 </button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadStatementPdf}
+                  className="rounded-xl border border-[var(--c-accent)] bg-[var(--c-accent)]/10 px-3 py-2 text-sm font-semibold text-[var(--c-accent)] hover:border-[var(--c-accent)]"
+                >
+                  Download PDF
+                </button>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Send by Email</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={statementEmail}
+                      onChange={(e) => setStatementEmail(e.target.value)}
+                      placeholder={user?.email || 'recipient@example.com'}
+                      className="flex-1 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleEmailStatementPdf}
+                      disabled={isStatementSending}
+                      className="rounded-xl bg-[var(--c-accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {isStatementSending ? 'Sending...' : 'Send'}
+                    </button>
+                  </div>
+                </div>
               </div>
               <p className="text-[11px] text-[var(--c-muted)]">
                 Dates are limited to portal transaction history (min {minTxDate}) through today ({maxTxDate}). Service fees are highlighted automatically.

@@ -45,7 +45,7 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
 
     const portalOptions = portals.map((p) => ({
         value: p.id,
-        label: `${p.name} ($${(Number(p.balance || 0)).toLocaleString()})`,
+        label: `${p.name} (AED ${(Number(p.balance || 0)).toLocaleString()})`,
         icon: p.iconUrl || fallbackPortalIcon(p.type),
         meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
     }));

@@ -8,7 +8,8 @@ import {
     upsertLoanPerson,
     deleteLoanPerson,
     executeLoanTransaction,
-    sendTenantDocumentEmail
+    sendTenantDocumentEmail,
+    upsertTenantNotification
 } from '../../lib/backendStore';
 import { generateDisplayTxId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
@@ -42,6 +43,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     const [portals, setPortals] = useState([]);
     const [persons, setPersons] = useState([]);
     const [view, setView] = useState('form'); // 'form' or 'list'
+    const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState({ message: '', type: '' });
 
@@ -59,18 +61,23 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     const [newPerson, setNewPerson] = useState({ name: '', phone: '', email: '' });
 
     const fetchData = useCallback(async () => {
+        if (!tenantId) return;
+        setIsLoading(true);
         const [pRes, psRes] = await Promise.all([
             fetchTenantPortals(tenantId),
             fetchLoanPersons(tenantId)
         ]);
-        if (pRes.ok) setPortals(pRes.rows);
-        if (psRes.ok) setPersons(psRes.rows);
+        if (pRes.ok) setPortals(pRes.rows || []);
+        if (psRes.ok) {
+            const rows = (psRes.rows || []).filter((row) => !row.deletedAt);
+            setPersons(rows);
+        }
+        setIsLoading(false);
     }, [tenantId]);
 
     useEffect(() => {
-        if (!tenantId || !isOpen) return;
         fetchData();
-    }, [tenantId, isOpen, fetchData, refreshKey]);
+    }, [fetchData, refreshKey]);
 
     useEffect(() => {
         if (!tenantId || !form.personId) {
@@ -104,6 +111,24 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
             setNewPerson({ name: '', phone: '', email: '' });
             setShowQuickAdd(false);
             setStatus({ message: "Person added!", type: 'success' });
+            await createSyncEvent({
+                tenantId,
+                eventType: 'create',
+                entityType: 'loanPerson',
+                entityId: personId,
+                createdBy: user.uid,
+                changedFields: ['name', 'phone', 'email', 'status']
+            });
+            await upsertTenantNotification(tenantId, `notif_loan_person_${personId}`, {
+                title: 'Loan Person Added',
+                detail: `${newPerson.name} added to loan management.`,
+                eventType: 'create',
+                entityType: 'loanPerson',
+                entityId: personId,
+                routePath: `/t/${tenantId}/portal-management`,
+                createdAt: new Date().toISOString(),
+                createdBy: user.uid,
+            });
             setTimeout(() => setStatus({ message: '', type: '' }), 2000);
         } else {
             setStatus({ message: res.error, type: 'error' });
@@ -187,7 +212,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     const hasDownloadPayload = Boolean(status?.download?.docType && status?.download?.data);
     const portalOptions = portals.map((p) => ({
         value: p.id,
-        label: `${p.name} ($${(Number(p.balance || 0)).toLocaleString()})`,
+        label: `${p.displayPortalId || p.name || p.id} (AED ${(Number(p.balance || 0)).toLocaleString()})`,
         icon: p.iconUrl || fallbackPortalIcon(p.type),
         meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
     }));
@@ -205,7 +230,12 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                     <div className="flex items-center justify-between rounded-2xl bg-slate-900 p-4 text-white shadow-lg">
                         <div>
                             <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Pending Balance</p>
-                            <p className="text-2xl font-black">${(pendingBalance || 0).toLocaleString()}</p>
+                            <p className="text-2xl font-black">
+                                <span className="inline-flex items-center gap-2">
+                                    <img src="/dirham.svg" alt="AED" className="h-5 w-5 object-contain" />
+                                    {(pendingBalance || 0).toLocaleString()}
+                                </span>
+                            </p>
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Loan Person</p>

@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { resolvePdfTemplateForRenderer } from './pdfTemplateRenderer';
 import { fetchTenantPdfTemplates } from './backendStore';
 
@@ -12,6 +12,7 @@ export const generateTenantPdf = async ({
     data, // { txId, date, amount, recipientName, description, items: [] }
     save = true,
     returnBase64 = false,
+    filename,
 }) => {
     try {
         // 1. Fetch active template
@@ -114,7 +115,7 @@ export const generateTenantPdf = async ({
             ? data.items.map(i => [i.name, i.qty, i.price, i.total])
             : [[data.description || 'Transaction details', '1', data.amount, data.amount]];
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: cursorY,
             head: [['Description', 'Qty', 'Unit Price', 'Total']],
             body: tableData,
@@ -124,7 +125,7 @@ export const generateTenantPdf = async ({
             styles: { fontSize: 10, cellPadding: template.rowPadding / 2 },
         });
 
-        cursorY = doc.lastAutoTable.finalY + 30;
+        cursorY = (doc.lastAutoTable?.finalY || cursorY) + 30;
 
         // Summary
         doc.setFontSize(14);
@@ -155,7 +156,7 @@ export const generateTenantPdf = async ({
 
         // 8. Output
         if (save) {
-            doc.save(`${documentType}_${data.txId || Date.now()}.pdf`);
+            doc.save(filename || `${documentType}_${data.txId || Date.now()}.pdf`);
         }
 
         if (returnBase64) {
