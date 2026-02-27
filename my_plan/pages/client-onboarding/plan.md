@@ -403,6 +403,11 @@ If selected parent type is `company`, also show:
        - `Mother`
        - `Domestic Worker`
 
+4. Balance fields are not part of Dependent registration:
+   - Do not show `Initial Balance`
+   - Do not show `Balance Type`
+   - Do not write dependent opening balance fields on create/update
+
 ### 6.5 Duplicate Blocking (Dependent)
 
 Use same duplicate logic as Individual:

@@ -20,9 +20,7 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
         workPermitNumber: '',
         personCode: '',
         mobile: '',
-        email: '',
-        openingBalance: '',
-        balanceType: 'credit'
+        email: ''
     });
 
     const [isSaving, setIsSaving] = useState(false);
@@ -109,7 +107,6 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                 personCode: String(form.personCode || '').replace(/\D/g, '').slice(0, 14),
                 mobile: String(form.mobile || '').replace(/\D/g, ''),
                 email: String(form.email || '').trim().toLowerCase(),
-                openingBalance: parseFloat(form.openingBalance) || 0,
                 tenantId,
                 parentId: parent.id,
                 parentName: parent.fullName || parent.tradeName,
@@ -383,31 +380,6 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                     </div>
                 </div>
             ) : null}
-
-            <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Initial Balance</label>
-                    <input
-                        type="number"
-                        name="openingBalance"
-                        value={form.openingBalance}
-                        onChange={handleChange}
-                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Balance Type</label>
-                    <select
-                        name="balanceType"
-                        value={form.balanceType}
-                        onChange={handleChange}
-                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                    >
-                        <option value="credit">Credit</option>
-                        <option value="debit">Debit</option>
-                    </select>
-                </div>
-            </div>
 
             <div className="flex items-center gap-3 pt-4">
                 <button
