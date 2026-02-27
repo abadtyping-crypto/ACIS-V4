@@ -9,7 +9,8 @@
     "build": "vite build",
     "electron:build": "vite build && electron-builder",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "whatsapp:webhook": "node scripts/whatsapp-webhook-server.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
