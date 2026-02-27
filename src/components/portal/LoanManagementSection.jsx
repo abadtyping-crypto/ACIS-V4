@@ -262,7 +262,9 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
 
                 {view === 'list' ? (
                     <div className="grid gap-3 sm:grid-cols-2">
-                        {persons.length === 0 ? (
+                        {isLoading ? (
+                            <p className="col-span-full py-4 text-center text-xs text-[var(--c-muted)]">Loading loan persons...</p>
+                        ) : persons.length === 0 ? (
                             <p className="col-span-full py-4 text-center text-xs text-[var(--c-muted)]">No persons found.</p>
                         ) : (
                             persons.map(p => (
@@ -357,7 +359,9 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                     >
                                         <option value="">Select Person</option>
                                         {persons.map((p) => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                            <option key={p.id} value={p.id}>
+                                                {(p.displayPersonId || p.id)} • {p.name || 'Unnamed'}
+                                            </option>
                                         ))}
                                     </select>
                                 )}

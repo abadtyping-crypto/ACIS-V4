@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import IconSelect from '../components/common/IconSelect';
+import CurrencyValue from '../components/common/CurrencyValue';
 import { useAuth } from '../context/AuthContext';
 import {
   executeInternalTransfer,
@@ -412,6 +413,9 @@ const PortalDetailPage = () => {
     });
   };
 
+  const formatAmountDisplay = (amt) =>
+    `${amt < 0 ? '-' : ''}AED ${Math.abs(amt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const handlePrintStatement = () => {
     const { inRange, openingBalance, closingBalance, creditTotal, debitTotal } = computeStatement();
     const rowsHtml = inRange.map((row) => {
@@ -425,8 +429,8 @@ const PortalDetailPage = () => {
           <td>${row.displayTransactionId || row.id}</td>
           <td>${row.type || '-'}</td>
           <td>${row.description || '-'}</td>
-          <td class="${isDebit ? 'debit' : 'credit'}">${isDebit ? Math.abs(amt).toFixed(2) : ''}</td>
-          <td class="${!isDebit ? 'credit' : 'debit'}">${!isDebit ? amt.toFixed(2) : ''}</td>
+          <td class="${isDebit ? 'debit' : 'credit'}">${isDebit ? formatAmountDisplay(Math.abs(amt) * -1) : ''}</td>
+          <td class="${!isDebit ? 'credit' : 'debit'}">${!isDebit ? formatAmountDisplay(amt) : ''}</td>
         </tr>
       `;
     }).join('');
@@ -463,10 +467,10 @@ const PortalDetailPage = () => {
             <p class="meta">${portal?.name || portalId} • ${statementRange.start} to ${statementRange.end}</p>
           </div>
           <div class="summary">
-            <div class="pill"><h4>Opening Balance</h4><p>${openingBalance.toFixed(2)}</p></div>
-            <div class="pill"><h4>Total Credits</h4><p class="credit">+${creditTotal.toFixed(2)}</p></div>
-            <div class="pill"><h4>Total Debits</h4><p class="debit">-${debitTotal.toFixed(2)}</p></div>
-            <div class="pill"><h4>Closing Balance</h4><p>${closingBalance.toFixed(2)}</p></div>
+            <div class="pill"><h4>Opening Balance</h4><p>${formatAmountDisplay(openingBalance)}</p></div>
+            <div class="pill"><h4>Total Credits</h4><p class="credit">+${formatAmountDisplay(creditTotal)}</p></div>
+            <div class="pill"><h4>Total Debits</h4><p class="debit">-${formatAmountDisplay(debitTotal)}</p></div>
+            <div class="pill"><h4>Closing Balance</h4><p>${formatAmountDisplay(closingBalance)}</p></div>
           </div>
           <table>
             <thead>
@@ -709,7 +713,10 @@ const PortalDetailPage = () => {
                   <img src={portal.iconUrl || '/portals/portals.png'} alt={portal.name} className="h-12 w-12 rounded-xl object-cover" />
                   <div>
                     <p className="text-sm font-bold text-[var(--c-text)]">{portal.name}</p>
-                    <p className="text-xs text-[var(--c-muted)]">Current Balance: {balanceText}</p>
+                    <div className="mt-0.5 text-xs text-[var(--c-muted)]">
+                      <span className="mr-1 font-semibold text-[var(--c-text)]">Balance:</span>
+                      <CurrencyValue value={portal?.balance || 0} iconSize="h-3.5 w-3.5" />
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -914,11 +921,12 @@ const PortalDetailPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {txRows.map((row) => {
-                        const creator = getCreator(row.createdBy);
-                        return (
-                          <tr key={row.id} className="border-t border-[var(--c-border)]">
-                            <td className="py-2 pr-2">
+                    {txRows.map((row) => {
+                      const creator = getCreator(row.createdBy);
+                      const amt = Number(row.amount || 0);
+                      return (
+                        <tr key={row.id} className="border-t border-[var(--c-border)]">
+                          <td className="py-2 pr-2">
                               <button
                                 type="button"
                                 onClick={() => setSelectedTx(row)}
@@ -929,8 +937,8 @@ const PortalDetailPage = () => {
                               </button>
                             </td>
                             <td className="py-2 pr-2 text-[var(--c-muted)]">{row.type || '-'}</td>
-                            <td className={`py-2 pr-2 font-semibold ${Number(row.amount || 0) < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                              {Number(row.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <td className={`py-2 pr-2 font-semibold ${amt < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                              {formatAmountDisplay(amt)}
                             </td>
                             <td className="py-2 pr-2">
                               <Link

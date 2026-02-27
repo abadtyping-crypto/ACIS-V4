@@ -133,7 +133,7 @@ const InternalTransferPage = () => {
                             >
                                 <option value="">Select Source</option>
                                 {portals.map((p) => (
-                                    <option key={p.id} value={p.id}>{p.name} (Bal: ${p.balance?.toLocaleString() || 0})</option>
+                                    <option key={p.id} value={p.id}>{p.name} (Bal: AED {(p.balance?.toLocaleString() || 0)})</option>
                                 ))}
                             </select>
                         </div>
@@ -149,7 +149,7 @@ const InternalTransferPage = () => {
                             >
                                 <option value="">Select Destination</option>
                                 {portals.map((p) => (
-                                    <option key={p.id} value={p.id}>{p.name} (Bal: ${p.balance?.toLocaleString() || 0})</option>
+                                    <option key={p.id} value={p.id}>{p.name} (Bal: AED {(p.balance?.toLocaleString() || 0)})</option>
                                 ))}
                             </select>
                         </div>
