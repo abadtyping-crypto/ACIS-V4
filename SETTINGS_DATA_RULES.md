@@ -48,6 +48,8 @@ n  - portals
 - Do not copy user details into portal/application docs.
 - Fetch required user info from `uid` join/lookup only when needed.
 - Application Icon Library docs must use deterministic doc IDs from icon names (no random UID), with mandatory `iconName` and compressed icon asset URLs.
+- Portal transaction writes for portal-management flows must use `tenants/{tenantId}/portalTransactions` (not generic `transactions`).
+- Portal creation notifications should include `routePath` for deep-link navigation to the created portal detail page.
 
 ## 8) Validation and Security
 - Validate payload keys against allowed schema before write.

@@ -13,6 +13,7 @@ import FavoritesPage from './pages/FavoritesPage';
 import LoginPage from './pages/LoginPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PortalManagementPage from './pages/PortalManagementPage';
+import PortalDetailPage from './pages/PortalDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage';
@@ -62,6 +63,7 @@ const App = () => {
                     <Route path="profile" element={<AdaptiveProfilePage />} />
                     <Route path="profile/edit" element={<ProfilePage />} />
                     <Route path="portal-management" element={<PortalManagementPage />} />
+                    <Route path="portal-management/:portalId" element={<PortalDetailPage />} />
                     <Route
                       path="document-calendar"
                       element={<ModulePlaceholderPage title="Document Calendar" subtitle="Document calendar module placeholder." />}

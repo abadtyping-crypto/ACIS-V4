@@ -13,13 +13,30 @@ const toDisplayName = (user) => {
   return 'User';
 };
 
-const DesktopHeader = ({ tenant, user, notificationCount, onLogout }) => {
+const toDateLabel = (value) => {
+  if (!value) return '';
+  if (typeof value?.toDate === 'function') return value.toDate().toLocaleString();
+  if (typeof value?.toMillis === 'function') return new Date(value.toMillis()).toLocaleString();
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toLocaleString();
+};
+
+const toBalanceLabel = (value) => {
+  const amount = Number(value || 0);
+  const sign = amount < 0 ? '-' : '';
+  return `${sign}AED ${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = [], onNotificationRead, onLogout }) => {
   const hasNativeTitleBar = typeof window !== 'undefined' && Boolean(window.electron?.windowControls);
   const { tenantId } = useParams();
   const { theme, resolvedTheme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const menuRef = useRef(null);
+  const notificationsRef = useRef(null);
   const appliedTheme = theme === 'system' ? resolvedTheme : theme;
   const ThemeIcon = theme === 'system' ? Monitor : appliedTheme === 'dark' ? MoonStar : SunMedium;
   const themeLabel = theme === 'system' ? `System (${resolvedTheme})` : appliedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
@@ -30,10 +47,22 @@ const DesktopHeader = ({ tenant, user, notificationCount, onLogout }) => {
   useEffect(() => {
     const onPointerDown = (event) => {
       if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+      if (!notificationsRef.current?.contains(event.target)) setNotificationsOpen(false);
     };
     window.addEventListener('pointerdown', onPointerDown);
     return () => window.removeEventListener('pointerdown', onPointerDown);
   }, []);
+
+  const handleNotificationOpen = async (item) => {
+    if (!item?.id) return;
+    if (!item.isRead) await onNotificationRead?.(item.id);
+    if (item.routePath) {
+      navigate(item.routePath);
+    } else {
+      goTo('notifications');
+    }
+    setNotificationsOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4 lg:px-6">
@@ -75,19 +104,89 @@ const DesktopHeader = ({ tenant, user, notificationCount, onLogout }) => {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => goTo('notifications')}
-            className="relative inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] px-4 text-sm font-semibold text-[var(--c-text)] transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
-            aria-label="Notifications"
-          >
-            <BellIcon className="h-5 w-5" />
-            {notificationCount > 0 ? (
-              <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-                {notificationCount}
-              </span>
+          <div className="relative" ref={notificationsRef}>
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen((prev) => !prev)}
+              className="relative inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] px-4 text-sm font-semibold text-[var(--c-text)] transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+              aria-label="Notifications"
+              aria-expanded={notificationsOpen}
+              aria-haspopup="menu"
+            >
+              <BellIcon className="h-5 w-5" />
+              {notificationCount > 0 ? (
+                <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                  {notificationCount}
+                </span>
+              ) : null}
+            </button>
+            {notificationsOpen ? (
+              <div className="glass absolute right-0 top-[calc(100%+8px)] z-50 w-[22rem] rounded-2xl border border-[var(--c-border)] p-2 shadow-lg">
+                <div className="mb-2 flex items-center justify-between px-2 py-1">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--c-muted)]">Recent Notifications</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotificationsOpen(false);
+                      goTo('notifications');
+                    }}
+                    className="rounded-lg px-2 py-1 text-[11px] font-bold text-[var(--c-accent)] hover:bg-[var(--c-panel)]"
+                  >
+                    View All
+                  </button>
+                </div>
+                {recentNotifications.length === 0 ? (
+                  <p className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-4 text-xs text-[var(--c-muted)]">
+                    No recent notifications.
+                  </p>
+                ) : (
+                  <div className="max-h-[24rem] space-y-1 overflow-auto pr-1">
+                    {recentNotifications.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleNotificationOpen(item)}
+                        className={`w-full rounded-xl border px-2 py-2 text-left transition ${item.isRead
+                          ? 'border-[var(--c-border)] bg-[var(--c-surface)]'
+                          : 'border-[var(--c-ring)] bg-[var(--c-panel)]'
+                          }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <img
+                            src={item.createdByUser?.photoURL || '/avatar.png'}
+                            alt={item.createdByUser?.displayName || 'User'}
+                            className="mt-0.5 h-7 w-7 rounded-full border border-[var(--c-border)] object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-xs font-bold text-[var(--c-text)]">{item.title || item.eventType || 'Notification'}</p>
+                              {!item.isRead ? <span className="h-2 w-2 rounded-full bg-[var(--c-accent)]" /> : null}
+                            </div>
+                            <p className="truncate text-[11px] text-[var(--c-muted)]">{item.detail || item.message || 'No detail available.'}</p>
+                            {item.entityType === 'portal' && item.entityMeta ? (
+                              <div className="mt-1 flex items-center gap-2">
+                                <img
+                                  src={item.entityMeta.iconUrl || '/portals/portals.png'}
+                                  alt={item.entityMeta.name || 'Portal'}
+                                  className="h-4 w-4 rounded object-cover"
+                                />
+                                <p className="truncate text-[10px] font-semibold text-[var(--c-text)]">
+                                  {item.entityMeta.name} • {toBalanceLabel(item.entityMeta.balance)}
+                                </p>
+                              </div>
+                            ) : null}
+                            <p className="mt-1 text-[10px] text-[var(--c-muted)]">
+                              {item.createdByUser?.displayName || 'Unknown'} • {toDateLabel(item.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : null}
-          </button>
+          </div>
 
           <div className="relative" ref={menuRef}>
             <button

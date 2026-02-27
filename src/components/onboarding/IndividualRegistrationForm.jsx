@@ -5,7 +5,7 @@ import {
     checkIndividualDuplicate,
     generateDisplayClientId,
     getTenantSettingDoc,
-    upsertTenantTransaction,
+    upsertTenantPortalTransaction,
     sendTenantWelcomeEmail,
     db
 } from '../../lib/backendStore';
@@ -201,7 +201,7 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                         normalized.balanceType === 'debit'
                             ? -Math.abs(normalized.openingBalance)
                             : Math.abs(normalized.openingBalance);
-                    const txRes = await upsertTenantTransaction(tenantId, portalTxId, {
+                    const txRes = await upsertTenantPortalTransaction(tenantId, portalTxId, {
                         portalId: normalized.portalId,
                         displayTransactionId: displayTxId,
                         amount: txAmount,

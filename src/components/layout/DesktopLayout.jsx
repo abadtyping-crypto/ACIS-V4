@@ -4,8 +4,11 @@ import '../../styles/desktop/layout.css';
 import AppFooter from './AppFooter';
 import AppSidebar from './AppSidebar';
 import DesktopHeader from './DesktopHeader';
+import { useTenantNotifications } from '../../hooks/useTenantNotifications';
+import { useTenant } from '../../context/TenantContext';
 
 const DesktopLayout = ({ tenant, user, onLogout }) => {
+  const { tenantId } = useTenant();
   const hasNativeTitleBar = typeof window !== 'undefined' && Boolean(window.electron?.windowControls);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('acis_sidebar_collapsed') === 'true';
@@ -16,6 +19,7 @@ const DesktopLayout = ({ tenant, user, onLogout }) => {
   }, [isSidebarCollapsed]);
 
   const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev);
+  const { unreadCount, recentNotifications, markAsRead } = useTenantNotifications(tenantId, user);
 
   return (
     <div
@@ -25,7 +29,9 @@ const DesktopLayout = ({ tenant, user, onLogout }) => {
       <DesktopHeader 
         tenant={tenant} 
         user={user} 
-        notificationCount={3} 
+        notificationCount={unreadCount}
+        recentNotifications={recentNotifications}
+        onNotificationRead={markAsRead}
         onLogout={onLogout}
       />
       <div className="desktop-frame flex flex-1 min-h-0">

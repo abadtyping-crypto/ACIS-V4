@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import { useTenant } from '../context/TenantContext';
@@ -18,6 +19,7 @@ const fallbackPortalIcon = (type) => {
 };
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const { tenant, tenantId } = useTenant();
   const [isLoading, setIsLoading] = useState(true);
   const [portals, setPortals] = useState([]);
@@ -125,9 +127,12 @@ const DashboardPage = () => {
               <p className="py-4 text-center text-xs text-[var(--c-muted)]">No portals found.</p>
             ) : (
               visiblePortals.map((portal) => (
-                <div
+                <button
                   key={portal.id}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] p-3"
+                  type="button"
+                  onClick={() => navigate(`/t/${tenantId}/portal-management/${portal.id}`)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] p-3 text-left transition hover:border-[var(--c-accent)]"
+                  title={`Open ${portal.name} details`}
                 >
                   <div className="h-12 w-12 overflow-hidden rounded-lg">
                     <img
@@ -146,7 +151,7 @@ const DashboardPage = () => {
                       <CurrencyValue value={portal.balance || 0} iconSize="h-3 w-3" />
                     </p>
                   </div>
-                </div>
+                </button>
               ))
             )}
           </div>

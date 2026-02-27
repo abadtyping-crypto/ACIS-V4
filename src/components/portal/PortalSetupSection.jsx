@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SectionCard from './SectionCard';
 import { useTenant } from '../../context/TenantContext';
 import { useAuth } from '../../context/AuthContext';
 import {
     fetchTenantPortals,
+    upsertTenantNotification,
     upsertTenantPortal,
     deleteTenantPortal,
-    upsertTenantTransaction
+    upsertTenantPortalTransaction
 } from '../../lib/backendStore';
 import { uploadPortalIcon } from '../../lib/portalStorage';
 import { createSyncEvent } from '../../lib/syncEvents';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
+import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
 import ImageZoomTool from '../common/ImageZoomTool';
 
 const portalTypes = [
@@ -100,6 +103,7 @@ const loadImageMeta = (src) =>
     });
 
 const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
+    const navigate = useNavigate();
     const { tenantId } = useTenant();
     const { user } = useAuth();
     const [portals, setPortals] = useState([]);
@@ -127,6 +131,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     const [iconOffsetY, setIconOffsetY] = useState(0);
     const [iconFilter, setIconFilter] = useState('natural');
     const [iconDirty, setIconDirty] = useState(false);
+    const [methodIconMap, setMethodIconMap] = useState({});
 
     const fetchPortals = useCallback(async () => {
         setIsLoading(true);
@@ -139,6 +144,24 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         if (!tenantId || !isOpen) return;
         fetchPortals();
     }, [tenantId, isOpen, fetchPortals, refreshKey]);
+
+    useEffect(() => {
+        if (!tenantId || !isOpen) return;
+        let isMounted = true;
+        fetchApplicationIconLibrary(tenantId).then((res) => {
+            if (!isMounted || !res.ok) return;
+            const nextMap = {};
+            (res.rows || []).forEach((row) => {
+                const key = String(row?.iconId || '').trim().toLowerCase();
+                if (!key || !row?.iconUrl) return;
+                nextMap[key] = row.iconUrl;
+            });
+            setMethodIconMap(nextMap);
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, [tenantId, isOpen, refreshKey]);
 
     const handleEdit = (p) => {
         setEditingPortal(p);
@@ -273,12 +296,27 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         // Opening Balance
         if (!editingPortal && openingAmount > 0) {
             const displayTxId = await generateDisplayTxId(tenantId, 'POR');
-            await upsertTenantTransaction(tenantId, toSafeDocId(displayTxId, 'tx'), {
+            await upsertTenantPortalTransaction(tenantId, toSafeDocId(displayTxId, 'portal_tx'), {
                 portalId: targetPortalId,
                 displayTransactionId: displayTxId,
                 amount: openingSignedBalance,
                 type: 'Opening Balance',
                 date: new Date().toISOString(),
+                createdBy: user.uid,
+            });
+        }
+
+        if (!editingPortal) {
+            const routePath = `/t/${tenantId}/portal-management/${targetPortalId}`;
+            await upsertTenantNotification(tenantId, `notif_portal_create_${targetPortalId}`, {
+                title: 'Portal Created',
+                detail: `${form.name} was created successfully.`,
+                eventType: 'create',
+                entityType: 'portal',
+                entityId: targetPortalId,
+                routePath,
+                targetRoles: [],
+                createdAt: new Date().toISOString(),
                 createdBy: user.uid,
             });
         }
@@ -367,6 +405,16 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => navigate(`/t/${tenantId}/portal-management/${p.id}`)}
+                                            className="rounded-lg bg-[var(--c-panel)] p-1.5 text-[var(--c-muted)] hover:text-[var(--c-accent)] transition"
+                                            title="Open details"
+                                        >
+                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 3h7m0 0v7m0-7L10 14" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5h6m-6 0v14h14v-6" />
+                                            </svg>
+                                        </button>
                                         <button
                                             onClick={() => handleEdit(p)}
                                             className="rounded-lg bg-[var(--c-panel)] p-1.5 text-[var(--c-muted)] hover:text-[var(--c-accent)] transition"
@@ -476,6 +524,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                     <div className="mt-2 grid grid-cols-2 gap-2">
                                         {transactionMethods.map(m => {
                                             const active = form.methods.includes(m.id);
+                                            const firestoreIcon = methodIconMap[String(m.id).toLowerCase()];
                                             return (
                                                 <button
                                                     key={m.id}
@@ -485,7 +534,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                                     }))}
                                                     className={`flex items-center gap-2 rounded-xl border p-2 transition ${active ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/5' : 'border-[var(--c-border)] bg-white hover:bg-slate-50'}`}
                                                 >
-                                                    <img src={m.icon} alt={m.label} className="h-4 w-4 object-contain" />
+                                                    <img src={firestoreIcon || m.icon} alt={m.label} className="h-4 w-4 object-contain" />
                                                     <span className="text-[10px] font-bold text-[var(--c-text)]">{m.label}</span>
                                                 </button>
                                             );

@@ -7,12 +7,14 @@ import { createSyncEvent } from '../lib/syncEvents';
 import {
     fetchTenantPortals,
     upsertTenantPortal,
-    upsertTenantTransaction,
+    upsertTenantNotification,
+    upsertTenantPortalTransaction,
 } from '../lib/backendStore';
 import { uploadPortalIcon } from '../lib/portalStorage';
 import ImageZoomTool from '../components/common/ImageZoomTool';
 import { canUserPerformAction } from '../lib/userControlPreferences';
 import { generateDisplayTxId, toSafeDocId } from '../lib/txIdGenerator';
+import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
 
 const portalTypes = [
     { id: 'Bank', label: 'Bank', icon: '/portals/bank.png', methods: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'onlinePayment', 'cashWithdrawals'] },
@@ -122,6 +124,7 @@ const PortalFormPage = () => {
     const [iconOffsetY, setIconOffsetY] = useState(0);
     const [iconFilter, setIconFilter] = useState('natural');
     const [iconDirty, setIconDirty] = useState(false);
+    const [methodIconMap, setMethodIconMap] = useState({});
 
     useEffect(() => {
         if (!tenantId || !portalId) return;
@@ -143,6 +146,24 @@ const PortalFormPage = () => {
             setIsLoading(false);
         });
     }, [tenantId, portalId]);
+
+    useEffect(() => {
+        if (!tenantId) return;
+        let isMounted = true;
+        fetchApplicationIconLibrary(tenantId).then((res) => {
+            if (!isMounted || !res.ok) return;
+            const nextMap = {};
+            (res.rows || []).forEach((row) => {
+                const key = String(row?.iconId || '').trim().toLowerCase();
+                if (!key || !row?.iconUrl) return;
+                nextMap[key] = row.iconUrl;
+            });
+            setMethodIconMap(nextMap);
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, [tenantId]);
 
     const onTypeChange = (newType) => {
         const typeObj = portalTypes.find((t) => t.id === newType);
@@ -260,12 +281,27 @@ const PortalFormPage = () => {
 
         if (!portalId && openingAmount > 0) {
             const displayTxId = await generateDisplayTxId(tenantId, 'POR');
-            await upsertTenantTransaction(tenantId, toSafeDocId(displayTxId, 'tx'), {
+            await upsertTenantPortalTransaction(tenantId, toSafeDocId(displayTxId, 'portal_tx'), {
                 portalId: finalPortalId,
                 displayTransactionId: displayTxId,
                 amount: openingSignedBalance,
                 type: 'Opening Balance',
                 date: new Date().toISOString(),
+                createdBy: user.uid,
+            });
+        }
+
+        if (!portalId) {
+            const routePath = `/t/${tenantId}/portal-management/${finalPortalId}`;
+            await upsertTenantNotification(tenantId, `notif_portal_create_${finalPortalId}`, {
+                title: 'Portal Created',
+                detail: `${form.name} was created successfully.`,
+                eventType: 'create',
+                entityType: 'portal',
+                entityId: finalPortalId,
+                routePath,
+                targetRoles: [],
+                createdAt: new Date().toISOString(),
                 createdBy: user.uid,
             });
         }
@@ -281,7 +317,7 @@ const PortalFormPage = () => {
 
         setStatusMessage(portalId ? 'Portal updated successfully.' : 'Portal created successfully.');
         setStatusType('success');
-        setTimeout(() => navigate('/portal-management'), 1500);
+        setTimeout(() => navigate(`/t/${tenantId}/portal-management`), 1500);
     };
 
     if (!user || isLoading) return null;
@@ -380,6 +416,7 @@ const PortalFormPage = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     {transactionMethods.map((m) => {
                                         const selected = form.methods.includes(m.id);
+                                        const firestoreIcon = methodIconMap[String(m.id).toLowerCase()];
                                         return (
                                             <button
                                                 key={m.id}
@@ -395,7 +432,7 @@ const PortalFormPage = () => {
                                                     : 'border-[var(--c-border)] bg-white hover:bg-slate-50'
                                                     }`}
                                             >
-                                                <img src={m.icon} alt={m.label} className="h-6 w-6 object-contain" />
+                                                <img src={firestoreIcon || m.icon} alt={m.label} className="h-6 w-6 object-contain" />
                                                 <span className="text-xs font-semibold text-slate-600">{m.label}</span>
                                             </button>
                                         );
@@ -414,7 +451,7 @@ const PortalFormPage = () => {
                             {isSaving ? 'Processing...' : portalId ? 'Update Portal' : 'Create Portal'}
                         </button>
                         <button
-                            onClick={() => navigate('/portal-management')}
+                            onClick={() => navigate(`/t/${tenantId}/portal-management`)}
                             className="rounded-xl border border-[var(--c-border)] px-8 py-3 font-bold text-[var(--c-text)] transition hover:bg-[var(--c-panel)]"
                         >
                             Cancel

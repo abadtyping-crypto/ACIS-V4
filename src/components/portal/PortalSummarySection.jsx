@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SectionCard from './SectionCard';
 import { fetchTenantPortals } from '../../lib/backendStore';
 import { useTenant } from '../../context/TenantContext';
@@ -13,6 +14,7 @@ const fallbackPortalIcon = (type) => {
 };
 
 const PortalSummarySection = ({ onQuickAction, refreshKey }) => {
+    const navigate = useNavigate();
     const { tenantId } = useTenant();
     const [portals, setPortals] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +40,13 @@ const PortalSummarySection = ({ onQuickAction, refreshKey }) => {
                 ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {portals.map(p => (
-                            <div key={p.id} className="group relative flex items-center gap-4 rounded-2xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] p-4 shadow-sm transition hover:border-[var(--c-accent)]">
+                            <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => navigate(`/t/${tenantId}/portal-management/${p.id}`)}
+                                className="group relative flex w-full items-center gap-4 rounded-2xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] p-4 text-left shadow-sm transition hover:border-[var(--c-accent)]"
+                                title={`Open ${p.name} details`}
+                            >
                                 <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl">
                                     <img
                                         src={p.iconUrl || fallbackPortalIcon(p.type)}
@@ -56,7 +64,7 @@ const PortalSummarySection = ({ onQuickAction, refreshKey }) => {
                                         <CurrencyValue value={p.balance || 0} iconSize="h-3 w-3" />
                                     </div>
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 )}

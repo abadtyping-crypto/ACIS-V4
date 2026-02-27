@@ -156,7 +156,7 @@ export const fetchTenantPortals = async (tenantId) => {
   try {
     const [portalSnap, txSnap] = await Promise.all([
       getDocs(collection(db, 'tenants', tenantId, 'portals')),
-      getDocs(collection(db, 'tenants', tenantId, 'transactions')),
+      getDocs(collection(db, 'tenants', tenantId, 'portalTransactions')),
     ]);
 
     const balanceByPortal = {};
@@ -300,10 +300,56 @@ export const upsertTenantTransaction = async (tenantId, txId, payload) => {
   }
 };
 
+export const upsertTenantPortalTransaction = async (tenantId, txId, payload) => {
+  try {
+    await setDoc(doc(db, 'tenants', tenantId, 'portalTransactions', txId), {
+      ...payload,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return { ok: true };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] portalTransaction upsert failed tenants/${tenantId}/portalTransactions/${txId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const upsertTenantNotification = async (tenantId, notificationId, payload) => {
+  try {
+    await setDoc(doc(db, 'tenants', tenantId, 'notifications', notificationId), {
+      ...payload,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return { ok: true };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] notification upsert failed tenants/${tenantId}/notifications/${notificationId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const markTenantNotificationRead = async (tenantId, notificationId, uid) => {
+  try {
+    if (!tenantId || !notificationId || !uid) {
+      return { ok: false, error: 'Missing tenantId, notificationId or uid.' };
+    }
+    await updateDoc(doc(db, 'tenants', tenantId, 'notifications', notificationId), {
+      [`readByUid.${uid}`]: true,
+      [`readAtByUid.${uid}`]: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return { ok: true };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] notification mark read failed tenants/${tenantId}/notifications/${notificationId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
 export const fetchRecentTransactions = async (tenantId, limitCount = 10) => {
   try {
     const q = query(
-      collection(db, 'tenants', tenantId, 'transactions'),
+      collection(db, 'tenants', tenantId, 'portalTransactions'),
       orderBy('date', 'desc'),
       limit(limitCount)
     );
@@ -319,24 +365,30 @@ export const fetchRecentTransactions = async (tenantId, limitCount = 10) => {
 
 export const fetchPortalTransactions = async (tenantId, portalId, startDate, endDate) => {
   try {
-    let q = query(
-      collection(db, 'tenants', tenantId, 'transactions'),
+    const q = query(
+      collection(db, 'tenants', tenantId, 'portalTransactions'),
       where('portalId', '==', portalId),
-      orderBy('date', 'desc')
     );
 
-    // Filter by date if provided
-    // Note: In a real app with large data, you'd want composite indexes for this
     const snap = await getDocs(q);
-    let rows = snap.docs.map(item => ({ id: item.id, ...item.data() }));
+    let rows = snap.docs
+      .map(item => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item?.deletedAt);
+
+    // Sort robustly even if some records do not have `date`.
+    rows.sort((a, b) => {
+      const aMillis = toDateMillis(a?.date || a?.createdAt || a?.updatedAt);
+      const bMillis = toDateMillis(b?.date || b?.createdAt || b?.updatedAt);
+      return bMillis - aMillis;
+    });
 
     if (startDate) {
       const start = new Date(startDate).getTime();
-      rows = rows.filter(r => new Date(r.date).getTime() >= start);
+      rows = rows.filter((r) => toDateMillis(r?.date || r?.createdAt || r?.updatedAt) >= start);
     }
     if (endDate) {
       const end = new Date(endDate).getTime();
-      rows = rows.filter(r => new Date(r.date).getTime() <= end);
+      rows = rows.filter((r) => toDateMillis(r?.date || r?.createdAt || r?.updatedAt) <= end);
     }
 
     return { ok: true, rows };
@@ -544,9 +596,11 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
     }
 
     const batchId = `trf_${Date.now()}`;
+    const debitId = toSafeDocId(`${displayTxId}-D`, 'portal_tx');
+    const creditId = toSafeDocId(`${displayTxId}-C`, 'portal_tx');
 
     // 1. Debit from Source
-    const debitRes = await upsertTenantTransaction(tenantId, `${batchId}_debit`, {
+    const debitRes = await upsertTenantPortalTransaction(tenantId, debitId, {
       portalId: fromPortalId,
       displayTransactionId: displayTxId,
       amount: -transferAmount,
@@ -561,7 +615,7 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
     if (!debitRes.ok) throw new Error(`Debit failed: ${debitRes.error}`);
 
     // 2. Credit to Destination
-    const creditRes = await upsertTenantTransaction(tenantId, `${batchId}_credit`, {
+    const creditRes = await upsertTenantPortalTransaction(tenantId, creditId, {
       portalId: toPortalId,
       displayTransactionId: displayTxId,
       amount: transferAmount,
@@ -577,7 +631,8 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
 
     // 3. Handle Fee (Operation Expense)
     if (transferFee > 0) {
-      const feeRes = await upsertTenantTransaction(tenantId, `${batchId}_fee`, {
+      const feeId = toSafeDocId(`${displayTxId}-FEE`, 'portal_tx');
+      const feeRes = await upsertTenantPortalTransaction(tenantId, feeId, {
         portalId: fromPortalId, // Fee is usually charged to the source
         displayTransactionId: `${displayTxId}-FEE`,
         amount: -transferFee,
@@ -621,9 +676,10 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
 
     const batchId = `loan_${Date.now()}`;
     const date = new Date().toISOString();
+    const portalTxId = toSafeDocId(displayTxId, 'portal_tx');
 
     // 1. Record for Portal
-    const portalTxRes = await upsertTenantTransaction(tenantId, `${batchId}_portal`, {
+    const portalTxRes = await upsertTenantPortalTransaction(tenantId, portalTxId, {
       portalId,
       displayTransactionId: displayTxId,
       amount: type === 'disbursement' ? -txnAmount : txnAmount,
@@ -638,7 +694,7 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
     if (!portalTxRes.ok) throw new Error(`Portal entry failed: ${portalTxRes.error}`);
 
     // 2. Record for Loan Person (History)
-    const personTxRes = await upsertTenantTransaction(tenantId, `${batchId}_person`, {
+    const personTxRes = await upsertTenantPortalTransaction(tenantId, toSafeDocId(`${displayTxId}-P`, 'portal_tx'), {
       personId,
       portalId,
       displayTransactionId: `${displayTxId}-P`,
@@ -789,6 +845,18 @@ export const fetchTenantTransactions = async (tenantId) => {
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] transactions read failed tenants/${tenantId}/transactions: ${message}`);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
+export const fetchTenantNotifications = async (tenantId) => {
+  try {
+    const snap = await getDocs(collection(db, 'tenants', tenantId, 'notifications'));
+    const rows = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] notifications read failed tenants/${tenantId}/notifications: ${message}`);
     return { ok: false, error: message, rows: [] };
   }
 };

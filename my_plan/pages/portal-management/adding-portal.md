@@ -61,6 +61,36 @@
    * If the portal was added with an initial amount (\> 0), an **"Opening Balance"** transaction record will be automatically created.  
    * If the initial amount is `0`, no initial portal transaction is generated.
 
+## Backend Path and ID Safety (Mandatory)
+
+1. **Portal Transaction Collection Path:**  
+   * `tenants/{tenantId}/transactions` must not be used for portal-opening and portal-only transaction history for this flow.  
+   * Correct path for this workflow is: `tenants/{tenantId}/portalTransactions`  
+2. **ID Prefix Rules Enforcement:**  
+   * Portal transaction ID generation must follow `transactionIdRules` prefix/padding settings.  
+   * `displayTransactionId` and document `UID` must remain aligned and deterministic in this flow (no random fallback IDs).  
+3. **Consistency Across All Writes:**  
+   * All portal-opening and related portal transaction writes must use the same path and same prefix/UID strategy in every function.
+
+## Transaction Method Icon Source (Firestore)
+
+1. **Method Icons From Firestore:**  
+   * While adding/editing portal transaction methods, icon metadata must be collected from Firestore records (not only local static template assets).  
+2. **Fallback Behavior:**  
+   * If no Firestore icon exists for a method, use configured template fallback icon and keep method selectable.
+
+## Auto-Created Portal Detail Page (New Requirement)
+
+1. **Per-Portal Detail Route:**  
+   * On portal creation, a dedicated portal page/route must be available for that portal.  
+   * This page must show full portal history and portal-specific customization controls.  
+2. **Portal Lifecycle Tracking:**  
+   * Portal creation must create both:  
+     * Notification record  
+     * Sync event record  
+3. **Notification Routing Payload:**  
+   * Notification must store the exact route/path payload so clicking notification opens that specific portal detail page directly.
+
 ## Management of Existing Portals
 
 * **Existing Portal Visibility:** Newly added portals will appear in the list of existing portals.  

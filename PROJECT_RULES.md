@@ -158,6 +158,18 @@
   - All portal reads/writes must use lowercase `balance` as source of truth.
   - `balanceType` must be derived from `balance` (`positive` or `negative`).
   - Do not introduce or persist alternate keys like `Balance`.
+- Portal transaction storage path is mandatory:
+  - Portal-only transactions (opening balance, internal transfer, loan portal-side entries, portal reports/history) must read/write `tenants/{tenantId}/portalTransactions`.
+  - Do not write portal-only transaction records into `tenants/{tenantId}/transactions`.
+- Portal transaction ID consistency:
+  - For portal transactions, `displayTransactionId` and document ID strategy must stay deterministic (`toSafeDocId(displayTransactionId, 'portal_tx')` or deterministic suffix variant).
+  - No random UID fallback for portal transaction docs.
+- Portal create lifecycle rule:
+  - Portal creation must create both `/syncEvents` and `/notifications` records.
+  - Notification payload must include `routePath` to the exact portal detail route: `/t/{tenantId}/portal-management/{portalId}`.
+- Portal detail page rule:
+  - Every portal must be addressable via `/t/:tenantId/portal-management/:portalId`.
+  - This page is the canonical place for full portal history + portal-specific customization.
 - Transaction ID rules must be applied on document IDs where configured:
   - Loan Persons document ID must follow `transactionIdRules.LOAN` prefix/padding (no random `lp_*` IDs).
   - Loan Transactions display ID must follow `transactionIdRules.LON`.

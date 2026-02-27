@@ -3,13 +3,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-comp
 
 // Required configuration for background messages
 const firebaseConfig = {
-    apiKey: "AIzaSyDVHaoarp8DRDqnI-Px5zdFilnE0S4r_RE",
-    authDomain: "acis-ajman.firebaseapp.com",
-    projectId: "acis-ajman",
-    storageBucket: "acis-ajman.firebasestorage.app",
-    messagingSenderId: "1072046268356",
-    appId: "1:1072046268356:web:84e5ead686217cfdd8ce91",
-    measurementId: "G-49F95BQQ49"
+    apiKey: "AIzaSyCVXoR6OaNFxj2T7FKBhrD1W9dLp7BoRFY",
+    authDomain: "acis-typingapplication.firebaseapp.com",
+    projectId: "acis-typingapplication",
+    storageBucket: "acis-typingapplication.firebasestorage.app",
+    messagingSenderId: "970490976925",
+    appId: "1:970490976925:web:c4a88d1f87437314b59274",
+    measurementId: "G-6XNS139DR6"
 };
 
 try {
