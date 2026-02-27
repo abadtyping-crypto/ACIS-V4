@@ -8,3 +8,9 @@
 .font-title {
   font-family: 'Outfit', 'Segoe UI', sans-serif;
 }
+
+html,
+body {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  text-rendering: geometricPrecision;
+}

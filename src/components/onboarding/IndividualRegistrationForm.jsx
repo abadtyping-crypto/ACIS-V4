@@ -461,7 +461,7 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3">
                             <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Selected Portal</p>
                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 overflow-hidden rounded-lg bg-white">
+                                <div className="h-10 w-10 overflow-hidden rounded-lg">
                                     <img
                                         src={selectedPortal.iconUrl || fallbackPortalIcon(selectedPortal.type)}
                                         alt={selectedPortal.name}

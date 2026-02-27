@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   deleteField,
   doc,
@@ -699,10 +700,16 @@ export const checkTradeLicenseDuplicate = async (tenantId, licenseNumber) => {
 };
 
 export const checkIndividualDuplicate = async (tenantId, identityInput) => {
+  const rootClientsRef = collection(db, 'tenants', tenantId, 'clients');
+  const dependentsRef = collectionGroup(db, 'dependents');
+
   if (typeof identityInput === 'string') {
-    const q = query(collection(db, 'tenants', tenantId, 'clients'), where('emiratesId', '==', identityInput));
-    const snap = await getDocs(q);
-    return !snap.empty;
+    const [rootSnap, depSnap] = await Promise.all([
+      getDocs(query(rootClientsRef, where('emiratesId', '==', identityInput))),
+      getDocs(query(dependentsRef, where('tenantId', '==', tenantId))),
+    ]);
+    const depExists = depSnap.docs.some((item) => String(item.data()?.emiratesId || '') === String(identityInput));
+    return !rootSnap.empty || depExists;
   }
 
   const method = String(identityInput?.method || 'emiratesId');
@@ -711,19 +718,26 @@ export const checkIndividualDuplicate = async (tenantId, identityInput) => {
   const fullName = String(identityInput?.fullName || '').toUpperCase().trim();
 
   if (method === 'emiratesId') {
-    const q = query(collection(db, 'tenants', tenantId, 'clients'), where('emiratesId', '==', emiratesId));
-    const snap = await getDocs(q);
-    return !snap.empty;
+    const [rootSnap, depSnap] = await Promise.all([
+      getDocs(query(rootClientsRef, where('emiratesId', '==', emiratesId))),
+      getDocs(query(dependentsRef, where('tenantId', '==', tenantId))),
+    ]);
+    const depExists = depSnap.docs.some((item) => String(item.data()?.emiratesId || '') === emiratesId);
+    return !rootSnap.empty || depExists;
   }
 
-  const snap = await getDocs(collection(db, 'tenants', tenantId, 'clients'));
-  return snap.docs.some((item) => {
-    const data = item.data() || {};
-    if (data.deletedAt) return false;
-    const existingPassport = String(data.passportNumber || '').toUpperCase().trim();
-    const existingName = String(data.fullName || '').toUpperCase().trim();
-    return existingPassport === passportNumber && existingName === fullName;
-  });
+  const [rootSnap, depSnap] = await Promise.all([
+    getDocs(rootClientsRef),
+    getDocs(query(dependentsRef, where('tenantId', '==', tenantId))),
+  ]);
+  const allDocs = [...rootSnap.docs, ...depSnap.docs];
+  return allDocs.some((item) => {
+      const data = item.data() || {};
+      if (data.deletedAt) return false;
+      const existingPassport = String(data.passportNumber || '').toUpperCase().trim();
+      const existingName = String(data.fullName || '').toUpperCase().trim();
+      return existingPassport === passportNumber && existingName === fullName;
+    });
 };
 export const searchClients = async (tenantId, queryStr) => {
   try {
@@ -766,8 +780,9 @@ const toDateMillis = (value) => {
 
 export const fetchTenantClients = async (tenantId) => {
   try {
-    const [clientsSnap, usersRes] = await Promise.all([
+    const [clientsSnap, dependentSnap, usersRes] = await Promise.all([
       getDocs(collection(db, 'tenants', tenantId, 'clients')),
+      getDocs(query(collectionGroup(db, 'dependents'), where('tenantId', '==', tenantId))),
       fetchTenantUsersMap(tenantId),
     ]);
 
@@ -779,9 +794,15 @@ export const fetchTenantClients = async (tenantId) => {
       });
     }
 
-    const rows = clientsSnap.docs
+    const rootRows = clientsSnap.docs
       .map((item) => ({ id: item.id, ...item.data() }))
-      .filter((item) => !item.deletedAt)
+      .filter((item) => !item.deletedAt && String(item.type || '').toLowerCase() !== 'dependent');
+
+    const dependentRows = dependentSnap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item.deletedAt);
+
+    const rows = [...rootRows, ...dependentRows]
       .sort((a, b) => toDateMillis(b.createdAt) - toDateMillis(a.createdAt));
 
     return { ok: true, rows, usersByUid };
@@ -794,11 +815,8 @@ export const fetchTenantClients = async (tenantId) => {
 
 export const updateTenantClient = async (tenantId, clientId, payload) => {
   try {
-    const ref = doc(db, 'tenants', tenantId, 'clients', clientId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) {
-      return { ok: false, error: 'Client record not found.' };
-    }
+    const rootRef = doc(db, 'tenants', tenantId, 'clients', clientId);
+    const rootSnap = await getDoc(rootRef);
 
     const immutableKeys = new Set([
       'displayClientId',
@@ -816,8 +834,26 @@ export const updateTenantClient = async (tenantId, clientId, payload) => {
       safePayload[key] = value;
     });
 
+    if (rootSnap.exists()) {
+      await setDoc(
+        rootRef,
+        {
+          ...safePayload,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return { ok: true };
+    }
+
+    const depSnap = await getDocs(query(collectionGroup(db, 'dependents'), where('tenantId', '==', tenantId)));
+    const depDoc = depSnap.docs.find((item) => String(item.data()?.displayClientId || '') === String(clientId));
+    if (!depDoc) {
+      return { ok: false, error: 'Client record not found.' };
+    }
+
     await setDoc(
-      ref,
+      depDoc.ref,
       {
         ...safePayload,
         updatedAt: serverTimestamp(),
@@ -837,7 +873,24 @@ export const deleteTenantClientCascade = async (tenantId, clientId, deletedBy) =
     const clientRef = doc(db, 'tenants', tenantId, 'clients', clientId);
     const clientSnap = await getDoc(clientRef);
     if (!clientSnap.exists()) {
-      return { ok: false, error: 'Client record not found.' };
+      const depSnap = await getDocs(query(collectionGroup(db, 'dependents'), where('tenantId', '==', tenantId)));
+      const depDoc = depSnap.docs.find((item) => String(item.data()?.displayClientId || '') === String(clientId));
+      if (!depDoc) return { ok: false, error: 'Client record not found.' };
+      await deleteDoc(depDoc.ref);
+      await setDoc(
+        doc(db, 'tenants', tenantId, 'syncEvents', `se_client_delete_${clientId}_${Date.now()}`),
+        {
+          tenantId,
+          entityId: clientId,
+          entityType: 'dependent',
+          eventType: 'delete',
+          deletedBy: deletedBy || 'unknown',
+          deletedDependents: 0,
+          createdAt: serverTimestamp(),
+          syncStatus: 'pending',
+        },
+      );
+      return { ok: true, deletedDependents: 0 };
     }
 
     const clientData = clientSnap.data() || {};
@@ -867,11 +920,9 @@ export const deleteTenantClientCascade = async (tenantId, clientId, deletedBy) =
     if (clientType === 'dependent') {
       await deleteDoc(clientRef);
     } else {
-      const dependentSnap = await getDocs(
-        query(collection(db, 'tenants', tenantId, 'clients'), where('parentId', '==', clientId)),
-      );
+      const dependentSnap = await getDocs(collection(db, 'tenants', tenantId, 'clients', clientId, 'dependents'));
       await Promise.all(dependentSnap.docs.map((item) => deleteDoc(item.ref)));
-      deletedDependents = dependentSnap.size;
+      deletedDependents = dependentSnap.docs.length;
       await deleteDoc(clientRef);
     }
 
@@ -958,13 +1009,6 @@ export const upsertDependentUnderParent = async (
     // Plan path: tenants/{tenantId}/clients/{parentClientId}/dependents/{dependentId}
     await setDoc(
       doc(db, 'tenants', tenantId, 'clients', parentClientId, 'dependents', dependentId),
-      dependentPayload,
-      { merge: true },
-    );
-
-    // Mirror to root clients collection so existing live list/search features remain compatible.
-    await setDoc(
-      doc(db, 'tenants', tenantId, 'clients', dependentId),
       dependentPayload,
       { merge: true },
     );

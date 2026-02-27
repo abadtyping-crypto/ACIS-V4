@@ -140,3 +140,33 @@
 - **Native Interops**: Any native OS feature (file system, printing, native notifications) must be gated behind IPC.
 - **Event Token Persistence**: The "Event Token" (Sync Event issuing) must be consistent across all open windows/pages.
 - **Distribution**: Target Windows platform primarily.
+
+## 19) Global Enforcement (All Pages, No Exceptions)
+
+- These rules apply to every page/component/module, including newly added files and refactors.
+- If a page conflicts with these rules, the page must be updated to match rules (not the opposite).
+- New UI/logic work is incomplete until rule compliance is validated for:
+  - route pattern
+  - tenant scope
+  - theme variables
+  - validation behavior
+  - sync event write requirement for data-changing flows
+- Dependent storage must be single-source only:
+  - Allowed path: `tenants/{tenantId}/clients/{parentClientId}/dependents/{dependentId}`
+  - Disallowed: mirroring the same dependent document into `tenants/{tenantId}/clients/{dependentId}`
+
+## 20) Agent Preflight Checklist (Mandatory Before Any Change)
+
+- Read `PROJECT_RULES.md` fully before implementation.
+- Read `SETTINGS_DATA_RULES.md` fully before implementation.
+- Confirm tenant-safe path and data-shape assumptions before editing code.
+- Confirm source-of-truth IDs before creating/writing documents.
+- Do not proceed with implementation if any rule is unclear; clarify first.
+
+## 21) Agent Handoff Clarity Standard
+
+- Every implementation must leave enough signals for future agents to identify conventions quickly:
+  - shared resolver/util location for repeated logic
+  - explicit naming for rule-driven fields
+  - rule references in plan/docs when behavior changes
+- When introducing new reusable patterns (icons, badges, selectors, IDs), add/update the corresponding rule line in this file immediately.

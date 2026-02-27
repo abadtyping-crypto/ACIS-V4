@@ -1,8 +1,14 @@
 import {
   Bell,
+  CalendarDays,
+  CircleDollarSign,
   CircleUserRound,
+  FileSpreadsheet,
+  FileText,
   House,
   Info,
+  ListChecks,
+  ReceiptText,
   Search,
   Settings,
   Star,
@@ -29,3 +35,9 @@ export const SettingsIcon = withIcon(Settings, 'h-5 w-5');
 export const PortalIcon = withIcon(WalletCards, 'h-5 w-5');
 export const UserPlusIcon = withIcon(UserPlus, 'h-5 w-5');
 export const RecycleBinIcon = withIcon(Trash2, 'h-5 w-5');
+export const ReceiptIcon = withIcon(ReceiptText, 'h-5 w-5');
+export const TasksIcon = withIcon(ListChecks, 'h-5 w-5');
+export const InvoiceIcon = withIcon(FileSpreadsheet, 'h-5 w-5');
+export const QuotationIcon = withIcon(FileText, 'h-5 w-5');
+export const ExpenseIcon = withIcon(CircleDollarSign, 'h-5 w-5');
+export const CalendarIcon = withIcon(CalendarDays, 'h-5 w-5');

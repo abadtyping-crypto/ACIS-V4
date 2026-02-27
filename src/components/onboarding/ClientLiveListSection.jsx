@@ -17,6 +17,23 @@ const normalizePhone = (value) => {
   return digits.startsWith('0') ? digits.slice(1) : digits;
 };
 
+const toTitleCase = (value) =>
+  String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
+    .join(' ');
+
+const getStatusBadgeClass = (statusValue) => {
+  const status = String(statusValue || 'active').toLowerCase();
+  if (status === 'active') return 'border-emerald-300 bg-emerald-50 text-emerald-700';
+  if (status === 'pending') return 'border-amber-300 bg-amber-50 text-amber-700';
+  if (status === 'blocked' || status === 'frozen') return 'border-rose-300 bg-rose-50 text-rose-700';
+  return 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]';
+};
+
 const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
   const [rows, setRows] = useState([]);
   const [usersByUid, setUsersByUid] = useState({});
@@ -93,6 +110,48 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
     if (type === 'company') return 'Company';
     if (type === 'individual') return 'Individual';
     return 'Dependent';
+  };
+
+  const getEntryBadge = (item) => {
+    const type = String(item.type || '').toLowerCase();
+    if (type === 'company') {
+      return {
+        label: 'Company',
+        icon: '/company.png',
+        className: 'border-amber-300 bg-amber-50 text-amber-700',
+        meta: '',
+      };
+    }
+    if (type === 'individual') {
+      return {
+        label: 'Individual',
+        icon: '/individual.png',
+        className: 'border-sky-300 bg-sky-50 text-sky-700',
+        meta: '',
+      };
+    }
+
+    const relationRaw = String(item.relationship || '').toLowerCase();
+    const relation = relationRaw || 'dependent';
+    const relationIconMap = {
+      employee: '/employee.png',
+      investor: '/onboardingIcons/investor.svg',
+      partner: '/onboardingIcons/partner.svg',
+      wife: '/onboardingIcons/wife.svg',
+      husband: '/onboardingIcons/husband.svg',
+      son: '/onboardingIcons/son.svg',
+      daughter: '/onboardingIcons/daughter.svg',
+      father: '/onboardingIcons/father.svg',
+      mother: '/onboardingIcons/mother.svg',
+      'domestic worker': '/onboardingIcons/domesticWorker.svg',
+      dependent: '/dependent.png',
+    };
+    return {
+      label: toTitleCase(relation),
+      icon: relationIconMap[relation] || '/dependent.png',
+      className: 'border-violet-300 bg-violet-50 text-violet-700',
+      meta: item.parentName ? `of ${item.parentName}` : '',
+    };
   };
 
   const getTypeIcon = (item) => {
@@ -277,7 +336,7 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--c-border)]">
         <table className="min-w-full text-sm">
-          <thead className="bg-[var(--c-panel)]">
+          <thead className="sticky top-0 z-10 bg-[var(--c-panel)]">
             <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--c-muted)]">
               <th className="px-3 py-3 font-bold">Entry</th>
               <th className="px-3 py-3 font-bold">ID</th>
@@ -306,12 +365,9 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                   const creator = getCreator(item.createdBy);
                   const typeLabel = getTypeLabel(item);
                   const nameLabel = item.tradeName || item.fullName || 'Unnamed';
-                  const dependentMeta =
-                    String(item.type || '').toLowerCase() === 'dependent'
-                      ? `${item.relationship || 'Dependent'} of ${item.parentName || 'Unknown parent'}`
-                      : '';
+                  const badge = getEntryBadge(item);
                   return (
-                    <tr key={item.id} className="border-t border-[var(--c-border)] align-top">
+                    <tr key={item.id} className="border-t border-[var(--c-border)] align-top transition hover:bg-[color:color-mix(in_srgb,var(--c-panel)_38%,transparent)]">
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
                           <img src={getTypeIcon(item)} alt={typeLabel} className="h-10 w-10 rounded-xl object-cover" />
@@ -323,7 +379,13 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                             >
                               {nameLabel}
                             </Link>
-                            <p className="text-xs text-[var(--c-muted)]">{dependentMeta || typeLabel}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-semibold ${badge.className}`}>
+                                <img src={badge.icon} alt={badge.label} className="h-3.5 w-3.5 rounded object-contain" />
+                                {badge.label}
+                              </span>
+                              {badge.meta ? <span className="text-xs text-[var(--c-muted)]">{badge.meta}</span> : null}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -344,7 +406,7 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                         </Link>
                       </td>
                       <td className="px-3 py-3">
-                        <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(item.status)}`}>
                           {String(item.status || 'active')}
                         </span>
                       </td>

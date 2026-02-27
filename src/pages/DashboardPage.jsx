@@ -129,7 +129,7 @@ const DashboardPage = () => {
                   key={portal.id}
                   className="flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] p-3"
                 >
-                  <div className="h-10 w-10 overflow-hidden rounded-lg bg-white p-1 ring-1 ring-slate-200/90">
+                  <div className="h-12 w-12 overflow-hidden rounded-lg">
                     <img
                       src={portal.iconUrl || fallbackPortalIcon(portal.type)}
                       alt={portal.name}

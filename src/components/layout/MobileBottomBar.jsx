@@ -1,12 +1,24 @@
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
-import { BellIcon, HomeIcon, PortalIcon, SearchIcon, StarIcon } from '../icons/AppIcons';
+import {
+  BellIcon,
+  CalendarIcon,
+  ExpenseIcon,
+  HomeIcon,
+  InvoiceIcon,
+  PortalIcon,
+  QuotationIcon,
+  ReceiptIcon,
+  SearchIcon,
+  StarIcon,
+  TasksIcon
+} from '../icons/AppIcons';
 import { isVisibleOnPlatform, NAV_ITEMS } from '../../config/appNavigation';
 import { useAuth } from '../../context/AuthContext';
 import { getRuntimePlatform } from '../../lib/runtimePlatform';
 
 const MOBILE_ITEMS_KEY = 'acis_mobile_items_v1';
-const allMobileItemKeys = ['dashboard', 'notifications', 'favorites', 'profile', 'portalManagement'];
-const defaultItems = ['dashboard', 'notifications', 'portalManagement', 'profile'];
+const allMobileItemKeys = ['dashboard', 'clientOnboarding', 'dailyTransactions', 'portalManagement', 'documentCalendar'];
+const defaultItems = ['dashboard', 'clientOnboarding', 'dailyTransactions', 'portalManagement'];
 
 const readMobileItems = () => {
   if (typeof window === 'undefined') return defaultItems;
@@ -26,6 +38,12 @@ const renderNavIcon = (iconKey, user) => {
   if (iconKey === 'home') return <HomeIcon className="h-5 w-5" />;
   if (iconKey === 'bell') return <BellIcon className="h-5 w-5" />;
   if (iconKey === 'star') return <StarIcon className="h-5 w-5" />;
+  if (iconKey === 'receipt') return <ReceiptIcon className="h-5 w-5" />;
+  if (iconKey === 'tasks') return <TasksIcon className="h-5 w-5" />;
+  if (iconKey === 'invoice') return <InvoiceIcon className="h-5 w-5" />;
+  if (iconKey === 'quotation') return <QuotationIcon className="h-5 w-5" />;
+  if (iconKey === 'expense') return <ExpenseIcon className="h-5 w-5" />;
+  if (iconKey === 'calendar') return <CalendarIcon className="h-5 w-5" />;
   if (iconKey === 'user') {
     return (
       <img
