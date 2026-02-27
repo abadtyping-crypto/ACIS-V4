@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
+import IconSelect from '../components/common/IconSelect';
 import { useAuth } from '../context/AuthContext';
 import {
+  executeInternalTransfer,
   fetchPortalTransactions,
   fetchTenantPortals,
   fetchTenantUsersMap,
@@ -11,6 +13,8 @@ import {
 } from '../lib/backendStore';
 import { createSyncEvent } from '../lib/syncEvents';
 import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
+import { generateDisplayTxId } from '../lib/txIdGenerator';
+import { canUserPerformAction } from '../lib/userControlPreferences';
 
 const portalTypes = [
   { id: 'Bank', label: 'Bank', methods: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'onlinePayment', 'cashWithdrawals'] },
@@ -39,11 +43,46 @@ const toDateText = (value) => {
   return Number.isNaN(parsed.getTime()) ? '-' : parsed.toLocaleString();
 };
 
+const txMethodLabels = {
+  cashByHand: 'Cash by Hand',
+  bankTransfer: 'Bank Transfer',
+  cdmDeposit: 'CDM Deposit',
+  checqueDeposit: 'Cheque Deposit',
+  onlinePayment: 'Online Payment',
+  cashWithdrawals: 'Cash Withdrawals',
+  tabby: 'Tabby',
+  Tamara: 'Tamara',
+};
+
+const fallbackPortalIcon = (type) => {
+  if (type === 'Bank') return '/portals/bank.png';
+  if (type === 'Card Payment') return '/portals/cardpayment.png';
+  if (type === 'Petty Cash') return '/portals/pettycash.png';
+  if (type === 'Terminal') return '/portals/terminal.png';
+  return '/portals/portals.png';
+};
+
+const getStatusBadgeClass = (statusValue) => {
+  const status = String(statusValue || 'active').toLowerCase();
+  if (status === 'active') return 'border-emerald-300 bg-emerald-50 text-emerald-700';
+  if (status === 'pending') return 'border-amber-300 bg-amber-50 text-amber-700';
+  if (status === 'blocked' || status === 'frozen' || status === 'inactive') return 'border-rose-300 bg-rose-50 text-rose-700';
+  return 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]';
+};
+
 const formatValue = (value) => {
   if (value === null || value === undefined) return '-';
   if (typeof value?.toDate === 'function' || typeof value?.toMillis === 'function') return toDateText(value);
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+};
+
+const toMillis = (value) => {
+  if (!value) return 0;
+  if (typeof value?.toMillis === 'function') return value.toMillis();
+  if (typeof value?.toDate === 'function') return value.toDate().getTime();
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const toFieldLabel = (key) => {
@@ -68,9 +107,30 @@ const PortalDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isTransferSaving, setIsTransferSaving] = useState(false);
+  const [isStatementOpen, setIsStatementOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
   const [selectedTx, setSelectedTx] = useState(null);
+  const [transferForm, setTransferForm] = useState({
+    fromPortalId: '',
+    toPortalId: '',
+    amount: '',
+    fee: '0',
+    description: '',
+  });
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [statementRange, setStatementRange] = useState({
+    start: (() => {
+      const now = new Date();
+      const start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+      return start.toISOString().slice(0, 10);
+    })(),
+    end: todayIso,
+  });
+  const [minTxDate, setMinTxDate] = useState(todayIso);
+  const [maxTxDate] = useState(todayIso);
 
   const loadData = useCallback(async () => {
     if (!tenantId || !portalId) return;
@@ -119,6 +179,19 @@ const PortalDetailPage = () => {
       setUsersByUid(nextUsers);
     } else {
       setUsersByUid({});
+    }
+    const minDateMillis = (txRes.ok ? (txRes.rows || []) : []).reduce((min, row) => {
+      const ts = toMillis(row.date || row.createdAt || row.updatedAt);
+      if (!ts) return min;
+      return min === 0 ? ts : Math.min(min, ts);
+    }, 0);
+    if (minDateMillis > 0) {
+      const iso = new Date(minDateMillis).toISOString().slice(0, 10);
+      setMinTxDate(iso);
+      setStatementRange((prev) => ({
+        ...prev,
+        start: prev.start < iso ? iso : prev.start,
+      }));
     }
     setIsLoading(false);
   }, [tenantId, portalId]);
@@ -255,6 +328,208 @@ const PortalDetailPage = () => {
     return map;
   }, [methodIconMap]);
 
+  const portalOptions = useMemo(() => {
+    const rows = Object.entries(portalsById).map(([id, p]) => ({ id, ...(p || {}) }));
+    return rows.map((p) => ({
+      value: p.id,
+      label: `${p.name || p.id} (AED ${(Number(p.balance || 0)).toLocaleString()})`,
+      icon: p.iconUrl || fallbackPortalIcon(p.type),
+      meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
+    }));
+  }, [portalsById]);
+
+  const monthOptions = useMemo(() => {
+    const result = [];
+    const minDate = new Date(minTxDate);
+    const maxDate = new Date(maxTxDate);
+    minDate.setUTCDate(1);
+    maxDate.setUTCDate(1);
+    const cursor = new Date(maxDate);
+    while (cursor >= minDate) {
+      const value = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}`;
+      const label = cursor.toLocaleString('default', { month: 'long', year: 'numeric' });
+      result.push({ value, label });
+      cursor.setUTCMonth(cursor.getUTCMonth() - 1);
+    }
+    return result;
+  }, [minTxDate, maxTxDate]);
+
+  const openTransfer = () => {
+    setTransferForm({
+      fromPortalId: portalId || '',
+      toPortalId: '',
+      amount: '',
+      fee: '0',
+      description: '',
+    });
+    setIsTransferOpen(true);
+  };
+
+  const handleMonthSelect = (value) => {
+    if (!value) return;
+    const [year, month] = value.split('-').map(Number);
+    const start = new Date(Date.UTC(year, month - 1, 1));
+    const end = new Date(Date.UTC(year, month, 0));
+    const max = new Date(`${maxTxDate}T23:59:59Z`);
+    const clampedEnd = end > max ? max : end;
+    setStatementRange({
+      start: start.toISOString().slice(0, 10),
+      end: clampedEnd.toISOString().slice(0, 10),
+    });
+  };
+
+  const handlePrintStatement = () => {
+    if (!selectedTx && !portal) return;
+    const startMillis = toMillis(statementRange.start);
+    const endMillis = toMillis(statementRange.end) + 24 * 60 * 60 * 1000 - 1;
+    const sorted = [...txRows].sort((a, b) => toMillis(a.date || a.createdAt || a.updatedAt) - toMillis(b.date || b.createdAt || b.updatedAt));
+
+    const openingBalance = sorted.reduce((sum, row) => {
+      const ts = toMillis(row.date || row.createdAt || row.updatedAt);
+      if (!ts || ts >= startMillis) return sum;
+      const amount = Number(row.amount || 0);
+      return Number.isFinite(amount) ? sum + amount : sum;
+    }, 0);
+
+    const inRange = sorted.filter((row) => {
+      const ts = toMillis(row.date || row.createdAt || row.updatedAt);
+      return ts && ts >= startMillis && ts <= endMillis;
+    });
+
+    const creditTotal = inRange.reduce((sum, r) => {
+      const amt = Number(r.amount || 0);
+      return amt > 0 ? sum + amt : sum;
+    }, 0);
+    const debitTotal = inRange.reduce((sum, r) => {
+      const amt = Number(r.amount || 0);
+      return amt < 0 ? sum + Math.abs(amt) : sum;
+    }, 0);
+    const closingBalance = openingBalance + inRange.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    const rowsHtml = inRange.map((row) => {
+      const ts = toDateText(row.date || row.createdAt || row.updatedAt);
+      const amt = Number(row.amount || 0);
+      const isDebit = amt < 0;
+      const isFee = String(row.type || '').toLowerCase().includes('fee') || String(row.category || '').toLowerCase().includes('fee');
+      return `
+        <tr class="${isFee ? 'fee-row' : ''}">
+          <td>${ts}</td>
+          <td>${row.displayTransactionId || row.id}</td>
+          <td>${row.type || '-'}</td>
+          <td>${row.description || '-'}</td>
+          <td class="${isDebit ? 'debit' : 'credit'}">${isDebit ? Math.abs(amt).toFixed(2) : ''}</td>
+          <td class="${!isDebit ? 'credit' : 'debit'}">${!isDebit ? amt.toFixed(2) : ''}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Portal Statement</title>
+        <style>
+          body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; background: #f8fafc; }
+          .card { max-width: 900px; margin: 0 auto; background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; }
+          .head { padding: 18px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(135deg, #f8fafc, #eef2ff); }
+          .title { margin: 0; font-size: 20px; font-weight: 800; }
+          .meta { margin: 4px 0 0; font-size: 12px; color: #475569; }
+          .summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 10px; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+          .pill { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; }
+          .pill h4 { margin: 0; font-size: 11px; text-transform: uppercase; color: #475569; letter-spacing: 0.05em; }
+          .pill p { margin: 4px 0 0; font-size: 14px; font-weight: 700; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; text-align: left; }
+          th { background: #f1f5f9; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; color: #475569; }
+          .credit { color: #047857; font-weight: 700; }
+          .debit { color: #be123c; font-weight: 700; }
+          .fee-row { background: #fff7ed; }
+          .foot { padding: 12px 18px; font-size: 11px; color: #64748b; display: flex; justify-content: space-between; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="head">
+            <h1 class="title">Portal Statement</h1>
+            <p class="meta">${portal?.name || portalId} • ${statementRange.start} to ${statementRange.end}</p>
+          </div>
+          <div class="summary">
+            <div class="pill"><h4>Opening Balance</h4><p>${openingBalance.toFixed(2)}</p></div>
+            <div class="pill"><h4>Total Credits</h4><p class="credit">+${creditTotal.toFixed(2)}</p></div>
+            <div class="pill"><h4>Total Debits</h4><p class="debit">-${debitTotal.toFixed(2)}</p></div>
+            <div class="pill"><h4>Closing Balance</h4><p>${closingBalance.toFixed(2)}</p></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Tx ID</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Debit</th>
+                <th>Credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="foot">
+            <span>Printed: ${new Date().toLocaleString()}</span>
+            <span>ACIS Workspace</span>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank', 'width=1000,height=900');
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 250);
+  };
+
+  const handleTransfer = async (event) => {
+    event.preventDefault();
+    if (!tenantId || !user?.uid) return;
+    if (!transferForm.fromPortalId || !transferForm.toPortalId || !transferForm.amount) {
+      setMessageType('error');
+      setMessage('Please fill source, destination and amount for transfer.');
+      return;
+    }
+    if (transferForm.fromPortalId === transferForm.toPortalId) {
+      setMessageType('error');
+      setMessage('Source and destination portals must be different.');
+      return;
+    }
+
+    setIsTransferSaving(true);
+    const displayTxId = await generateDisplayTxId(tenantId, 'TRF');
+    const res = await executeInternalTransfer(tenantId, {
+      ...transferForm,
+      amount: Number(transferForm.amount),
+      fee: Number(transferForm.fee || 0),
+      displayTxId,
+      createdBy: user.uid,
+    });
+    if (!res.ok) {
+      setMessageType('error');
+      setMessage(res.error || 'Transfer failed.');
+      setIsTransferSaving(false);
+      return;
+    }
+
+    setMessageType('success');
+    setMessage(`Transfer successful. ID: ${displayTxId}`);
+    setIsTransferSaving(false);
+    setIsTransferOpen(false);
+    loadData();
+  };
+
   const onTypeChange = (nextType) => {
     const typeConfig = portalTypes.find((item) => item.id === nextType);
     setForm((prev) => ({
@@ -346,13 +621,30 @@ const PortalDetailPage = () => {
                 </div>
                 <div>
                   {!isEditMode ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditMode(true)}
-                      className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)] hover:border-[var(--c-accent)]"
-                    >
-                      Edit Portal
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={openTransfer}
+                        disabled={!canUserPerformAction(tenantId, user, 'internalTransfer')}
+                        className="rounded-xl border border-[var(--c-accent)] bg-[var(--c-accent)]/10 px-3 py-2 text-xs font-semibold text-[var(--c-accent)] disabled:opacity-50"
+                      >
+                        Internal Transfer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsStatementOpen(true)}
+                        className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)] hover:border-[var(--c-accent)]"
+                      >
+                        Print Statement
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditMode(true)}
+                        className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)] hover:border-[var(--c-accent)]"
+                      >
+                        Edit Portal
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -455,11 +747,24 @@ const PortalDetailPage = () => {
                   </div>
                   <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
                     <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Type</p>
-                    <p className="text-xs font-semibold text-[var(--c-text)]">{portal.type || '-'}</p>
+                    <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1">
+                      <img
+                        src={fallbackPortalIcon(portal.type)}
+                        alt={portal.type || 'Portal'}
+                        className="h-5 w-5 rounded object-cover"
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = '/portals/portals.png';
+                        }}
+                      />
+                      <p className="text-xs font-semibold text-[var(--c-text)]">{portal.type || '-'}</p>
+                    </div>
                   </div>
                   <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
                     <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Status</p>
-                    <p className="text-xs font-semibold text-[var(--c-text)]">{portal.status || '-'}</p>
+                    <span className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(portal.status)}`}>
+                      {String(portal.status || 'active').charAt(0).toUpperCase() + String(portal.status || 'active').slice(1)}
+                    </span>
                   </div>
                   <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
                     <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Methods</p>
@@ -595,6 +900,170 @@ const PortalDetailPage = () => {
                     ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {isTransferOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-[var(--c-text)]">Internal Transfer</h3>
+              <button
+                type="button"
+                onClick={() => setIsTransferOpen(false)}
+                className="rounded-lg border border-[var(--c-border)] px-2 py-1 text-xs font-semibold text-[var(--c-text)]"
+              >
+                Close
+              </button>
+            </div>
+            <form onSubmit={handleTransfer} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Source Portal</label>
+                  <div className="mt-1">
+                    <IconSelect
+                      value={transferForm.fromPortalId}
+                      onChange={(nextFromPortalId) => setTransferForm((prev) => ({ ...prev, fromPortalId: nextFromPortalId }))}
+                      options={portalOptions}
+                      placeholder="Select Source"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Destination Portal</label>
+                  <div className="mt-1">
+                    <IconSelect
+                      value={transferForm.toPortalId}
+                      onChange={(nextToPortalId) => setTransferForm((prev) => ({ ...prev, toPortalId: nextToPortalId }))}
+                      options={portalOptions}
+                      placeholder="Select Destination"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Amount</label>
+                  <input
+                    type="number"
+                    required
+                    value={transferForm.amount}
+                    onChange={(event) => setTransferForm((prev) => ({ ...prev, amount: event.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm font-semibold text-[var(--c-text)] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Fee (Optional)</label>
+                  <input
+                    type="number"
+                    value={transferForm.fee}
+                    onChange={(event) => setTransferForm((prev) => ({ ...prev, fee: event.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm font-semibold text-[var(--c-text)] outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Reference / Note</label>
+                <textarea
+                  rows={2}
+                  value={transferForm.description}
+                  onChange={(event) => setTransferForm((prev) => ({ ...prev, description: event.target.value }))}
+                  className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)] outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isTransferSaving}
+                className="w-full rounded-xl bg-[var(--c-accent)] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {isTransferSaving ? 'Processing...' : 'Confirm Transfer'}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+      {isStatementOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-[var(--c-text)]">Print Portal Statement</h3>
+              <button
+                type="button"
+                onClick={() => setIsStatementOpen(false)}
+                className="rounded-lg border border-[var(--c-border)] px-2 py-1 text-xs font-semibold text-[var(--c-text)]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-3">
+              <label className="block text-[10px] font-bold uppercase text-[var(--c-muted)]">
+                Quick Select Month
+                <select
+                  className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                  value=""
+                  onChange={(e) => {
+                    handleMonthSelect(e.target.value);
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">Choose month…</option>
+                  {monthOptions.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
+                  From
+                  <input
+                    type="date"
+                    min={minTxDate}
+                    max={maxTxDate}
+                    value={statementRange.start}
+                    onChange={(e) => setStatementRange((prev) => ({ ...prev, start: e.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                  />
+                </label>
+                <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
+                  To
+                  <input
+                    type="date"
+                    min={minTxDate}
+                    max={maxTxDate}
+                    value={statementRange.end}
+                    onChange={(e) => setStatementRange((prev) => ({ ...prev, end: e.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                  />
+                </label>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handlePrintStatement}
+                  className="flex-1 rounded-xl bg-[var(--c-accent)] px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Print Statement
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date();
+                    setStatementRange({
+                      start: new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 10),
+                      end: todayIso,
+                    });
+                  }}
+                  className="rounded-xl border border-[var(--c-border)] px-3 py-2 text-sm font-semibold text-[var(--c-text)]"
+                >
+                  Reset
+                </button>
+              </div>
+              <p className="text-[11px] text-[var(--c-muted)]">
+                Dates are limited to portal transaction history (min {minTxDate}) through today ({maxTxDate}). Service fees are highlighted automatically.
+              </p>
             </div>
           </div>
         </div>
