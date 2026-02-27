@@ -6,6 +6,7 @@ import {
   fetchTenantClients,
   updateTenantClient,
 } from '../../lib/backendStore';
+import { resolveClientTypeIcon } from '../../lib/clientIcons';
 
 const PAGE_SIZES = [50, 100];
 
@@ -14,36 +15,6 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const normalizePhone = (value) => {
   const digits = String(value || '').replace(/\D/g, '');
   return digits.startsWith('0') ? digits.slice(1) : digits;
-};
-
-const toDateLabel = (value) => {
-  if (!value) return 'N/A';
-  if (typeof value?.toDate === 'function') {
-    return value.toDate().toLocaleString();
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'N/A';
-  return parsed.toLocaleString();
-};
-
-const emirateIconByKey = {
-  dubai: '/emiratesIcon/dubai.png',
-  abudhabi: '/emiratesIcon/abudhabi.png',
-  ajman: '/emiratesIcon/ajman.png',
-  sharjah: '/emiratesIcon/sharjah.png',
-  fujairah: '/emiratesIcon/fujairah.png',
-  rasalkhaimah: '/emiratesIcon/rasAlKhaaimah.png',
-  ummalquwain: '/emiratesIcon/ummAlQuwain.png',
-};
-
-const normalizeEmirateKey = (value) =>
-  String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z]/g, '');
-
-const getEmirateIcon = (value) => {
-  const key = normalizeEmirateKey(value);
-  return emirateIconByKey[key] || '';
 };
 
 const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
@@ -125,20 +96,8 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
   };
 
   const getTypeIcon = (item) => {
-    const type = String(item.type || '').toLowerCase();
     const parent = parentById[item.parentId];
-    const emirateIcon =
-      getEmirateIcon(item.registeredEmirate) ||
-      getEmirateIcon(item.poBoxEmirate) ||
-      getEmirateIcon(parent?.registeredEmirate) ||
-      getEmirateIcon(parent?.poBoxEmirate);
-    if (emirateIcon) return emirateIcon;
-
-    if (type === 'company') return '/company.png';
-    if (type === 'individual') return '/individual.png';
-    const parentType = String(parent?.type || '').toLowerCase();
-    if (parentType === 'company' || String(item.relationship || '').toLowerCase() === 'employee') return '/employee.png';
-    return '/dependent.png';
+    return resolveClientTypeIcon(item, parent);
   };
 
   const getCreator = (uid) => {
@@ -275,17 +234,20 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
         </div>
       ) : null}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <label className="relative sm:col-span-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--c-muted)]" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search name, CLID/DPID, mobile"
-            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] py-2.5 pl-9 pr-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
-          />
+      <div className="mt-5 grid gap-3 md:grid-cols-12">
+        <label className="md:col-span-4">
+          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--c-muted)]">Search</span>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--c-muted)]" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search name, CLID/DPID, mobile"
+              className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] py-2.5 pl-9 pr-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
+            />
+          </div>
         </label>
-        <label className="sm:col-span-1">
+        <label className="md:col-span-4">
           <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--c-muted)]">Type</span>
           <select
             value={typeFilter}
@@ -297,7 +259,7 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
             <option value="dependent">Dependent</option>
           </select>
         </label>
-        <label className="sm:col-span-1">
+        <label className="md:col-span-4">
           <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--c-muted)]">Per Page</span>
           <select
             value={pageSize}

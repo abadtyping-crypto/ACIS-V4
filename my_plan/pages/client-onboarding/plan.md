@@ -416,6 +416,7 @@ Use same duplicate logic as Individual:
 2. Suggested path: `tenants/{tenantId}/clients/{parentClientId}/dependents/{dependentId}`.
 3. Store `parentClientId`, `parentClientType`, and generated dependent display ID.
 4. Maintain sync event write as per mandatory sync rules.
+5. `dependentId` must be deterministic from generated Dependent ID (e.g., `DPID0001`) and must not use random UID/auto ID.
 
 ---
 

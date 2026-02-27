@@ -4,6 +4,15 @@ import { BellIcon } from '../icons/AppIcons';
 import { useTheme } from '../../context/ThemeContext';
 import { Monitor, MoonStar, SunMedium } from 'lucide-react';
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const toDisplayName = (user) => {
+  const raw = String(user?.displayName || '').trim();
+  if (raw && !emailRegex.test(raw)) return raw;
+  const email = String(user?.email || '').trim().toLowerCase();
+  if (emailRegex.test(email)) return email.split('@')[0];
+  return 'User';
+};
+
 const DesktopHeader = ({ tenant, user, notificationCount, onLogout }) => {
   const hasNativeTitleBar = typeof window !== 'undefined' && Boolean(window.electron?.windowControls);
   const { tenantId } = useParams();
@@ -14,6 +23,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, onLogout }) => {
   const appliedTheme = theme === 'system' ? resolvedTheme : theme;
   const ThemeIcon = theme === 'system' ? Monitor : appliedTheme === 'dark' ? MoonStar : SunMedium;
   const themeLabel = theme === 'system' ? `System (${resolvedTheme})` : appliedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+  const displayName = toDisplayName(user);
 
   const goTo = (path) => navigate(`/t/${tenantId}/${path}`);
 
@@ -89,11 +99,11 @@ const DesktopHeader = ({ tenant, user, notificationCount, onLogout }) => {
             >
               <img
                 src={user.photoURL || '/avatar.png'}
-                alt={user.displayName}
+                alt={displayName}
                 className="h-8 w-8 rounded-full border border-[var(--c-border)] object-cover"
               />
               <span className="hidden text-left 2xl:block">
-                <span className="block text-sm font-semibold text-[var(--c-text)]">{user.displayName}</span>
+                <span className="block text-sm font-semibold text-[var(--c-text)]">{displayName}</span>
                 <span className="block text-xs text-[var(--c-muted)]">{user.role}</span>
               </span>
             </button>

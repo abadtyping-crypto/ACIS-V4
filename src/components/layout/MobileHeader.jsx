@@ -5,6 +5,15 @@ import { RecycleBinIcon } from '../icons/AppIcons';
 import { useRecycleBin } from '../../context/RecycleBinContext';
 import { useRecycleBinSummary } from '../../hooks/useRecycleBinSummary';
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const toDisplayName = (user) => {
+  const raw = String(user?.displayName || '').trim();
+  if (raw && !emailRegex.test(raw)) return raw;
+  const email = String(user?.email || '').trim().toLowerCase();
+  if (emailRegex.test(email)) return email.split('@')[0];
+  return 'User';
+};
+
 const MobileHeader = ({ tenant, user, onLogout }) => {
   const { tenantId } = useParams();
   const { resolvedTheme, toggleTheme } = useTheme();
@@ -14,6 +23,7 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
   const { total: recycleTotal } = useRecycleBinSummary(tenantId, recycleDomains);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const displayName = toDisplayName(user);
 
   const goTo = (path) => navigate(`/t/${tenantId}/${path}`);
 
@@ -76,6 +86,10 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
           </button>
           {menuOpen ? (
             <div className="mobile-glass-panel absolute right-0 top-[calc(100%+8px)] z-50 w-52 rounded-2xl border border-[var(--c-border)] p-2 shadow-lg">
+              <div className="mb-2 border-b border-[var(--c-border)] px-3 py-2">
+                <p className="truncate text-sm font-semibold text-[var(--c-text)]">{displayName}</p>
+                <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[var(--c-muted)]">{user?.role || 'User'}</p>
+              </div>
               <button
                 type="button"
                 onClick={() => {

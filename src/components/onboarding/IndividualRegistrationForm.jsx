@@ -10,7 +10,6 @@ import {
     db
 } from '../../lib/backendStore';
 import { doc, getDoc } from 'firebase/firestore';
-import SectionCard from '../portal/SectionCard';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import IconSelect from '../common/IconSelect';
 
@@ -56,12 +55,10 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
     const [nextId, setNextId] = useState('...');
     const [form, setForm] = useState({
         fullName: '',
+        identificationMethod: 'emiratesId',
         emiratesId: '',
         passportNumber: '',
         unifiedNumber: '',
-        nationality: '',
-        dateOfBirth: '',
-        gender: '',
         primaryMobile: '',
         secondaryMobile: '',
         primaryEmail: '',
@@ -124,6 +121,7 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
             const normalized = {
                 ...form,
                 fullName: form.fullName.toUpperCase().trim(),
+                identificationMethod: String(form.identificationMethod || 'emiratesId'),
                 emiratesId: form.emiratesId.replace(/-/g, '').trim(),
                 passportNumber: form.passportNumber.toUpperCase().trim(),
                 primaryMobile: normalizePhone(form.primaryMobile),
@@ -140,8 +138,13 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                 return;
             }
 
-            if (normalized.emiratesId.length !== 15) {
+            if (normalized.identificationMethod === 'emiratesId' && normalized.emiratesId.length !== 15) {
                 setStatus({ type: 'error', message: 'Emirates ID must be 15 digits.' });
+                return;
+            }
+
+            if (normalized.identificationMethod === 'passport' && !normalized.passportNumber) {
+                setStatus({ type: 'error', message: 'Passport Number is required when Passport mode is selected.' });
                 return;
             }
 
@@ -155,9 +158,21 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
             }
 
             setStatus({ type: 'info', message: 'Checking for duplicates...' });
-            const exists = await checkIndividualDuplicate(tenantId, normalized.emiratesId);
+            const exists = await checkIndividualDuplicate(tenantId, {
+                method: normalized.identificationMethod,
+                emiratesId: normalized.emiratesId,
+                passportNumber: normalized.passportNumber,
+                fullName: normalized.fullName,
+            });
             if (exists) {
-                setStatus({ type: 'error', message: `Emirates ID ${normalized.emiratesId} is already registered.` });
+                if (normalized.identificationMethod === 'passport') {
+                    setStatus({
+                        type: 'error',
+                        message: `Passport ${normalized.passportNumber} with name ${normalized.fullName} is already registered.`
+                    });
+                } else {
+                    setStatus({ type: 'error', message: `Emirates ID ${normalized.emiratesId} is already registered.` });
+                }
                 return;
             }
 
@@ -188,7 +203,7 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                         type: 'Client Opening Balance',
                         method: normalized.portalMethod,
                         category: 'Client Onboarding',
-                        description: `Opening balance for ${normalized.fullName || normalized.emiratesId}`,
+                        description: `Opening balance for ${normalized.fullName || normalized.emiratesId || normalized.passportNumber}`,
                         clientId: res.id,
                         date: new Date().toISOString(),
                         createdBy: user.uid,
@@ -226,7 +241,6 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
         }
     };
 
-    const nationalities = ['United Arab Emirates', 'India', 'Pakistan', 'United Kingdom', 'United States', 'Egypt', 'Jordan', 'Lebanon', 'Others'];
     const selectedPortal = portals.find((p) => p.id === form.portalId) || null;
     const openingAmount = Math.abs(Number(form.openingBalance) || 0);
     const signedOpeningAmount = form.balanceType === 'debit' ? -openingAmount : openingAmount;
@@ -257,95 +271,65 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
             </header>
 
             {/* Identity Details */}
-            <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Full Name *</label>
-                        <input
-                            type="text"
-                            name="fullName"
-                            required
-                            value={form.fullName}
-                            onChange={(e) => setForm({ ...form, fullName: e.target.value.toUpperCase() })}
-                            placeholder="AS PER EID / PASSPORT"
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Emirates ID *</label>
-                        <input
-                            type="text"
-                            name="emiratesId"
-                            required
-                            maxLength={18}
-                            value={form.emiratesId}
-                            onChange={(e) => setForm({ ...form, emiratesId: e.target.value })}
-                            placeholder="784-xxxx-xxxxxxx-x"
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Nationality *</label>
-                            <select
-                                name="nationality"
-                                required
-                                value={form.nationality}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            >
-                                <option value="">Select</option>
-                                {nationalities.map(n => <option key={n} value={n}>{n}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Gender *</label>
-                            <select
-                                name="gender"
-                                required
-                                value={form.gender}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            >
-                                <option value="">Select</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Date of Birth *</label>
-                        <input
-                            type="date"
-                            name="dateOfBirth"
-                            required
-                            value={form.dateOfBirth}
-                            onChange={handleChange}
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Additional Identity (Optional) */}
-            <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Passport Number</label>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Full Name *</label>
                     <input
                         type="text"
-                        name="passportNumber"
-                        value={form.passportNumber}
-                        onChange={(e) => setForm({ ...form, passportNumber: e.target.value.toUpperCase() })}
-                        placeholder="e.g. N123456"
+                        name="fullName"
+                        required
+                        value={form.fullName}
+                        onChange={(e) => setForm({ ...form, fullName: e.target.value.toUpperCase() })}
+                        placeholder="AS PER EID / PASSPORT"
                         className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
                     />
                 </div>
+
                 <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Identification Method *</label>
+                    <select
+                        name="identificationMethod"
+                        value={form.identificationMethod}
+                        onChange={(e) =>
+                            setForm((prev) => ({
+                                ...prev,
+                                identificationMethod: e.target.value,
+                                emiratesId: e.target.value === 'emiratesId' ? prev.emiratesId : '',
+                                passportNumber: e.target.value === 'passport' ? prev.passportNumber : '',
+                            }))
+                        }
+                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+                    >
+                        <option value="emiratesId">Emirates ID</option>
+                        <option value="passport">Passport</option>
+                    </select>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
+                        {form.identificationMethod === 'passport' ? 'Passport Number *' : 'Emirates ID *'}
+                    </label>
+                    <input
+                        type="text"
+                        name={form.identificationMethod === 'passport' ? 'passportNumber' : 'emiratesId'}
+                        required
+                        maxLength={form.identificationMethod === 'passport' ? 20 : 18}
+                        value={form.identificationMethod === 'passport' ? form.passportNumber : form.emiratesId}
+                        onChange={(e) =>
+                            setForm((prev) => ({
+                                ...prev,
+                                [form.identificationMethod === 'passport' ? 'passportNumber' : 'emiratesId']:
+                                    form.identificationMethod === 'passport'
+                                        ? e.target.value.toUpperCase()
+                                        : e.target.value
+                            }))
+                        }
+                        placeholder={form.identificationMethod === 'passport' ? 'e.g. N123456' : '784-xxxx-xxxxxxx-x'}
+                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+                    />
+                </div>
+
+                <div className="space-y-2 lg:col-span-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Unified Number (UID)</label>
                     <input
                         type="text"

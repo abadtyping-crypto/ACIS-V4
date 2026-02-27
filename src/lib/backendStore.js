@@ -698,10 +698,32 @@ export const checkTradeLicenseDuplicate = async (tenantId, licenseNumber) => {
   return !snap.empty;
 };
 
-export const checkIndividualDuplicate = async (tenantId, eid) => {
-  const q = query(collection(db, 'tenants', tenantId, 'clients'), where('emiratesId', '==', eid));
-  const snap = await getDocs(q);
-  return !snap.empty;
+export const checkIndividualDuplicate = async (tenantId, identityInput) => {
+  if (typeof identityInput === 'string') {
+    const q = query(collection(db, 'tenants', tenantId, 'clients'), where('emiratesId', '==', identityInput));
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }
+
+  const method = String(identityInput?.method || 'emiratesId');
+  const emiratesId = String(identityInput?.emiratesId || '').replace(/-/g, '').trim();
+  const passportNumber = String(identityInput?.passportNumber || '').toUpperCase().trim();
+  const fullName = String(identityInput?.fullName || '').toUpperCase().trim();
+
+  if (method === 'emiratesId') {
+    const q = query(collection(db, 'tenants', tenantId, 'clients'), where('emiratesId', '==', emiratesId));
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }
+
+  const snap = await getDocs(collection(db, 'tenants', tenantId, 'clients'));
+  return snap.docs.some((item) => {
+    const data = item.data() || {};
+    if (data.deletedAt) return false;
+    const existingPassport = String(data.passportNumber || '').toUpperCase().trim();
+    const existingName = String(data.fullName || '').toUpperCase().trim();
+    return existingPassport === passportNumber && existingName === fullName;
+  });
 };
 export const searchClients = async (tenantId, queryStr) => {
   try {
@@ -911,6 +933,57 @@ export const upsertClient = async (tenantId, clientId, payload) => {
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] client upsert failed tenants/${tenantId}/clients/${clientId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const upsertDependentUnderParent = async (
+  tenantId,
+  parentClientId,
+  dependentId,
+  payload,
+) => {
+  try {
+    if (!tenantId || !parentClientId || !dependentId) {
+      return { ok: false, error: 'Missing tenantId, parentClientId, or dependentId.' };
+    }
+
+    const dependentPayload = {
+      ...payload,
+      parentId: parentClientId,
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    };
+
+    // Plan path: tenants/{tenantId}/clients/{parentClientId}/dependents/{dependentId}
+    await setDoc(
+      doc(db, 'tenants', tenantId, 'clients', parentClientId, 'dependents', dependentId),
+      dependentPayload,
+      { merge: true },
+    );
+
+    // Mirror to root clients collection so existing live list/search features remain compatible.
+    await setDoc(
+      doc(db, 'tenants', tenantId, 'clients', dependentId),
+      dependentPayload,
+      { merge: true },
+    );
+
+    await setDoc(doc(db, 'tenants', tenantId, 'syncEvents', `se_dependent_${dependentId}_${Date.now()}`), {
+      tenantId,
+      entityId: dependentId,
+      entityType: 'dependent',
+      eventType: 'create',
+      changedFields: Object.keys(payload || {}),
+      createdAt: serverTimestamp(),
+      createdBy: payload?.createdBy || 'unknown',
+      syncStatus: 'pending',
+    });
+
+    return { ok: true, id: dependentId };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] dependent upsert failed tenants/${tenantId}/clients/${parentClientId}/dependents/${dependentId}: ${message}`);
     return { ok: false, error: message };
   }
 };

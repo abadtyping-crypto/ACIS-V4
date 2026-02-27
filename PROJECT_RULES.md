@@ -56,6 +56,8 @@
 - Avoid generic flat layouts; include subtle depth (surface, border, spacing rhythm).
 - Motion should be minimal and meaningful (state change, reveal, theme transition).
 - Keep density balanced: compact but readable.
+- Client/Dependent identity selectors must use a single searchable icon dropdown control (no split search+select controls).
+- Client/Dependent icons must use shared resolver logic and prioritize emirate-specific icons before generic type icons.
 
 ## 9) Accessibility Rules
 

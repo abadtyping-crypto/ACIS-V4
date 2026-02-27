@@ -114,11 +114,18 @@ function createWindow() {
                 },
             });
 
+            const smtpUser = String(smtp.user || '').trim();
+            const preferredFromEmail = String(smtp.fromEmail || '').trim();
+            const fromName = String(smtp.fromName || '').trim();
+            const replyToEmail = String(smtp.replyTo || preferredFromEmail || '').trim();
+
+            // Use authenticated mailbox as sender to satisfy providers that reject non-owned From addresses.
+            const fromAddress = smtpUser;
+            const fromHeader = fromName ? `"${fromName}" <${fromAddress}>` : fromAddress;
+
             await transporter.sendMail({
-                from: smtp.fromName && smtp.fromEmail
-                    ? `"${String(smtp.fromName)}" <${String(smtp.fromEmail)}>`
-                    : String(smtp.fromEmail || smtp.user),
-                replyTo: smtp.replyTo ? String(smtp.replyTo) : undefined,
+                from: fromHeader,
+                replyTo: replyToEmail || undefined,
                 to,
                 subject: String(message.subject || ''),
                 html: String(message.html || ''),
@@ -127,7 +134,14 @@ function createWindow() {
 
             return { ok: true };
         } catch (error) {
-            return { ok: false, error: error?.message || 'Failed to send email.' };
+            const rawMessage = String(error?.message || 'Failed to send email.');
+            if (rawMessage.includes('550') && rawMessage.toLowerCase().includes('from address')) {
+                return {
+                    ok: false,
+                    error: 'SMTP rejected sender address. Use SMTP User as sender mailbox, or authorize the From address at your mail provider.'
+                };
+            }
+            return { ok: false, error: rawMessage };
         }
     });
 }

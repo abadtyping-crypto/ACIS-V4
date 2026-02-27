@@ -6,6 +6,10 @@ const IconSelect = ({
     options = [],
     placeholder = 'Select',
     disabled = false,
+    searchable = false,
+    searchValue = '',
+    onSearchChange,
+    searchPlaceholder = 'Search...',
     className = '',
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -42,6 +46,17 @@ const IconSelect = ({
 
             {isOpen && !disabled && (
                 <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-1 shadow-xl">
+                    {searchable ? (
+                        <div className="sticky top-0 z-10 mb-1 rounded-lg bg-[var(--c-surface)] p-1">
+                            <input
+                                type="text"
+                                value={searchValue}
+                                onChange={(event) => onSearchChange?.(event.target.value)}
+                                placeholder={searchPlaceholder}
+                                className="w-full rounded-lg border border-[var(--c-border)] bg-[var(--c-panel)] px-2.5 py-2 text-xs font-semibold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/10"
+                            />
+                        </div>
+                    ) : null}
                     {options.length === 0 ? (
                         <div className="px-3 py-2 text-xs font-semibold text-[var(--c-muted)]">No options available</div>
                     ) : (
