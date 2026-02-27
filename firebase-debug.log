@@ -302,3 +302,185 @@ To learn about active projects for the CLI, visit https://firebase.google.com/do
 [info] +  Deploy complete! 
 [info] 
 [info] Project Console: https://console.firebase.google.com/project/acis-typingapplication/overview
+[debug] [2026-02-27T18:53:01.696Z] ----------------------------------------------------------------------
+[debug] [2026-02-27T18:53:01.699Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\SAMY-LAP\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js firestore:indexes --project acis-typingapplication
+[debug] [2026-02-27T18:53:01.699Z] CLI Version:   15.3.1
+[debug] [2026-02-27T18:53:01.699Z] Platform:      win32
+[debug] [2026-02-27T18:53:01.700Z] Node Version:  v20.19.0
+[debug] [2026-02-27T18:53:01.700Z] Time:          Fri Feb 27 2026 22:53:01 GMT+0400 (Gulf Standard Time)
+[debug] [2026-02-27T18:53:01.700Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-27T18:53:03.506Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-27T18:53:03.508Z] > authorizing via signed-in user (abadtyping@gmail.com)
+[debug] [2026-02-27T18:53:03.508Z] [iam] checking project acis-typingapplication for permissions ["datastore.indexes.list","firebase.projects.get"]
+[debug] [2026-02-27T18:53:03.510Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:53:03.511Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:53:03.513Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions [none]
+[debug] [2026-02-27T18:53:03.514Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions x-goog-quota-user=projects/acis-typingapplication
+[debug] [2026-02-27T18:53:03.514Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions {"permissions":["datastore.indexes.list","firebase.projects.get"]}
+[debug] [2026-02-27T18:53:05.301Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions 200
+[debug] [2026-02-27T18:53:05.301Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions {"permissions":["datastore.indexes.list","firebase.projects.get"]}
+[debug] [2026-02-27T18:53:05.302Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:53:05.302Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:53:05.302Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/acis-typingapplication/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-02-27T18:53:05.890Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/acis-typingapplication/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-02-27T18:53:05.890Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/acis-typingapplication/databases/(default)/collectionGroups/-/indexes {}
+[debug] [2026-02-27T18:53:05.890Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:53:05.890Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:53:05.890Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/acis-typingapplication/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-02-27T18:53:06.153Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/acis-typingapplication/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-02-27T18:53:06.153Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/acis-typingapplication/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/acis-typingapplication/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}},{"name":"projects/acis-typingapplication/databases/(default)/collectionGroups/dependents/fields/tenantId","indexConfig":{"indexes":[{"queryScope":"COLLECTION_GROUP","fields":[{"fieldPath":"tenantId","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION_GROUP","fields":[{"fieldPath":"tenantId","order":"DESCENDING"}],"state":"READY"}],"ancestorField":"projects/acis-typingapplication/databases/(default)/collectionGroups/__default__/fields/*"}}]}
+[info] {
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "dependents",
+      "fieldPath": "tenantId",
+      "ttl": false,
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    }
+  ]
+}
+[debug] [2026-02-27T18:59:11.565Z] ----------------------------------------------------------------------
+[debug] [2026-02-27T18:59:11.569Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\SAMY-LAP\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --project acis-typingapplication --only storage
+[debug] [2026-02-27T18:59:11.570Z] CLI Version:   15.3.1
+[debug] [2026-02-27T18:59:11.570Z] Platform:      win32
+[debug] [2026-02-27T18:59:11.570Z] Node Version:  v20.19.0
+[debug] [2026-02-27T18:59:11.570Z] Time:          Fri Feb 27 2026 22:59:11 GMT+0400 (Gulf Standard Time)
+[debug] [2026-02-27T18:59:11.570Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-27T18:59:14.216Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-27T18:59:14.217Z] > authorizing via signed-in user (abadtyping@gmail.com)
+[debug] [2026-02-27T18:59:14.218Z] [iam] checking project acis-typingapplication for permissions ["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-02-27T18:59:14.219Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:14.219Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:14.220Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions [none]
+[debug] [2026-02-27T18:59:14.221Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions x-goog-quota-user=projects/acis-typingapplication
+[debug] [2026-02-27T18:59:14.221Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions {"permissions":["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-02-27T18:59:15.964Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions 200
+[debug] [2026-02-27T18:59:15.964Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions {"permissions":["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[info] 
+[info] === Deploying to 'acis-typingapplication'...
+[info] 
+[info] i  deploying storage 
+[info] i  storage: ensuring required API firebasestorage.googleapis.com is enabled... 
+[debug] [2026-02-27T18:59:15.967Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:15.967Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:15.967Z] >>> [apiv2][query] GET https://firebasestorage.googleapis.com/v1alpha/projects/acis-typingapplication/defaultBucket [none]
+[debug] [2026-02-27T18:59:16.908Z] <<< [apiv2][status] GET https://firebasestorage.googleapis.com/v1alpha/projects/acis-typingapplication/defaultBucket 200
+[debug] [2026-02-27T18:59:16.908Z] <<< [apiv2][body] GET https://firebasestorage.googleapis.com/v1alpha/projects/acis-typingapplication/defaultBucket {"name":"projects/acis-typingapplication/defaultBucket","location":"US-CENTRAL1","bucket":{"name":"projects/acis-typingapplication/buckets/acis-typingapplication.firebasestorage.app"},"storageClass":"REGIONAL"}
+[info] i  firebase.storage: checking storage.rules for compilation errors... 
+[debug] [2026-02-27T18:59:16.910Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:16.910Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:16.910Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test [none]
+[debug] [2026-02-27T18:59:16.910Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test [omitted]
+[debug] [2026-02-27T18:59:18.093Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test 200
+[debug] [2026-02-27T18:59:18.093Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test {}
+[info] +  firebase.storage: rules file storage.rules compiled successfully 
+[debug] [2026-02-27T18:59:18.094Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:18.094Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:18.095Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases pageSize=10&pageToken=
+[debug] [2026-02-27T18:59:18.884Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases 200
+[debug] [2026-02-27T18:59:18.884Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases {"releases":[{"name":"projects/acis-typingapplication/releases/cloud.firestore","rulesetName":"projects/acis-typingapplication/rulesets/f6ee7e81-7ec3-4c30-8fb2-188391bfc43b","createTime":"2026-02-27T08:01:45.017121Z","updateTime":"2026-02-27T08:06:57.149024Z"},{"name":"projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app","rulesetName":"projects/acis-typingapplication/rulesets/33233960-63b7-4795-b569-f81238dc016d","createTime":"2026-02-27T08:09:35.496648Z","updateTime":"2026-02-27T18:42:05.579027Z"}]}
+[debug] [2026-02-27T18:59:18.891Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:18.891Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:18.891Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets/33233960-63b7-4795-b569-f81238dc016d [none]
+[debug] [2026-02-27T18:59:19.221Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets/33233960-63b7-4795-b569-f81238dc016d 200
+[debug] [2026-02-27T18:59:19.221Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets/33233960-63b7-4795-b569-f81238dc016d [omitted]
+[info] i  storage: uploading rules storage.rules... 
+[debug] [2026-02-27T18:59:19.222Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:19.222Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:19.222Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets [none]
+[debug] [2026-02-27T18:59:19.222Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets [omitted]
+[debug] [2026-02-27T18:59:20.130Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets 200
+[debug] [2026-02-27T18:59:20.130Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets {"name":"projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3","source":{"files":[{"content":"rules_version = '2';\nservice firebase.storage {\n  match /b/{bucket}/o {\n    function isSignedIn() {\n      return request.auth != null;\n    }\n\n    function isTenantMember(tenantId) {\n      return isSignedIn()\n        && firestore.exists(/databases/(default)/documents/tenants/$(tenantId)/users/$(request.auth.uid));\n    }\n\n    function canAccessTenantStorage(tenantId) {\n      return isSignedIn() && (tenantId == 'testTenants' || isTenantMember(tenantId));\n    }\n\n    match /tenants/{tenantId}/{allPaths=**} {\n      allow read, write: if canAccessTenantStorage(tenantId);\n    }\n\n    match /{allPaths=**} {\n      allow read, write: if false;\n    }\n  }\n}\n","name":"storage.rules"}]},"createTime":"2026-02-27T18:59:20.374735Z","metadata":{"services":["firebase.storage"]}}
+[debug] [2026-02-27T18:59:20.130Z] [rules] created ruleset projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3
+[debug] [2026-02-27T18:59:20.131Z] [rules] releasing firebase.storage/acis-typingapplication.firebasestorage.app with ruleset projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3
+[debug] [2026-02-27T18:59:20.131Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:20.131Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T18:59:20.131Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app [none]
+[debug] [2026-02-27T18:59:20.131Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app {"release":{"name":"projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app","rulesetName":"projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3"}}
+[debug] [2026-02-27T18:59:21.121Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app 200
+[debug] [2026-02-27T18:59:21.121Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app {"name":"projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app","rulesetName":"projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3","createTime":"2026-02-27T08:09:35.496648Z","updateTime":"2026-02-27T18:59:21.359237Z"}
+[debug] [2026-02-27T18:59:21.121Z] [rules] updated release projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app
+[info] +  storage: released rules storage.rules to firebase.storage 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/acis-typingapplication/overview
+[debug] [2026-02-27T19:03:04.797Z] ----------------------------------------------------------------------
+[debug] [2026-02-27T19:03:04.807Z] Command:       C:\nvm4w\nodejs\node.exe C:\Users\SAMY-LAP\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --project acis-typingapplication --only storage
+[debug] [2026-02-27T19:03:04.807Z] CLI Version:   15.3.1
+[debug] [2026-02-27T19:03:04.807Z] Platform:      win32
+[debug] [2026-02-27T19:03:04.807Z] Node Version:  v20.19.0
+[debug] [2026-02-27T19:03:04.807Z] Time:          Fri Feb 27 2026 23:03:04 GMT+0400 (Gulf Standard Time)
+[debug] [2026-02-27T19:03:04.808Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-27T19:03:07.118Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-27T19:03:07.120Z] > authorizing via signed-in user (abadtyping@gmail.com)
+[debug] [2026-02-27T19:03:07.121Z] [iam] checking project acis-typingapplication for permissions ["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-02-27T19:03:07.129Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:07.129Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:07.132Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions [none]
+[debug] [2026-02-27T19:03:07.133Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions x-goog-quota-user=projects/acis-typingapplication
+[debug] [2026-02-27T19:03:07.134Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions {"permissions":["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-02-27T19:03:08.738Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions 200
+[debug] [2026-02-27T19:03:08.739Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/acis-typingapplication:testIamPermissions {"permissions":["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[info] 
+[info] === Deploying to 'acis-typingapplication'...
+[info] 
+[info] i  deploying storage 
+[info] i  storage: ensuring required API firebasestorage.googleapis.com is enabled... 
+[debug] [2026-02-27T19:03:08.745Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:08.745Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:08.745Z] >>> [apiv2][query] GET https://firebasestorage.googleapis.com/v1alpha/projects/acis-typingapplication/defaultBucket [none]
+[debug] [2026-02-27T19:03:09.670Z] <<< [apiv2][status] GET https://firebasestorage.googleapis.com/v1alpha/projects/acis-typingapplication/defaultBucket 200
+[debug] [2026-02-27T19:03:09.671Z] <<< [apiv2][body] GET https://firebasestorage.googleapis.com/v1alpha/projects/acis-typingapplication/defaultBucket {"name":"projects/acis-typingapplication/defaultBucket","location":"US-CENTRAL1","bucket":{"name":"projects/acis-typingapplication/buckets/acis-typingapplication.firebasestorage.app"},"storageClass":"REGIONAL"}
+[info] i  firebase.storage: checking storage.rules for compilation errors... 
+[debug] [2026-02-27T19:03:09.673Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:09.674Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:09.674Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test [none]
+[debug] [2026-02-27T19:03:09.674Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test [omitted]
+[debug] [2026-02-27T19:03:10.674Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test 200
+[debug] [2026-02-27T19:03:10.675Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication:test {}
+[info] +  firebase.storage: rules file storage.rules compiled successfully 
+[debug] [2026-02-27T19:03:10.677Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:10.677Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:10.678Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases pageSize=10&pageToken=
+[debug] [2026-02-27T19:03:11.449Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases 200
+[debug] [2026-02-27T19:03:11.450Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases {"releases":[{"name":"projects/acis-typingapplication/releases/cloud.firestore","rulesetName":"projects/acis-typingapplication/rulesets/f6ee7e81-7ec3-4c30-8fb2-188391bfc43b","createTime":"2026-02-27T08:01:45.017121Z","updateTime":"2026-02-27T08:06:57.149024Z"},{"name":"projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app","rulesetName":"projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3","createTime":"2026-02-27T08:09:35.496648Z","updateTime":"2026-02-27T18:59:21.359237Z"}]}
+[debug] [2026-02-27T19:03:11.462Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:11.462Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:11.462Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3 [none]
+[debug] [2026-02-27T19:03:12.232Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3 200
+[debug] [2026-02-27T19:03:12.232Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets/9cc1615c-443a-4fe1-92d2-798bb9f352a3 [omitted]
+[info] i  storage: uploading rules storage.rules... 
+[debug] [2026-02-27T19:03:12.234Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:12.234Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:12.235Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets [none]
+[debug] [2026-02-27T19:03:12.235Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets [omitted]
+[debug] [2026-02-27T19:03:12.758Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets 200
+[debug] [2026-02-27T19:03:12.759Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/rulesets {"name":"projects/acis-typingapplication/rulesets/2e4d6af2-9b83-46bd-aacb-7392cf7b380f","source":{"files":[{"content":"rules_version = '2';\nservice firebase.storage {\n  match /b/{bucket}/o {\n    function isSignedIn() {\n      return request.auth != null;\n    }\n\n    function isTenantMember(tenantId) {\n      return isSignedIn()\n        && firestore.exists(/databases/(default)/documents/tenants/$(tenantId)/users/$(request.auth.uid));\n    }\n\n    function canAccessTenantStorage(tenantId) {\n      return tenantId == 'testTenants' || isTenantMember(tenantId);\n    }\n\n    match /tenants/{tenantId}/{allPaths=**} {\n      allow read, write: if canAccessTenantStorage(tenantId);\n    }\n\n    match /{allPaths=**} {\n      allow read, write: if false;\n    }\n  }\n}\n","name":"storage.rules"}]},"createTime":"2026-02-27T19:03:13.002351Z","metadata":{"services":["firebase.storage"]}}
+[debug] [2026-02-27T19:03:12.759Z] [rules] created ruleset projects/acis-typingapplication/rulesets/2e4d6af2-9b83-46bd-aacb-7392cf7b380f
+[debug] [2026-02-27T19:03:12.759Z] [rules] releasing firebase.storage/acis-typingapplication.firebasestorage.app with ruleset projects/acis-typingapplication/rulesets/2e4d6af2-9b83-46bd-aacb-7392cf7b380f
+[debug] [2026-02-27T19:03:12.760Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:12.760Z] Checked if tokens are valid: true, expires at: 1772221285281
+[debug] [2026-02-27T19:03:12.760Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app [none]
+[debug] [2026-02-27T19:03:12.760Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app {"release":{"name":"projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app","rulesetName":"projects/acis-typingapplication/rulesets/2e4d6af2-9b83-46bd-aacb-7392cf7b380f"}}
+[debug] [2026-02-27T19:03:13.679Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app 200
+[debug] [2026-02-27T19:03:13.679Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app {"name":"projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app","rulesetName":"projects/acis-typingapplication/rulesets/2e4d6af2-9b83-46bd-aacb-7392cf7b380f","createTime":"2026-02-27T08:09:35.496648Z","updateTime":"2026-02-27T19:03:13.919230Z"}
+[debug] [2026-02-27T19:03:13.679Z] [rules] updated release projects/acis-typingapplication/releases/firebase.storage/acis-typingapplication.firebasestorage.app
+[info] +  storage: released rules storage.rules to firebase.storage 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/acis-typingapplication/overview
