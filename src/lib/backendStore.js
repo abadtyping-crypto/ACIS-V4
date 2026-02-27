@@ -179,7 +179,11 @@ export const fetchTenantPortals = async (tenantId) => {
     const rows = portalSnap.docs.map((item) => {
       const data = item.data();
       const computedBalance = balanceByPortal[item.id];
-      const balance = Number.isFinite(computedBalance) ? computedBalance : Number(data?.balance || 0);
+      const storedBalanceRaw = data?.balance ?? data?.Balance ?? 0;
+      const storedBalance = Number(storedBalanceRaw);
+      const balance = Number.isFinite(computedBalance)
+        ? computedBalance
+        : (Number.isFinite(storedBalance) ? storedBalance : 0);
       return {
         id: item.id,
         ...data,
@@ -197,8 +201,27 @@ export const fetchTenantPortals = async (tenantId) => {
 
 export const upsertTenantPortal = async (tenantId, portalId, payload) => {
   try {
+    const nextPayload = { ...(payload || {}) };
+
+    if (nextPayload.Balance !== undefined && nextPayload.balance === undefined) {
+      nextPayload.balance = nextPayload.Balance;
+    }
+
+    if (nextPayload.balance !== undefined) {
+      const numericBalance = Number(nextPayload.balance);
+      nextPayload.balance = Number.isFinite(numericBalance) ? numericBalance : 0;
+      nextPayload.balanceType = nextPayload.balance < 0 ? 'negative' : 'positive';
+    } else if (nextPayload.balanceType !== undefined) {
+      const rawType = String(nextPayload.balanceType || '').toLowerCase();
+      nextPayload.balanceType = rawType === 'negative' ? 'negative' : 'positive';
+    }
+
+    if (nextPayload.Balance !== undefined) {
+      nextPayload.Balance = deleteField();
+    }
+
     await setDoc(doc(db, 'tenants', tenantId, 'portals', portalId), {
-      ...payload,
+      ...nextPayload,
       updatedAt: serverTimestamp(),
     }, { merge: true });
     return { ok: true };

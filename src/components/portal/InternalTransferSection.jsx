@@ -6,6 +6,26 @@ import { fetchTenantPortals, executeInternalTransfer, sendTenantDocumentEmail } 
 import { generateDisplayTxId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { generateTenantPdf } from '../../lib/pdfGenerator';
+import IconSelect from '../common/IconSelect';
+
+const txMethodLabels = {
+    cashByHand: 'Cash by Hand',
+    bankTransfer: 'Bank Transfer',
+    cdmDeposit: 'CDM Deposit',
+    checqueDeposit: 'Cheque Deposit',
+    onlinePayment: 'Online Payment',
+    cashWithdrawals: 'Cash Withdrawals',
+    tabby: 'Tabby',
+    Tamara: 'Tamara',
+};
+
+const fallbackPortalIcon = (type) => {
+    if (type === 'Bank') return '/portals/bank.png';
+    if (type === 'Card Payment') return '/portals/cardpayment.png';
+    if (type === 'Petty Cash') return '/portals/pettycash.png';
+    if (type === 'Terminal') return '/portals/terminal.png';
+    return '/portals/portals.png';
+};
 
 const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
     const { tenantId } = useTenant();
@@ -22,6 +42,13 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
         fee: '0',
         description: '',
     });
+
+    const portalOptions = portals.map((p) => ({
+        value: p.id,
+        label: `${p.name} ($${(Number(p.balance || 0)).toLocaleString()})`,
+        icon: p.iconUrl || fallbackPortalIcon(p.type),
+        meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
+    }));
 
     const fetchPortals = useCallback(async () => {
         const res = await fetchTenantPortals(tenantId);
@@ -98,33 +125,27 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
                     {/* Source */}
                     <div>
                         <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Source Portal</label>
-                        <select
-                            required
-                            value={form.fromPortalId}
-                            onChange={(e) => setForm({ ...form, fromPortalId: e.target.value })}
-                            className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                        >
-                            <option value="">Select Source</option>
-                            {portals.map((p) => (
-                                <option key={p.id} value={p.id}>{p.name} (${(p.balance || 0).toLocaleString()})</option>
-                            ))}
-                        </select>
+                        <div className="mt-1">
+                            <IconSelect
+                                value={form.fromPortalId}
+                                onChange={(nextFromPortalId) => setForm((prev) => ({ ...prev, fromPortalId: nextFromPortalId }))}
+                                options={portalOptions}
+                                placeholder="Select Source"
+                            />
+                        </div>
                     </div>
 
                     {/* Destination */}
                     <div>
                         <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Destination Portal</label>
-                        <select
-                            required
-                            value={form.toPortalId}
-                            onChange={(e) => setForm({ ...form, toPortalId: e.target.value })}
-                            className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                        >
-                            <option value="">Select Destination</option>
-                            {portals.map((p) => (
-                                <option key={p.id} value={p.id}>{p.name} (${(p.balance || 0).toLocaleString()})</option>
-                            ))}
-                        </select>
+                        <div className="mt-1">
+                            <IconSelect
+                                value={form.toPortalId}
+                                onChange={(nextToPortalId) => setForm((prev) => ({ ...prev, toPortalId: nextToPortalId }))}
+                                options={portalOptions}
+                                placeholder="Select Destination"
+                            />
+                        </div>
                     </div>
                 </div>
 

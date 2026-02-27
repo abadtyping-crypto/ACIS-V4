@@ -35,6 +35,11 @@ const txMethodIcons = {
     Tamara: '/portals/methods/tamara.png',
 };
 
+const identificationMethodOptions = [
+    { value: 'emiratesId', label: 'Emirates ID', icon: '/onboardingIcons/emiratesId.svg' },
+    { value: 'passport', label: 'Passport', icon: '/onboardingIcons/passport.svg' },
+];
+
 const fallbackPortalIcon = (type) => {
     if (type === 'Bank') return '/portals/bank.png';
     if (type === 'Card Payment') return '/portals/cardpayment.png';
@@ -287,22 +292,19 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
 
                 <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Identification Method *</label>
-                    <select
-                        name="identificationMethod"
+                    <IconSelect
                         value={form.identificationMethod}
-                        onChange={(e) =>
+                        onChange={(nextMethod) =>
                             setForm((prev) => ({
                                 ...prev,
-                                identificationMethod: e.target.value,
-                                emiratesId: e.target.value === 'emiratesId' ? prev.emiratesId : '',
-                                passportNumber: e.target.value === 'passport' ? prev.passportNumber : '',
+                                identificationMethod: nextMethod,
+                                emiratesId: nextMethod === 'emiratesId' ? prev.emiratesId : '',
+                                passportNumber: nextMethod === 'passport' ? prev.passportNumber : '',
                             }))
                         }
-                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                    >
-                        <option value="emiratesId">Emirates ID</option>
-                        <option value="passport">Passport</option>
-                    </select>
+                        options={identificationMethodOptions}
+                        placeholder="Select Identification Method"
+                    />
                 </div>
 
                 <div className="space-y-2">

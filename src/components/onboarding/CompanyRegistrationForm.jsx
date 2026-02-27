@@ -36,6 +36,20 @@ const txMethodIcons = {
     Tamara: '/portals/methods/tamara.png',
 };
 
+const emirates = [
+    'Dubai', 'Umm Al Quwain', 'Ajman', 'Sharjah', 'Abu Dhabi', 'Fujairah', 'Ras Al Khaimah'
+];
+
+const emiratesIconMap = {
+    'Dubai': '/emiratesIcon/dubai.png',
+    'Umm Al Quwain': '/emiratesIcon/ummAlQuwain.png',
+    'Ajman': '/emiratesIcon/ajman.png',
+    'Sharjah': '/emiratesIcon/sharjah.png',
+    'Abu Dhabi': '/emiratesIcon/abudhabi.png',
+    'Fujairah': '/emiratesIcon/fujairah.png',
+    'Ras Al Khaimah': '/emiratesIcon/rasAlKhaaimah.png',
+};
+
 const fallbackPortalIcon = (type) => {
     if (type === 'Bank') return '/portals/bank.png';
     if (type === 'Card Payment') return '/portals/cardpayment.png';
@@ -145,6 +159,10 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                 setStatus({ type: 'error', message: 'Primary mobile must be exactly 9 digits (excluding 0).' });
                 return;
             }
+            if (!normalized.registeredEmirate) {
+                setStatus({ type: 'error', message: 'Registered Emirates is required.' });
+                return;
+            }
 
             if (normalized.createPortalTransaction && !normalized.portalId) {
                 setStatus({ type: 'error', message: 'Select target portal when portal transaction is enabled.' });
@@ -229,9 +247,6 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
         }
     };
 
-    const emirates = [
-        'Dubai', 'Umm Al Quwain', 'Ajman', 'Sharjah', 'Abu Dhabi', 'Fujairah', 'Ras Al Khaimah'
-    ];
     const selectedPortal = portals.find((p) => p.id === form.portalId) || null;
     const openingAmount = Math.abs(Number(form.openingBalance) || 0);
     const signedOpeningAmount = form.balanceType === 'debit' ? -openingAmount : openingAmount;
@@ -246,6 +261,11 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
         value: methodId,
         label: txMethodLabels[methodId] || methodId,
         icon: txMethodIcons[methodId],
+    }));
+    const emiratesOptions = emirates.map((emirate) => ({
+        value: emirate,
+        label: emirate,
+        icon: emiratesIconMap[emirate],
     }));
 
     return (
@@ -280,16 +300,12 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
 
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Registered Emirates *</label>
-                        <select
-                            name="registeredEmirate"
-                            required
+                        <IconSelect
                             value={form.registeredEmirate}
-                            onChange={handleChange}
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                        >
-                            <option value="">Select Emirate</option>
-                            {emirates.map(e => <option key={e} value={e}>{e}</option>)}
-                        </select>
+                            onChange={(nextEmirate) => setForm((prev) => ({ ...prev, registeredEmirate: nextEmirate }))}
+                            options={emiratesOptions}
+                            placeholder="Select Emirate"
+                        />
                     </div>
                 </div>
 

@@ -154,6 +154,13 @@
 - Dependent storage must be single-source only:
   - Allowed path: `tenants/{tenantId}/clients/{parentClientId}/dependents/{dependentId}`
   - Disallowed: mirroring the same dependent document into `tenants/{tenantId}/clients/{dependentId}`
+- Portal balance field is canonical and mandatory:
+  - All portal reads/writes must use lowercase `balance` as source of truth.
+  - `balanceType` must be derived from `balance` (`positive` or `negative`).
+  - Do not introduce or persist alternate keys like `Balance`.
+- Transaction ID rules must be applied on document IDs where configured:
+  - Loan Persons document ID must follow `transactionIdRules.LOAN` prefix/padding (no random `lp_*` IDs).
+  - Loan Transactions display ID must follow `transactionIdRules.LON`.
 
 ## 20) Agent Preflight Checklist (Mandatory Before Any Change)
 
@@ -170,3 +177,9 @@
   - explicit naming for rule-driven fields
   - rule references in plan/docs when behavior changes
 - When introducing new reusable patterns (icons, badges, selectors, IDs), add/update the corresponding rule line in this file immediately.
+- Applications Icon Library standard (mandatory for future pages/modules):
+  - Source path: `tenants/{tenantId}/settings/applicationIconLibrary/icons/{iconId}`
+  - `iconId` must be deterministic from icon name (safe-doc-id transform), no random UID.
+  - `iconName` is mandatory and editable; rename must migrate doc ID accordingly.
+  - Reuploading an icon must automatically remove prior storage asset URL.
+  - Icon uploads must be compressed (webp, reduced footprint) for lightweight reuse across upcoming pages.

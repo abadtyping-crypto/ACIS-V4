@@ -14,6 +14,26 @@ import { generateDisplayTxId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { createSyncEvent } from '../../lib/syncEvents';
 import { generateTenantPdf } from '../../lib/pdfGenerator';
+import IconSelect from '../common/IconSelect';
+
+const txMethodLabels = {
+    cashByHand: 'Cash by Hand',
+    bankTransfer: 'Bank Transfer',
+    cdmDeposit: 'CDM Deposit',
+    checqueDeposit: 'Cheque Deposit',
+    onlinePayment: 'Online Payment',
+    cashWithdrawals: 'Cash Withdrawals',
+    tabby: 'Tabby',
+    Tamara: 'Tamara',
+};
+
+const fallbackPortalIcon = (type) => {
+    if (type === 'Bank') return '/portals/bank.png';
+    if (type === 'Card Payment') return '/portals/cardpayment.png';
+    if (type === 'Petty Cash') return '/portals/pettycash.png';
+    if (type === 'Terminal') return '/portals/terminal.png';
+    return '/portals/portals.png';
+};
 
 const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     const { tenantId } = useTenant();
@@ -69,9 +89,10 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     const handleQuickAdd = async () => {
         if (!newPerson.name.trim()) return;
         setIsSaving(true);
-        const personId = `lp_${Date.now()}`;
+        const personId = await generateDisplayTxId(tenantId, 'LOAN');
         const res = await upsertLoanPerson(tenantId, personId, {
             ...newPerson,
+            displayPersonId: personId,
             status: 'active',
             createdAt: new Date().toISOString(),
             createdBy: user.uid
@@ -115,7 +136,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
 
         setIsSaving(true);
         try {
-            const displayTxId = await generateDisplayTxId(tenantId, 'LOAN');
+            const displayTxId = await generateDisplayTxId(tenantId, 'LON');
             const res = await executeLoanTransaction(tenantId, {
                 ...form,
                 amount: Number(form.amount),
@@ -163,6 +184,13 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     };
 
     const selectedPerson = persons.find(p => p.id === form.personId);
+    const hasDownloadPayload = Boolean(status?.download?.docType && status?.download?.data);
+    const portalOptions = portals.map((p) => ({
+        value: p.id,
+        label: `${p.name} ($${(Number(p.balance || 0)).toLocaleString()})`,
+        icon: p.iconUrl || fallbackPortalIcon(p.type),
+        meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
+    }));
 
     return (
         <SectionCard
@@ -308,17 +336,12 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                             {/* Portal Selection */}
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Source/Target Portal</label>
-                                <select
-                                    required
+                                <IconSelect
                                     value={form.portalId}
-                                    onChange={(e) => setForm({ ...form, portalId: e.target.value })}
-                                    className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                >
-                                    <option value="">Select Portal</option>
-                                    {portals.map((p) => (
-                                        <option key={p.id} value={p.id}>{p.name} (${(p.balance || 0).toLocaleString()})</option>
-                                    ))}
-                                </select>
+                                    onChange={(nextPortalId) => setForm((prev) => ({ ...prev, portalId: nextPortalId }))}
+                                    options={portalOptions}
+                                    placeholder="Select Portal"
+                                />
                             </div>
                         </div>
 
@@ -353,58 +376,57 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                         {status.message && (
                             <div className={`rounded-xl border p-3 text-xs font-bold text-center animate-pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'}`}>
                                 <div>{status.message}</div>
-                                <div className="mt-2 flex flex-wrap justify-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => generateTenantPdf({
-                                            tenantId,
-                                            documentType: status.download.docType,
-                                            data: status.download.data
-                                        })}
-                                        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-white hover:bg-emerald-700 transition"
-                                    >
-                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                        {status.download.docType === 'paymentReceipt' ? 'Download Receipt' : 'Download Note'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={async () => {
-                                            if (!selectedPerson?.email) {
-                                                const email = prompt("Enter client email:");
-                                                if (!email) return;
-                                                selectedPerson.email = email;
-                                            }
-                                            setIsSaving(true);
-                                            const pdfRes = await generateTenantPdf({
+                                {hasDownloadPayload ? (
+                                    <div className="mt-2 flex flex-wrap justify-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => generateTenantPdf({
                                                 tenantId,
                                                 documentType: status.download.docType,
-                                                data: status.download.data,
-                                                save: false,
-                                                returnBase64: true
-                                            });
-                                            if (pdfRes.ok) {
-                                                const emailRes = await sendTenantDocumentEmail(
+                                                data: status.download.data
+                                            })}
+                                            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-white hover:bg-emerald-700 transition"
+                                        >
+                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                            </svg>
+                                            {status.download.docType === 'paymentReceipt' ? 'Download Receipt' : 'Download Note'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const destinationEmail = selectedPerson?.email || prompt("Enter client email:");
+                                                if (!destinationEmail) return;
+                                                setIsSaving(true);
+                                                const pdfRes = await generateTenantPdf({
                                                     tenantId,
-                                                    selectedPerson.email,
-                                                    status.download.docType,
-                                                    pdfRes.base64,
-                                                    status.download.data
-                                                );
-                                                if (emailRes.ok) alert("Email sent successfully!");
-                                                else alert("Failed to send email: " + emailRes.error);
-                                            }
-                                            setIsSaving(false);
-                                        }}
-                                        className="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-white hover:bg-slate-800 transition"
-                                    >
-                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
-                                        Email to Client
-                                    </button>
-                                </div>
+                                                    documentType: status.download.docType,
+                                                    data: status.download.data,
+                                                    save: false,
+                                                    returnBase64: true
+                                                });
+                                                if (pdfRes.ok) {
+                                                    const emailRes = await sendTenantDocumentEmail(
+                                                        tenantId,
+                                                        destinationEmail,
+                                                        status.download.docType,
+                                                        pdfRes.base64,
+                                                        status.download.data
+                                                    );
+                                                    if (emailRes.ok) alert("Email sent successfully!");
+                                                    else alert("Failed to send email: " + emailRes.error);
+                                                }
+                                                setIsSaving(false);
+                                            }}
+                                            className="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-white hover:bg-slate-800 transition"
+                                        >
+                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            </svg>
+                                            Email to Client
+                                        </button>
+                                    </div>
+                                ) : null}
                             </div>
                         )}
 
