@@ -35,7 +35,7 @@ const IconSelect = ({
             >
                 {selected ? (
                     <span className="flex min-w-0 items-center gap-2">
-                        {selected.icon && <img src={selected.icon} alt="" className="h-5 w-5 shrink-0 rounded object-contain" />}
+                        {selected.icon && <img src={selected.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />}
                         <span className="truncate text-[var(--c-text)]">{selected.label}</span>
                     </span>
                 ) : (
@@ -72,7 +72,7 @@ const IconSelect = ({
                                     opt.value === value ? 'bg-[var(--c-accent)]/10' : 'hover:bg-[var(--c-panel)]'
                                 }`}
                             >
-                                {opt.icon && <img src={opt.icon} alt="" className="h-5 w-5 shrink-0 rounded object-contain" />}
+                                {opt.icon && <img src={opt.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />}
                                 <span className="min-w-0">
                                     <span className="block truncate text-sm font-bold text-[var(--c-text)]">{opt.label}</span>
                                     {opt.meta ? <span className="block truncate text-[10px] font-semibold text-[var(--c-muted)]">{opt.meta}</span> : null}

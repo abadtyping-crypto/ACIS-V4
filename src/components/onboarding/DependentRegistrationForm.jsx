@@ -1,8 +1,42 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { searchClients, generateDisplayClientId, getTenantSettingDoc, db, checkIndividualDuplicate, upsertDependentUnderParent } from '../../lib/backendStore';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+    searchClients,
+    generateDisplayClientId,
+    getTenantSettingDoc,
+    db,
+    checkIndividualDuplicate,
+    upsertDependentUnderParent
+} from '../../lib/backendStore';
 import { doc, getDoc } from 'firebase/firestore';
 import IconSelect from '../common/IconSelect';
 import { resolveClientTypeIcon } from '../../lib/clientIcons';
+
+const relationOptionsByParent = {
+    company: [
+        { value: 'employee', label: 'Employee', icon: '/employee.png' },
+        { value: 'investor', label: 'Investor', icon: '/onboardingIcons/investor.svg' },
+        { value: 'partner', label: 'Partner', icon: '/onboardingIcons/partner.svg' },
+    ],
+    individual: [
+        { value: 'wife', label: 'Wife', icon: '/onboardingIcons/wife.svg' },
+        { value: 'husband', label: 'Husband', icon: '/onboardingIcons/husband.svg' },
+        { value: 'son', label: 'Son', icon: '/onboardingIcons/son.svg' },
+        { value: 'daughter', label: 'Daughter', icon: '/onboardingIcons/daughter.svg' },
+        { value: 'father', label: 'Father', icon: '/onboardingIcons/father.svg' },
+        { value: 'mother', label: 'Mother', icon: '/onboardingIcons/mother.svg' },
+        { value: 'domestic worker', label: 'Domestic Worker', icon: '/onboardingIcons/domesticWorker.svg' },
+    ],
+};
+
+const baseIdentificationOptions = [
+    { value: 'emiratesId', label: 'Emirates ID', icon: '/onboardingIcons/emiratesId.svg' },
+    { value: 'passport', label: 'Passport', icon: '/onboardingIcons/passport.svg' },
+];
+
+const employeeExtraIdentificationOptions = [
+    { value: 'workPermit', label: 'Work Permit', icon: '/onboardingIcons/workPermit.svg' },
+    { value: 'personCode', label: 'Person Code', icon: '/onboardingIcons/personCode.svg' },
+];
 
 const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuccess }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -26,13 +60,16 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState({ type: '', message: '' });
     const submitLockRef = useRef(false);
+
     const parentType = String(parent?.type || '').toLowerCase();
+    const isCompanyParent = parentType === 'company';
+    const isEmployeeRelation = isCompanyParent && form.relationship === 'employee';
 
     useEffect(() => {
         if (!parent) return;
         const loadNextId = async () => {
             const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
-            const rules = settingsRes.ok && settingsRes.data ? settingsRes.data['DPID'] || {} : {};
+            const rules = settingsRes.ok && settingsRes.data ? settingsRes.data.DPID || {} : {};
             const prefix = rules.prefix || 'DPID';
             const padding = Number(rules.padding) || 4;
 
@@ -64,29 +101,54 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
         return () => clearTimeout(timer);
     }, [handleSearch, parent, tenantId]);
 
-    const parentOptions = searchResults.map((item) => ({
+    const parentOptions = useMemo(() => searchResults.map((item) => ({
         value: item.id,
         label: item.fullName || item.tradeName || 'Unnamed',
         icon: resolveClientTypeIcon(item, null),
         meta: `${item.displayClientId || item.id} • ${item.type}`,
-    }));
+    })), [searchResults]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
-    };
+    const relationOptions = useMemo(() => {
+        if (isCompanyParent) return relationOptionsByParent.company;
+        return relationOptionsByParent.individual;
+    }, [isCompanyParent]);
+
+    const identificationOptions = useMemo(() => {
+        if (isEmployeeRelation) return [...baseIdentificationOptions, ...employeeExtraIdentificationOptions];
+        return baseIdentificationOptions;
+    }, [isEmployeeRelation]);
 
     useEffect(() => {
         if (!parent) return;
-        if (parentType === 'company') {
-            setForm((prev) => ({ ...prev, relationship: 'employee' }));
-            return;
-        }
         setForm((prev) => ({
             ...prev,
-            relationship: prev.relationship || 'wife',
+            relationship: '',
+            identificationMethod: 'emiratesId',
+            emiratesId: '',
+            passportNumber: '',
+            workPermitNumber: '',
+            personCode: '',
         }));
-    }, [parent, parentType]);
+    }, [parent, parent?.id]);
+
+    useEffect(() => {
+        if (!parent || !isCompanyParent) return;
+        if (!form.relationship) {
+            setForm((prev) => ({ ...prev, relationship: 'employee' }));
+        }
+    }, [form.relationship, isCompanyParent, parent]);
+
+    useEffect(() => {
+        if (isEmployeeRelation) return;
+        if (form.identificationMethod === 'workPermit' || form.identificationMethod === 'personCode') {
+            setForm((prev) => ({ ...prev, identificationMethod: 'emiratesId' }));
+        }
+    }, [form.identificationMethod, isEmployeeRelation]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -100,9 +162,10 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
             const normalized = {
                 ...form,
                 fullName: form.fullName.toUpperCase().trim(),
+                relationship: String(form.relationship || '').trim().toLowerCase(),
                 identificationMethod: String(form.identificationMethod || 'emiratesId'),
-                emiratesId: form.emiratesId.replace(/-/g, '').trim(),
-                passportNumber: form.passportNumber.toUpperCase().trim(),
+                emiratesId: String(form.emiratesId || '').replace(/\D/g, ''),
+                passportNumber: String(form.passportNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
                 workPermitNumber: String(form.workPermitNumber || '').replace(/\D/g, '').slice(0, 10),
                 personCode: String(form.personCode || '').replace(/\D/g, '').slice(0, 14),
                 mobile: String(form.mobile || '').replace(/\D/g, ''),
@@ -112,22 +175,41 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                 parentName: parent.fullName || parent.tradeName,
                 parentClientType: parentType,
                 createdBy: user.uid,
-                status: 'active'
+                status: 'active',
+                type: 'dependent',
             };
 
             if (!parent || parent.type === 'dependent') {
                 setStatus({ type: 'error', message: 'Please select a valid parent client (company or individual).' });
                 return;
             }
+            if (!normalized.fullName) {
+                setStatus({ type: 'error', message: 'Dependent Full Name is required.' });
+                return;
+            }
+            if (!normalized.relationship) {
+                setStatus({ type: 'error', message: 'Relation is required.' });
+                return;
+            }
 
-            if (normalized.identificationMethod === 'emiratesId' && normalized.emiratesId.length !== 15) {
-                setStatus({ type: 'error', message: 'Emirates ID must be 15 digits.' });
-                return;
+            if (normalized.identificationMethod === 'workPermit' || normalized.identificationMethod === 'personCode') {
+                if (!isEmployeeRelation) {
+                    setStatus({ type: 'error', message: 'Work Permit and Person Code are available only for Employee relation.' });
+                    return;
+                }
             }
-            if (normalized.identificationMethod === 'emiratesId' && !normalized.emiratesId.startsWith('784')) {
-                setStatus({ type: 'error', message: 'Emirates ID must start with 784.' });
-                return;
+
+            if (normalized.identificationMethod === 'emiratesId') {
+                if (normalized.emiratesId.length !== 15) {
+                    setStatus({ type: 'error', message: 'Emirates ID must be 15 digits.' });
+                    return;
+                }
+                if (!normalized.emiratesId.startsWith('784')) {
+                    setStatus({ type: 'error', message: 'Emirates ID must start with 784.' });
+                    return;
+                }
             }
+
             if (normalized.identificationMethod === 'passport') {
                 if (!normalized.passportNumber) {
                     setStatus({ type: 'error', message: 'Passport Number is required in Passport mode.' });
@@ -138,25 +220,54 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                     return;
                 }
             }
-            if (parentType === 'company' && normalized.relationship !== 'employee') {
-                setStatus({ type: 'error', message: 'Company parent relation is fixed to Employee.' });
+
+            if (normalized.identificationMethod === 'workPermit') {
+                if (!normalized.workPermitNumber) {
+                    setStatus({ type: 'error', message: 'Work Permit is required when Work Permit identification is selected.' });
+                    return;
+                }
+                if (normalized.workPermitNumber.length > 10) {
+                    setStatus({ type: 'error', message: 'Work Permit must be 10 digits max.' });
+                    return;
+                }
+            }
+
+            if (normalized.identificationMethod === 'personCode') {
+                if (!normalized.personCode) {
+                    setStatus({ type: 'error', message: 'Person Code is mandatory when Person Code identification is selected.' });
+                    return;
+                }
+                if (normalized.personCode.length > 14) {
+                    setStatus({ type: 'error', message: 'Person Code must be 14 digits max.' });
+                    return;
+                }
+            }
+
+            if (isCompanyParent && normalized.relationship === 'employee' && !['emiratesId', 'passport', 'workPermit', 'personCode'].includes(normalized.identificationMethod)) {
+                setStatus({ type: 'error', message: 'Invalid identification method for Employee relation.' });
+                return;
+            }
+            if (isCompanyParent && normalized.relationship !== 'employee' && !['emiratesId', 'passport'].includes(normalized.identificationMethod)) {
+                setStatus({ type: 'error', message: 'Investor/Partner supports Emirates ID or Passport only.' });
                 return;
             }
 
-            setStatus({ type: 'info', message: 'Checking for duplicates...' });
-            const exists = await checkIndividualDuplicate(tenantId, {
-                method: normalized.identificationMethod,
-                emiratesId: normalized.emiratesId,
-                passportNumber: normalized.passportNumber,
-                fullName: normalized.fullName,
-            });
-            if (exists) {
-                if (normalized.identificationMethod === 'passport') {
-                    setStatus({ type: 'error', message: `Passport ${normalized.passportNumber} + ${normalized.fullName} already exists.` });
-                } else {
-                    setStatus({ type: 'error', message: `Emirates ID ${normalized.emiratesId} is already registered.` });
+            if (normalized.identificationMethod === 'emiratesId' || normalized.identificationMethod === 'passport') {
+                setStatus({ type: 'info', message: 'Checking for duplicates...' });
+                const exists = await checkIndividualDuplicate(tenantId, {
+                    method: normalized.identificationMethod,
+                    emiratesId: normalized.emiratesId,
+                    passportNumber: normalized.passportNumber,
+                    fullName: normalized.fullName,
+                });
+                if (exists) {
+                    if (normalized.identificationMethod === 'passport') {
+                        setStatus({ type: 'error', message: `Passport ${normalized.passportNumber} + ${normalized.fullName} already exists.` });
+                    } else {
+                        setStatus({ type: 'error', message: `Emirates ID ${normalized.emiratesId} is already registered.` });
+                    }
+                    return;
                 }
-                return;
             }
 
             setStatus({ type: 'info', message: 'Generating Dependent ID...' });
@@ -165,12 +276,14 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
             const finalPayload = {
                 ...normalized,
                 displayClientId: displayId,
-                type: 'dependent'
+                emiratesId: normalized.identificationMethod === 'emiratesId' ? normalized.emiratesId : '',
+                passportNumber: normalized.identificationMethod === 'passport' ? normalized.passportNumber : '',
+                workPermitNumber: normalized.identificationMethod === 'workPermit' ? normalized.workPermitNumber : '',
+                personCode: normalized.identificationMethod === 'personCode' ? normalized.personCode : '',
             };
 
             setStatus({ type: 'info', message: 'Saving to database...' });
-            // Strict rule: dependent backend doc ID must be the generated DPID value (no random UID).
-            const dependentDocId = displayId;
+            const dependentDocId = displayId; // strict: no random UID
             const res = await upsertDependentUnderParent(tenantId, parent.id, dependentDocId, finalPayload);
 
             if (res.ok) {
@@ -237,149 +350,128 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
             </header>
 
             <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Dependent Full Name *</label>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Dependent Full Name *</label>
                         <input
                             type="text"
                             name="fullName"
                             required
                             value={form.fullName}
-                            onChange={(e) => setForm({ ...form, fullName: e.target.value.toUpperCase() })}
-                            placeholder="AS PER EID"
+                            onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value.toUpperCase() }))}
+                            placeholder="AS PER EID / PASSPORT"
                             className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
                         />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Identification Method *</label>
-                            <select
-                                name="identificationMethod"
-                                value={form.identificationMethod}
-                                onChange={(e) =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        identificationMethod: e.target.value,
-                                        emiratesId: e.target.value === 'emiratesId' ? prev.emiratesId : '',
-                                        passportNumber: e.target.value === 'passport' ? prev.passportNumber : '',
-                                    }))
-                                }
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            >
-                                <option value="emiratesId">Emirates ID</option>
-                                <option value="passport">Passport</option>
-                            </select>
-                        </div>
+                    </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
-                            {form.identificationMethod === 'passport' ? 'Passport *' : 'Emirates ID *'}
-                        </label>
-                        <input
-                            type="text"
-                            name={form.identificationMethod === 'passport' ? 'passportNumber' : 'emiratesId'}
-                            required
-                            maxLength={form.identificationMethod === 'passport' ? 10 : 15}
-                            value={form.identificationMethod === 'passport' ? form.passportNumber : form.emiratesId}
-                            onChange={(e) =>
-                                setForm((prev) => ({
-                                    ...prev,
-                                    [form.identificationMethod === 'passport' ? 'passportNumber' : 'emiratesId']:
-                                        form.identificationMethod === 'passport'
-                                            ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
-                                            : e.target.value.replace(/\D/g, '')
-                                }))
-                            }
-                            placeholder={form.identificationMethod === 'passport' ? 'N123456' : '784xxxxxxxxxxxx'}
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Relation *</label>
+                        <IconSelect
+                            value={form.relationship}
+                            onChange={(nextRelation) => setForm((prev) => ({ ...prev, relationship: nextRelation }))}
+                            options={relationOptions}
+                            placeholder="Select relation"
                         />
                     </div>
                 </div>
+
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Relation *</label>
-                        {parentType === 'company' ? (
-                            <input
-                                type="text"
-                                name="relationship"
-                                readOnly
-                                value="employee"
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm font-bold text-[var(--c-muted)] shadow-sm"
-                            />
-                        ) : (
-                            <select
-                                name="relationship"
-                                required
-                                value={form.relationship}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            >
-                                <option value="wife">Wife</option>
-                                <option value="husband">Husband</option>
-                                <option value="son">Son</option>
-                                <option value="daughter">Daughter</option>
-                                <option value="father">Father</option>
-                                <option value="mother">Mother</option>
-                                <option value="domestic worker">Domestic Worker</option>
-                            </select>
-                        )}
+                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Identification Method *</label>
+                        <IconSelect
+                            value={form.identificationMethod}
+                            onChange={(nextMethod) => setForm((prev) => ({ ...prev, identificationMethod: nextMethod }))}
+                            options={identificationOptions}
+                            placeholder="Select identification method"
+                        />
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Mobile Number</label>
-                            <input
-                                type="tel"
-                                name="mobile"
-                                value={form.mobile}
-                                onChange={handleChange}
-                                placeholder="5xxxxxxxx"
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Email</label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={form.email}
-                                onChange={handleChange}
-                                placeholder="person@email.com"
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            />
-                        </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
+                            {form.identificationMethod === 'passport'
+                                ? 'Passport *'
+                                : form.identificationMethod === 'workPermit'
+                                    ? 'Work Permit *'
+                                    : form.identificationMethod === 'personCode'
+                                        ? 'Person Code *'
+                                        : 'Emirates ID *'}
+                        </label>
+                        <input
+                            type="text"
+                            required
+                            maxLength={
+                                form.identificationMethod === 'passport'
+                                    ? 10
+                                    : form.identificationMethod === 'workPermit'
+                                        ? 10
+                                        : form.identificationMethod === 'personCode'
+                                            ? 14
+                                            : 15
+                            }
+                            value={
+                                form.identificationMethod === 'passport'
+                                    ? form.passportNumber
+                                    : form.identificationMethod === 'workPermit'
+                                        ? form.workPermitNumber
+                                        : form.identificationMethod === 'personCode'
+                                            ? form.personCode
+                                            : form.emiratesId
+                            }
+                            onChange={(e) => {
+                                const raw = e.target.value;
+                                if (form.identificationMethod === 'passport') {
+                                    setForm((prev) => ({ ...prev, passportNumber: raw.toUpperCase().replace(/[^A-Z0-9]/g, '') }));
+                                    return;
+                                }
+                                if (form.identificationMethod === 'workPermit') {
+                                    setForm((prev) => ({ ...prev, workPermitNumber: raw.replace(/\D/g, '') }));
+                                    return;
+                                }
+                                if (form.identificationMethod === 'personCode') {
+                                    setForm((prev) => ({ ...prev, personCode: raw.replace(/\D/g, '') }));
+                                    return;
+                                }
+                                setForm((prev) => ({ ...prev, emiratesId: raw.replace(/\D/g, '') }));
+                            }}
+                            placeholder={
+                                form.identificationMethod === 'passport'
+                                    ? 'N123456'
+                                    : form.identificationMethod === 'workPermit'
+                                        ? '10 digit max'
+                                        : form.identificationMethod === 'personCode'
+                                            ? '14 digit max'
+                                            : '784xxxxxxxxxxxx'
+                            }
+                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+                        />
                     </div>
                 </div>
             </div>
 
-            {parentType === 'company' ? (
-                <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Work Permit Number</label>
-                        <input
-                            type="text"
-                            name="workPermitNumber"
-                            maxLength={10}
-                            value={form.workPermitNumber}
-                            onChange={(e) => setForm((prev) => ({ ...prev, workPermitNumber: e.target.value.replace(/\D/g, '') }))}
-                            placeholder="Max 10 digits"
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Person Code</label>
-                        <input
-                            type="text"
-                            name="personCode"
-                            maxLength={14}
-                            value={form.personCode}
-                            onChange={(e) => setForm((prev) => ({ ...prev, personCode: e.target.value.replace(/\D/g, '') }))}
-                            placeholder="Max 14 digits"
-                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                        />
-                        <p className="text-[10px] font-semibold text-[var(--c-muted)]">Issued by MOHRE and available in employee list.</p>
-                    </div>
+            <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Mobile Number</label>
+                    <input
+                        type="tel"
+                        name="mobile"
+                        value={form.mobile}
+                        onChange={handleChange}
+                        placeholder="5xxxxxxxx"
+                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+                    />
                 </div>
-            ) : null}
+                <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Email</label>
+                    <input
+                        type="email"
+                        name="email"
+                        value={form.email}
+                        onChange={handleChange}
+                        placeholder="person@email.com"
+                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+                    />
+                </div>
+            </div>
 
             <div className="flex items-center gap-3 pt-4">
                 <button

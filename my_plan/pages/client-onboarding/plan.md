@@ -341,9 +341,10 @@ Block save when an existing company matches this exact combination:
 ### 6.2 Identification Method and Identity
 
 1. `Identification Method`
-   - Same rules/options as Individual registration
-   - Options: `Emirates ID`, `Passport`
-   - Default: `Emirates ID`
+   - Parent-type + relation aware behavior:
+   - If parent is `individual`: same as Individual registration.
+   - If parent is `company` and relation is `Employee`: extended options apply.
+   - If parent is `company` and relation is `Investor`/`Partner`: keep standard options.
 
 2. `Emirates ID` (when selected)
    - Mandatory in this mode
@@ -360,6 +361,15 @@ Block save when an existing company matches this exact combination:
    - Mandatory
    - Uppercase while saving
    - Max 80 characters
+
+5. Employee-only additional identification options (company parent + employee relation):
+   - `Work Permit`
+     - Digits only
+     - Max 10 digits
+   - `Person Code`
+     - Digits only
+     - Max 14 digits
+     - Mandatory when this method is selected
 
 ### 6.3 Parent-Type Conditional Fields
 
@@ -391,8 +401,11 @@ If selected parent type is `company`, also show:
 
 3. `Relation` (conditional)
    - If parent is `company`:
-     - Default `Employee`
-     - Non-editable
+     - Default `Employee` (auto-selected after person name is entered)
+     - Dropdown options:
+       - `Employee` (default)
+       - `Investor`
+       - `Partner` (inferred from provided icon set; confirm if this should be a second `Investor` label)
    - If parent is `individual`:
      - Dropdown options:
        - `Wife` (default)
@@ -407,6 +420,14 @@ If selected parent type is `company`, also show:
    - Do not show `Initial Balance`
    - Do not show `Balance Type`
    - Do not write dependent opening balance fields on create/update
+
+5. Identification options by company relation:
+   - If relation = `Employee`: `Emirates ID`, `Passport`, `Work Permit`, `Person Code`
+   - If relation = `Investor` or `Partner`: `Emirates ID`, `Passport` only
+
+6. Onboarding dropdown icons:
+   - Use reusable icon assets from `public/onboardingIcons`
+   - Relation and identification dropdowns must render icon + label consistently
 
 ### 6.5 Duplicate Blocking (Dependent)
 

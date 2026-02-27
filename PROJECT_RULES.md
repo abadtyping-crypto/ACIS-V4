@@ -58,6 +58,7 @@
 - Keep density balanced: compact but readable.
 - Client/Dependent identity selectors must use a single searchable icon dropdown control (no split search+select controls).
 - Client/Dependent icons must use shared resolver logic and prioritize emirate-specific icons before generic type icons.
+- Dropdown icons must use a minimum visible size of 24px (`h-6 w-6`) for dark-theme legibility.
 
 ## 9) Accessibility Rules
 
