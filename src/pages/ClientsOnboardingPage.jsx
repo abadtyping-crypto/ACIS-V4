@@ -36,7 +36,7 @@ const ClientsOnboardingPage = () => {
             subtitle="Register companies, individuals, or dependents with zero friction."
             icon={UserPlus}
         >
-            <div className="mx-auto max-w-4xl space-y-6 pb-20">
+            <div className="w-full space-y-6 pb-20">
                 {flash ? (
                     <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 shadow-sm">
                         <div className="flex items-start justify-between gap-3">

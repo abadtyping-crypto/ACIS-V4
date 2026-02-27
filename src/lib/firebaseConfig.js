@@ -5,14 +5,25 @@ import { getStorage } from 'firebase/storage';
 import { getMessaging, isSupported } from 'firebase/messaging';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDVHaoarp8DRDqnI-Px5zdFilnE0S4r_RE',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'acis-ajman.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'acis-ajman',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'acis-ajman.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '1072046268356',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:1072046268356:web:84e5ead686217cfdd8ce91',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-49F95BQQ49',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '',
 };
+
+const requiredConfigKeys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+const missingConfigKeys = requiredConfigKeys.filter((key) => !firebaseConfig[key]);
+
+if (missingConfigKeys.length > 0) {
+  throw new Error(
+    `Missing Firebase config env vars: ${missingConfigKeys
+      .map((key) => `VITE_FIREBASE_${key.replace(/[A-Z]/g, (match) => `_${match}`).toUpperCase()}`)
+      .join(', ')}`
+  );
+}
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);

@@ -61,7 +61,7 @@ const PortalManagementPage = () => {
       subtitle="Centralized control for portals, loans, and transfers."
       icon={Wallet}
     >
-      <div className="mx-auto max-w-4xl space-y-6 pb-20">
+      <div className="w-full space-y-6 pb-20">
         {/* 1. Portal Summary Section */}
         <div id="section-summary">
           <PortalSummarySection

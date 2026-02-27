@@ -10,7 +10,9 @@
     "electron:build": "vite build && electron-builder",
     "lint": "eslint .",
     "preview": "vite preview",
-    "whatsapp:webhook": "node scripts/whatsapp-webhook-server.mjs"
+    "whatsapp:webhook": "node scripts/whatsapp-webhook-server.mjs",
+    "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
+    "firebase:deploy:storage-rules": "firebase deploy --only storage"
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
