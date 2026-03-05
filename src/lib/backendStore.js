@@ -117,7 +117,15 @@ export const deleteTenantUserMap = async (tenantId, uid, deletedBy) => {
 export const fetchTenantUsersMap = async (tenantId) => {
   try {
     const snap = await getDocs(collection(db, 'tenants', tenantId, 'users'));
-    const rows = snap.docs.map((item) => ({ uid: item.id, ...item.data() }));
+    const rows = snap.docs.map((item) => {
+      const data = item.data() || {};
+      const storedUid = String(data.uid || '').trim();
+      return {
+        ...data,
+        uid: item.id,
+        legacyUid: storedUid && storedUid !== item.id ? storedUid : '',
+      };
+    });
     return { ok: true, rows };
   } catch (error) {
     const message = toSafeError(error);
@@ -869,6 +877,37 @@ const toDateMillis = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const addUserLookupEntry = (lookup, key, user) => {
+  const normalized = String(key || '').trim();
+  if (!normalized) return;
+  if (!lookup[normalized]) lookup[normalized] = user;
+  const lowered = normalized.toLowerCase();
+  if (!lookup[lowered]) lookup[lowered] = user;
+};
+
+const findTenantUser = (lookup, item) => {
+  const createdByUser = item?.createdByUser;
+  const candidates = [
+    item?.createdBy,
+    item?.createdByUid,
+    item?.createdByEmail,
+    item?.createdByUserEmail,
+    typeof createdByUser === 'string' ? createdByUser : '',
+    createdByUser?.uid,
+    createdByUser?.email,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = String(candidate || '').trim();
+    if (!normalized) continue;
+    if (lookup[normalized]) return lookup[normalized];
+    const lowered = normalized.toLowerCase();
+    if (lookup[lowered]) return lookup[lowered];
+  }
+
+  return null;
+};
+
 export const fetchTenantClients = async (tenantId) => {
   try {
     const [clientsSnap, dependentSnap, usersRes] = await Promise.all([
@@ -878,10 +917,17 @@ export const fetchTenantClients = async (tenantId) => {
     ]);
 
     const usersByUid = {};
+    const userLookup = {};
     if (usersRes.ok) {
       (usersRes.rows || []).forEach((item) => {
         if (!item?.uid) return;
         usersByUid[item.uid] = item;
+        if (item.legacyUid && !usersByUid[item.legacyUid]) {
+          usersByUid[item.legacyUid] = item;
+        }
+        addUserLookupEntry(userLookup, item.uid, item);
+        addUserLookupEntry(userLookup, item.legacyUid, item);
+        addUserLookupEntry(userLookup, item.email, item);
       });
     }
 
@@ -894,6 +940,23 @@ export const fetchTenantClients = async (tenantId) => {
       .filter((item) => !item.deletedAt);
 
     const rows = [...rootRows, ...dependentRows]
+      .map((item) => {
+        const resolvedUser = findTenantUser(userLookup, item);
+        if (!resolvedUser) return item;
+
+        return {
+          ...item,
+          createdByUser: {
+            uid: resolvedUser.uid,
+            displayName: resolvedUser.displayName || '',
+            email: resolvedUser.email || '',
+            photoURL: resolvedUser.photoURL || '/avatar.png',
+            role: resolvedUser.role || '',
+          },
+          createdByDisplayName: item.createdByDisplayName || resolvedUser.displayName || '',
+          createdByEmail: item.createdByEmail || resolvedUser.email || '',
+        };
+      })
       .sort((a, b) => toDateMillis(b.createdAt) - toDateMillis(a.createdAt));
 
     return { ok: true, rows, usersByUid };

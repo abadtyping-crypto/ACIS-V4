@@ -55,6 +55,7 @@ function createWindow() {
         minWidth: 1024,
         minHeight: 768,
         frame: false,
+        icon: join(__dirname, isDev ? '../public/appIcon.ico' : '../dist/appIcon.ico'),
         backgroundColor: '#00000000', // Support transparency for glass feel
         webPreferences: {
             preload: join(__dirname, 'preload.mjs'),

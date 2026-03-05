@@ -152,6 +152,8 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                 openingBalance: parseFloat(form.openingBalance) || 0,
                 tenantId,
                 createdBy: user.uid,
+                createdByDisplayName: user.displayName || '',
+                createdByEmail: user.email || '',
                 status: 'active'
             };
 

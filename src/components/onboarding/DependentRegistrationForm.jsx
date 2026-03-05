@@ -175,6 +175,8 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                 parentName: parent.fullName || parent.tradeName,
                 parentClientType: parentType,
                 createdBy: user.uid,
+                createdByDisplayName: user.displayName || '',
+                createdByEmail: user.email || '',
                 status: 'active',
                 type: 'dependent',
             };

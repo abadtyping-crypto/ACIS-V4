@@ -135,6 +135,8 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                 openingBalance: parseFloat(form.openingBalance) || 0,
                 tenantId,
                 createdBy: user.uid,
+                createdByDisplayName: user.displayName || '',
+                createdByEmail: user.email || '',
                 status: 'active'
             };
 
