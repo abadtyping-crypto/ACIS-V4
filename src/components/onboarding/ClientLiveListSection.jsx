@@ -159,15 +159,42 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
     return resolveClientTypeIcon(item, parent);
   };
 
-  const getCreator = (uid) => {
-    const creator = usersByUid[uid];
-    if (!creator) {
-      return { name: uid || 'Unknown user', avatar: '/avatar.png' };
+  const getCreator = (item) => {
+    const uid = item?.createdBy;
+    const creator = uid ? usersByUid[uid] : null;
+    if (creator) {
+      return {
+        name: creator.displayName || creator.email || uid,
+        avatar: creator.photoURL || '/avatar.png',
+      };
     }
-    return {
-      name: creator.displayName || creator.email || uid,
-      avatar: creator.photoURL || '/avatar.png',
-    };
+
+    const createdByUser = item?.createdByUser;
+    if (createdByUser && typeof createdByUser === 'object') {
+      const name = createdByUser.displayName || createdByUser.email || createdByUser.name;
+      if (name) {
+        return {
+          name,
+          avatar: createdByUser.photoURL || '/avatar.png',
+        };
+      }
+    }
+
+    const fallbackName =
+      item?.createdByDisplayName ||
+      item?.createdByName ||
+      item?.createdByEmail ||
+      item?.createdByUserEmail;
+
+    if (fallbackName) {
+      return { name: fallbackName, avatar: '/avatar.png' };
+    }
+
+    if (uid) {
+      return { name: uid, avatar: '/avatar.png' };
+    }
+
+    return { name: 'Unknown user', avatar: '/avatar.png' };
   };
 
   const openEdit = (item) => {
@@ -362,10 +389,14 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
             ) : null}
             {!isLoading
               ? pageRows.map((item) => {
-                  const creator = getCreator(item.createdBy);
+                  const creator = getCreator(item);
                   const typeLabel = getTypeLabel(item);
                   const nameLabel = item.tradeName || item.fullName || 'Unnamed';
                   const badge = getEntryBadge(item);
+                  const isDependent = String(item.type || '').toLowerCase() === 'dependent';
+                  const targetPath = isDependent && item.parentId
+                    ? `/t/${tenantId}/clients/${item.parentId}/dependents/${item.id}`
+                    : `/t/${tenantId}/clients/${item.id}`;
                   return (
                     <tr key={item.id} className="border-t border-[var(--c-border)] align-top transition hover:bg-[color:color-mix(in_srgb,var(--c-panel)_38%,transparent)]">
                       <td className="px-3 py-3">
@@ -373,7 +404,7 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                           <img src={getTypeIcon(item)} alt={typeLabel} className="h-10 w-10 rounded-xl object-cover" />
                           <div>
                             <Link
-                              to={`/t/${tenantId}/clients/${item.id}`}
+                              to={targetPath}
                               className="font-semibold text-[var(--c-text)] hover:text-[var(--c-accent)] hover:underline"
                               title={`Open ${nameLabel} details`}
                             >
@@ -407,7 +438,7 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                       </td>
                       <td className="px-3 py-3">
                         <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(item.status)}`}>
-                          {String(item.status || 'active')}
+                          {toTitleCase(item.status || 'active')}
                         </span>
                       </td>
                       <td className="px-3 py-3">

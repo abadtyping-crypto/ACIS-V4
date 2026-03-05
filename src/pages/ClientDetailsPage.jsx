@@ -163,10 +163,17 @@ const ClientDetailsPage = () => {
           ) : (
             <div className="mt-2 space-y-2">
               {dependents.map((dep) => (
-                <div key={dep.id} className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
+                <Link
+                  key={dep.id}
+                  to={`/t/${tenantId}/clients/${clientId}/dependents/${dep.id}`}
+                  className="block rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 hover:border-[var(--c-accent)] hover:shadow-sm"
+                  title="Open dependent details"
+                >
                   <p className="text-xs font-bold text-[var(--c-text)]">{dep.fullName || dep.tradeName || dep.displayClientId}</p>
-                  <p className="text-[10px] text-[var(--c-muted)]">{dep.displayClientId} • {dep.relationship || 'Dependent'}</p>
-                </div>
+                  <p className="text-[10px] text-[var(--c-muted)]">
+                    {dep.displayClientId} | {dep.relationship || 'Dependent'}
+                  </p>
+                </Link>
               ))}
             </div>
           )}

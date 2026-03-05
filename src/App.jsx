@@ -19,6 +19,7 @@ import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage';
 import ClientsOnboardingPage from './pages/ClientsOnboardingPage';
 import ClientDetailsPage from './pages/ClientDetailsPage';
+import DependentDetailsPage from './pages/DependentDetailsPage';
 import ModulePlaceholderPage from './pages/ModulePlaceholderPage';
 
 import TitleBar from './components/layout/TitleBar';
@@ -69,6 +70,7 @@ const App = () => {
                       element={<ModulePlaceholderPage title="Document Calendar" subtitle="Document calendar module placeholder." />}
                     />
                     <Route path="client-onboarding" element={<ClientsOnboardingPage />} />
+                    <Route path="clients/:clientId/dependents/:dependentId" element={<DependentDetailsPage />} />
                     <Route path="clients/:clientId" element={<ClientDetailsPage />} />
                     <Route path="favorites" element={<FavoritesPage />} />
                     <Route path="search" element={<SearchPage />} />
