@@ -925,6 +925,10 @@ export const fetchTenantClients = async (tenantId) => {
         if (item.legacyUid && !usersByUid[item.legacyUid]) {
           usersByUid[item.legacyUid] = item;
         }
+        // Also index by email to allow direct lookup if createdBy is an email
+        if (item.email && !usersByUid[item.email]) {
+          usersByUid[item.email] = item;
+        }
         addUserLookupEntry(userLookup, item.uid, item);
         addUserLookupEntry(userLookup, item.legacyUid, item);
         addUserLookupEntry(userLookup, item.email, item);
@@ -953,7 +957,7 @@ export const fetchTenantClients = async (tenantId) => {
             photoURL: resolvedUser.photoURL || '/avatar.png',
             role: resolvedUser.role || '',
           },
-          createdByDisplayName: item.createdByDisplayName || resolvedUser.displayName || '',
+          createdByDisplayName: resolvedUser.displayName || item.createdByDisplayName || resolvedUser.email || '',
           createdByEmail: item.createdByEmail || resolvedUser.email || '',
         };
       })

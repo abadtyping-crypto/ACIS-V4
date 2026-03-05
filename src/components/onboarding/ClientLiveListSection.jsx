@@ -160,18 +160,33 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
   };
 
   const getCreator = (item) => {
-    const uid = item?.createdBy;
-    const creator = uid ? usersByUid[uid] : null;
+    const rawUid = item?.createdBy;
+    const uid = typeof rawUid === 'string' ? rawUid.trim() : '';
+
+    // 1. Try resolving via local users mapping
+    let creator = uid ? usersByUid[uid] : null;
+
+    // 2. If not found by UID, and it looks like an email, try searching by email
+    if (!creator && uid && uid.includes('@')) {
+      const emailMatch = Object.values(usersByUid).find(
+        (u) =>
+          String(u.email || '').toLowerCase() === uid.toLowerCase() ||
+          String(u.secondaryEmail || '').toLowerCase() === uid.toLowerCase()
+      );
+      if (emailMatch) creator = emailMatch;
+    }
+
     if (creator) {
       return {
-        name: creator.displayName || creator.email || uid,
+        name: creator.displayName || creator.email || uid || 'Unknown',
         avatar: creator.photoURL || '/avatar.png',
       };
     }
 
+    // 3. Try resolving via the pre-populated createdByUser object from backend
     const createdByUser = item?.createdByUser;
     if (createdByUser && typeof createdByUser === 'object') {
-      const name = createdByUser.displayName || createdByUser.email || createdByUser.name;
+      const name = createdByUser.displayName || createdByUser.name || createdByUser.email;
       if (name) {
         return {
           name,
@@ -180,21 +195,16 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
       }
     }
 
+    // 4. Fallback to raw fields in the item
     const fallbackName =
       item?.createdByDisplayName ||
       item?.createdByName ||
       item?.createdByEmail ||
-      item?.createdByUserEmail;
+      item?.createdByUserEmail ||
+      uid ||
+      'Unknown user';
 
-    if (fallbackName) {
-      return { name: fallbackName, avatar: '/avatar.png' };
-    }
-
-    if (uid) {
-      return { name: uid, avatar: '/avatar.png' };
-    }
-
-    return { name: 'Unknown user', avatar: '/avatar.png' };
+    return { name: fallbackName, avatar: '/avatar.png' };
   };
 
   const openEdit = (item) => {
@@ -310,11 +320,10 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
 
       {status.message ? (
         <div
-          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
-            status.type === 'error'
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${status.type === 'error'
               ? 'border-rose-300 bg-rose-50 text-rose-700'
               : 'border-emerald-300 bg-emerald-50 text-emerald-700'
-          }`}
+            }`}
         >
           {status.message}
         </div>
@@ -389,81 +398,81 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
             ) : null}
             {!isLoading
               ? pageRows.map((item) => {
-                  const creator = getCreator(item);
-                  const typeLabel = getTypeLabel(item);
-                  const nameLabel = item.tradeName || item.fullName || 'Unnamed';
-                  const badge = getEntryBadge(item);
-                  const isDependent = String(item.type || '').toLowerCase() === 'dependent';
-                  const targetPath = isDependent && item.parentId
-                    ? `/t/${tenantId}/clients/${item.parentId}/dependents/${item.id}`
-                    : `/t/${tenantId}/clients/${item.id}`;
-                  return (
-                    <tr key={item.id} className="border-t border-[var(--c-border)] align-top transition hover:bg-[color:color-mix(in_srgb,var(--c-panel)_38%,transparent)]">
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-3">
-                          <img src={getTypeIcon(item)} alt={typeLabel} className="h-10 w-10 rounded-xl object-cover" />
-                          <div>
-                            <Link
-                              to={targetPath}
-                              className="font-semibold text-[var(--c-text)] hover:text-[var(--c-accent)] hover:underline"
-                              title={`Open ${nameLabel} details`}
-                            >
-                              {nameLabel}
-                            </Link>
-                            <div className="mt-1 flex flex-wrap items-center gap-2">
-                              <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-semibold ${badge.className}`}>
-                                <img src={badge.icon} alt={badge.label} className="h-3.5 w-3.5 rounded object-contain" />
-                                {badge.label}
-                              </span>
-                              {badge.meta ? <span className="text-xs text-[var(--c-muted)]">{badge.meta}</span> : null}
-                            </div>
+                const creator = getCreator(item);
+                const typeLabel = getTypeLabel(item);
+                const nameLabel = item.tradeName || item.fullName || 'Unnamed';
+                const badge = getEntryBadge(item);
+                const isDependent = String(item.type || '').toLowerCase() === 'dependent';
+                const targetPath = isDependent && item.parentId
+                  ? `/t/${tenantId}/clients/${item.parentId}/dependents/${item.id}`
+                  : `/t/${tenantId}/clients/${item.id}`;
+                return (
+                  <tr key={item.id} className="border-t border-[var(--c-border)] align-top transition hover:bg-[color:color-mix(in_srgb,var(--c-panel)_38%,transparent)]">
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <img src={getTypeIcon(item)} alt={typeLabel} className="h-10 w-10 rounded-xl object-cover" />
+                        <div>
+                          <Link
+                            to={targetPath}
+                            className="font-semibold text-[var(--c-text)] hover:text-[var(--c-accent)] hover:underline"
+                            title={`Open ${nameLabel} details`}
+                          >
+                            {nameLabel}
+                          </Link>
+                          <div className="mt-1 flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-semibold ${badge.className}`}>
+                              <img src={badge.icon} alt={badge.label} className="h-3.5 w-3.5 rounded object-contain" />
+                              {badge.label}
+                            </span>
+                            {badge.meta ? <span className="text-xs text-[var(--c-muted)]">{badge.meta}</span> : null}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2.5 py-1 text-xs font-bold text-[var(--c-accent)]">
-                          {item.displayClientId || item.id}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <Link
-                          to={`/t/${tenantId}/profile`}
-                          className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 pr-3 text-xs text-[var(--c-text)] hover:border-[var(--c-accent)]"
-                          title={`Open profile of ${creator.name}`}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2.5 py-1 text-xs font-bold text-[var(--c-accent)]">
+                        {item.displayClientId || item.id}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Link
+                        to={`/t/${tenantId}/profile`}
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 pr-3 text-xs text-[var(--c-text)] hover:border-[var(--c-accent)]"
+                        title={`Open profile of ${creator.name}`}
+                      >
+                        <img src={creator.avatar} alt={creator.name} className="h-6 w-6 rounded-full object-cover" />
+                        <span>{creator.name}</span>
+                        <ExternalLink size={12} />
+                      </Link>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(item.status)}`}>
+                        {toTitleCase(item.status || 'active')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(item)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--c-text)] hover:border-[var(--c-accent)]"
                         >
-                          <img src={creator.avatar} alt={creator.name} className="h-6 w-6 rounded-full object-cover" />
-                          <span>{creator.name}</span>
-                          <ExternalLink size={12} />
-                        </Link>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(item.status)}`}>
-                          {toTitleCase(item.status || 'active')}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(item)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-[var(--c-border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--c-text)] hover:border-[var(--c-accent)]"
-                          >
-                            <Edit3 size={13} />
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
-                          >
-                            <Trash2 size={13} />
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                          <Edit3 size={13} />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                        >
+                          <Trash2 size={13} />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
               : null}
           </tbody>
         </table>
