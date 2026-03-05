@@ -819,12 +819,12 @@ export const checkIndividualDuplicate = async (tenantId, identityInput) => {
   ]);
   const allDocs = [...rootSnap.docs, ...depSnap.docs];
   return allDocs.some((item) => {
-      const data = item.data() || {};
-      if (data.deletedAt) return false;
-      const existingPassport = String(data.passportNumber || '').toUpperCase().trim();
-      const existingName = String(data.fullName || '').toUpperCase().trim();
-      return existingPassport === passportNumber && existingName === fullName;
-    });
+    const data = item.data() || {};
+    if (data.deletedAt) return false;
+    const existingPassport = String(data.passportNumber || '').toUpperCase().trim();
+    const existingName = String(data.fullName || '').toUpperCase().trim();
+    return existingPassport === passportNumber && existingName === fullName;
+  });
 };
 export const searchClients = async (tenantId, queryStr) => {
   try {
@@ -1186,39 +1186,48 @@ export const upsertDependentUnderParent = async (
   }
 };
 
-export const requestPasswordReset = async (email) => {
+export const requestPasswordReset = async (tenantId, email) => {
   try {
-    // Attempt standard Firebase Auth password reset
+    // 1. Attempt standard Firebase Auth password reset if possible
     if (auth) {
       try {
         await sendPasswordResetEmail(auth, email);
       } catch (authErr) {
         console.warn(`[backendStore] Firebase Native Auth reset failed:`, authErr.message);
-        // Continue to Trigger Email extension fallback
       }
     }
 
-    // Also log the request to the mails collection for Trigger Email tracking
-    await setDoc(doc(collection(db, 'mails')), {
-      to: [email],
-      message: {
-        subject: 'Password Reset Request',
-        html: `
-          <h3>Password Reset Requested</h3>
-          <p>We've received a request to reset the password for ${email}.</p>
-          <p>If you have Firebase Authentication enabled, you should also receive an official reset link from Google.</p>
-          <p>If you don't use Firebase Auth, please contact your administrator to manually grant a new password.</p>
-        `
-      },
-      createdAt: serverTimestamp()
+    // 2. Fetch tenant mail config for SMTP fallback/notification
+    const cfgRes = await fetchTenantMailConfig(tenantId);
+    const cfg = cfgRes.ok && cfgRes.data ? cfgRes.data : {};
+
+    const subject = 'Password Reset Request';
+    const html = `
+      <h3>Password Reset Requested</h3>
+      <p>We've received a request to reset the password for ${email}.</p>
+      <p>If you have Firebase Authentication enabled, you should also receive an official reset link from Google.</p>
+      <p>If you don't use Firebase Auth, please contact your administrator to manually grant a new password.</p>
+    `;
+
+    const smtpSend = await trySendViaElectronSmtp({
+      config: cfg,
+      to: email,
+      subject,
+      html,
     });
+
+    if (!smtpSend.ok && !smtpSend.skipped) {
+      return { ok: false, error: smtpSend.error || 'Failed to dispatch email via SMTP.' };
+    }
+
+    if (smtpSend.skipped && !auth) {
+      return { ok: false, error: 'Email service is unavailable in web version. Please use the Desktop app for password resets.' };
+    }
 
     return { ok: true };
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] Password reset request failed for ${email}: ${message}`);
-    // If auth fails (e.g., auth/user-not-found), still return ok if we wanted to obscure user existence, 
-    // but returning the error helps the UI.
     return { ok: false, error: message };
   }
 };
@@ -1229,42 +1238,49 @@ export const requestPasswordReset = async (email) => {
  */
 export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdfBase64, data) => {
   try {
-    // 1. Fetch tenant brand info for the subject/sender context
+    const cfgRes = await fetchTenantMailConfig(tenantId);
+    const cfg = cfgRes.ok && cfgRes.data ? cfgRes.data : {};
+
     const tenantRef = doc(db, 'tenants', tenantId);
     const tenantSnap = await getDoc(tenantRef);
     const tenantName = tenantSnap.exists() ? tenantSnap.data().name : 'ACIS Platform';
 
     const cleanType = documentType.replace(/([A-Z])/g, ' $1').toLowerCase();
     const subject = `${tenantName} - Your ${cleanType}`;
+    const html = `
+      <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
+        <h2 style="color: #444;">Hello,</h2>
+        <p>Please find attached your <strong>${cleanType}</strong> for transaction <strong>${data.txId}</strong>.</p>
+        <p>This document was generated and sent via <strong>${tenantName}</strong>.</p>
+        <br/>
+        <hr style="border: none; border-top: 1px solid #eee;" />
+        <footer style="font-size: 11px; color: #999;">
+          This is an automated administrative message. Please do not reply directly to this email.
+        </footer>
+      </div>
+    `;
 
-    await setDoc(doc(collection(db, 'mails')), {
-      to: [email],
-      message: {
-        subject,
-        html: `
-          <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
-            <h2 style="color: #444;">Hello,</h2>
-            <p>Please find attached your <strong>${cleanType}</strong> for transaction <strong>${data.txId}</strong>.</p>
-            <p>This document was generated and sent via <strong>${tenantName}</strong>.</p>
-            <br/>
-            <hr style="border: none; border-top: 1px solid #eee;" />
-            <footer style="font-size: 11px; color: #999;">
-              This is an automated administrative message. Please do not reply directly to this email.
-            </footer>
-          </div>
-        `,
-        attachments: [
-          {
-            filename: `${documentType}_${data.txId}.pdf`,
-            content: pdfBase64,
-            encoding: 'base64',
-          }
-        ]
-      },
-      createdAt: serverTimestamp()
+    const attachments = [
+      {
+        filename: `${documentType}_${data.txId}.pdf`,
+        content: pdfBase64,
+        encoding: 'base64',
+      }
+    ];
+
+    const smtpSend = await trySendViaElectronSmtp({
+      config: cfg,
+      to: email,
+      subject,
+      html,
+      attachments
     });
 
-    return { ok: true };
+    if (smtpSend.ok) return { ok: true };
+    if (smtpSend.skipped) {
+      return { ok: false, error: 'Email service (SMTP) is only available in the Desktop application.' };
+    }
+    return { ok: false, error: smtpSend.error || 'Failed to send document email.' };
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] Email send failed for ${email}: ${message}`);
@@ -1289,7 +1305,7 @@ const applyTemplateTokens = (template, tokens) => {
   return output;
 };
 
-const trySendViaElectronSmtp = async ({ config, to, subject, html }) => {
+const trySendViaElectronSmtp = async ({ config, to, subject, html, attachments }) => {
   try {
     if (typeof window === 'undefined') return { ok: false, skipped: true, reason: 'no_window' };
     const send = window?.electron?.mail?.send;
@@ -1311,9 +1327,10 @@ const trySendViaElectronSmtp = async ({ config, to, subject, html }) => {
     const res = await send({
       smtp,
       message: {
-        to: [to],
+        to: Array.isArray(to) ? to : [to],
         subject,
         html,
+        attachments,
       },
     });
 
@@ -1372,16 +1389,7 @@ export const sendTenantWelcomeEmail = async (
     if (smtpSend.ok) return { ok: true, skipped: false, channel: 'smtp' };
     if (!smtpSend.skipped) return { ok: false, error: smtpSend.error || 'SMTP send failed.' };
 
-    await setDoc(doc(collection(db, 'mails')), {
-      to: [email],
-      message: {
-        subject,
-        html,
-      },
-      createdAt: serverTimestamp(),
-    });
-
-    return { ok: true, skipped: false, channel: 'queue' };
+    return { ok: false, skipped: true, error: 'Welcome email cannot be sent from web version. Use Desktop app.' };
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] welcome email failed: ${message}`);

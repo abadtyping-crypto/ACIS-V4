@@ -317,10 +317,7 @@ const PortalDetailPage = () => {
     loadData();
   }, [loadData]);
 
-  const balanceText = useMemo(() => {
-    const value = Number(portal?.balance || 0);
-    return `${value < 0 ? '-' : ''}AED ${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }, [portal]);
+
 
   const methodMetaById = useMemo(() => {
     const map = {};
@@ -921,12 +918,12 @@ const PortalDetailPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                    {txRows.map((row) => {
-                      const creator = getCreator(row.createdBy);
-                      const amt = Number(row.amount || 0);
-                      return (
-                        <tr key={row.id} className="border-t border-[var(--c-border)]">
-                          <td className="py-2 pr-2">
+                      {txRows.map((row) => {
+                        const creator = getCreator(row.createdBy);
+                        const amt = Number(row.amount || 0);
+                        return (
+                          <tr key={row.id} className="border-t border-[var(--c-border)]">
+                            <td className="py-2 pr-2">
                               <button
                                 type="button"
                                 onClick={() => setSelectedTx(row)}
@@ -1091,7 +1088,10 @@ const PortalDetailPage = () => {
               <h3 className="text-sm font-bold text-[var(--c-text)]">Print Portal Statement</h3>
               <button
                 type="button"
-                onClick={() => setIsStatementOpen(false)}
+                onClick={() => {
+                  setIsStatementOpen(false);
+                  setMessage('');
+                }}
                 className="rounded-lg border border-[var(--c-border)] px-2 py-1 text-xs font-semibold text-[var(--c-text)]"
               >
                 Close
@@ -1191,6 +1191,15 @@ const PortalDetailPage = () => {
                   </div>
                 </div>
               </div>
+
+              {message && (
+                <div className={`rounded-xl border p-2 text-center text-xs font-bold animate-in fade-in slide-in-from-top-1 ${messageType === 'error'
+                  ? 'border-rose-500/40 bg-rose-500/10 text-rose-500'
+                  : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500'
+                  }`}>
+                  {message}
+                </div>
+              )}
               <p className="text-[11px] text-[var(--c-muted)]">
                 Dates are limited to portal transaction history (min {minTxDate}) through today ({maxTxDate}). Service fees are highlighted automatically.
               </p>

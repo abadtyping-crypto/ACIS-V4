@@ -71,11 +71,41 @@ const MailConfigurationSection = () => {
         setTimeout(() => setStatus({ message: '', type: '' }), 3000);
     };
 
-    const handleTestConnection = () => {
-        setStatus({ message: 'Connecting to SMTP server... (Simulated)', type: 'info' });
-        setTimeout(() => {
-            setStatus({ message: 'Connection test passed! (Note: Actual backend verification requires server-side logic)', type: 'success' });
-        }, 1500);
+    const handleTestConnection = async () => {
+        if (!config.smtpHost || !config.smtpUser || !config.smtpPass) {
+            setStatus({ message: 'Host, User, and Password are required for test.', type: 'error' });
+            return;
+        }
+        setStatus({ message: 'Connecting to SMTP server...', type: 'info' });
+
+        const send = window?.electron?.mail?.send;
+        if (typeof send !== 'function') {
+            setStatus({ message: 'SMTP test is only available in the Desktop app.', type: 'error' });
+            return;
+        }
+
+        const res = await send({
+            smtp: {
+                host: config.smtpHost,
+                port: config.smtpPort,
+                user: config.smtpUser,
+                pass: config.smtpPass,
+                fromName: config.fromName,
+                fromEmail: config.fromEmail,
+                replyTo: config.replyTo,
+            },
+            message: {
+                to: [config.smtpUser],
+                subject: 'SMTP Connection Test',
+                html: '<p>If you received this, your SMTP settings are correct!</p>'
+            }
+        });
+
+        if (res.ok) {
+            setStatus({ message: 'Connection test passed! Check your inbox.', type: 'success' });
+        } else {
+            setStatus({ message: `Connection failed: ${res.error}`, type: 'error' });
+        }
     };
 
     const handleSendWelcomeTest = async () => {

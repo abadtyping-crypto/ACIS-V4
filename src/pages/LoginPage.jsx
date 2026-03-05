@@ -61,7 +61,7 @@ const LoginPage = () => {
     setErrorMessage('');
     setResetMessage('');
 
-    const result = await requestPasswordReset(email);
+    const result = await requestPasswordReset(tenantId, email);
     setLoading(false);
 
     if (!result.ok) {
