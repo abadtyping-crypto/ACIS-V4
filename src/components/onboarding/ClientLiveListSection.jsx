@@ -30,6 +30,7 @@ const getStatusBadgeClass = (statusValue) => {
   const status = String(statusValue || 'active').toLowerCase();
   if (status === 'active') return 'border-emerald-300 bg-emerald-50 text-emerald-700';
   if (status === 'pending') return 'border-amber-300 bg-amber-50 text-amber-700';
+  if (status === 'tracking') return 'border-sky-300 bg-sky-50 text-sky-700';
   if (status === 'blocked' || status === 'frozen') return 'border-rose-300 bg-rose-50 text-rose-700';
   return 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]';
 };
@@ -225,14 +226,15 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
       gender: item.gender || '',
       dateOfBirth: item.dateOfBirth || '',
       status: item.status || 'active',
+      trackingNumber: item.trackingNumber || '',
     });
   };
 
   const validateDraft = (item, formData) => {
     const primaryMobile = normalizePhone(formData.primaryMobile);
     const secondaryMobile = normalizePhone(formData.secondaryMobile);
-    if (primaryMobile && primaryMobile.length !== 9) return 'Primary mobile must be 9 digits.';
-    if (secondaryMobile && secondaryMobile.length !== 9) return 'Secondary mobile must be 9 digits.';
+    if (primaryMobile && primaryMobile.length < 8) return 'Primary mobile must be at least 8 digits.';
+    if (secondaryMobile && secondaryMobile.length < 8) return 'Secondary mobile must be at least 8 digits.';
     if (formData.primaryEmail && !emailRegex.test(formData.primaryEmail)) return 'Primary email is invalid.';
     if (formData.secondaryEmail && !emailRegex.test(formData.secondaryEmail)) return 'Secondary email is invalid.';
 
@@ -267,6 +269,7 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
       gender: String(draft.gender || '').trim(),
       dateOfBirth: String(draft.dateOfBirth || '').trim(),
       status: String(draft.status || 'active').trim() || 'active',
+      trackingNumber: String(draft.trackingNumber || '').trim(),
       updatedBy: user?.uid || 'unknown',
     };
 
@@ -321,8 +324,8 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
       {status.message ? (
         <div
           className={`mt-4 rounded-xl border px-4 py-3 text-sm ${status.type === 'error'
-              ? 'border-rose-300 bg-rose-50 text-rose-700'
-              : 'border-emerald-300 bg-emerald-50 text-emerald-700'
+            ? 'border-rose-300 bg-rose-50 text-rose-700'
+            : 'border-emerald-300 bg-emerald-50 text-emerald-700'
             }`}
         >
           {status.message}
@@ -589,6 +592,30 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                   value={draft.address || ''}
                   onChange={(event) => setDraft((prev) => ({ ...prev, address: event.target.value }))}
                   className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm"
+                />
+              </label>
+
+              <label>
+                <span className="mb-1 block text-xs font-semibold text-[var(--c-muted)]">Application Status</span>
+                <select
+                  value={draft.status || 'active'}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, status: event.target.value }))}
+                  className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm font-bold"
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="tracking">Tracking</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="frozen">Frozen</option>
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-semibold text-[var(--c-muted)]">Reference / Tracking #</span>
+                <input
+                  value={draft.trackingNumber || ''}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, trackingNumber: event.target.value }))}
+                  className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm font-bold"
+                  placeholder="e.g. TX-123456"
                 />
               </label>
             </div>

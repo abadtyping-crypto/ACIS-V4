@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import SettingCard from './SettingCard';
 import { getTenantSettingDoc, upsertTenantSettingDoc } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import { useTenant } from '../../context/TenantContext';
 import { uploadBrandLogoAsset, validateBrandLogoAsset } from '../../lib/brandLogoStorage';
-import ImageZoomTool from '../common/ImageZoomTool';
+import ImageStudio from '../common/ImageStudio';
+import { getCroppedImg } from '../../lib/imageStudioUtils';
 
 const inputClass =
   'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
@@ -73,61 +74,6 @@ const logoFilterMap = {
 const LOGO_OUTPUT_SIZE = 512;
 const LOGO_MAX_BYTES = 240 * 1024;
 
-const loadImageMeta = (src) =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
-    img.onerror = () => reject(new Error('Invalid image file.'));
-    img.src = src;
-  });
-
-const canvasToBlob = (canvas, quality) =>
-  new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), 'image/webp', quality);
-  });
-
-const buildBrandLogoBlob = async ({ src, width, height, zoom, offsetX, offsetY, filterKey, rotation }) => {
-  const image = new Image();
-  image.src = src;
-  await new Promise((resolve, reject) => {
-    image.onload = resolve;
-    image.onerror = reject;
-  });
-
-  const safeZoom = Math.max(1, Math.min(3, Number(zoom || 1)));
-  const minSide = Math.min(width, height);
-  const cropSize = minSide / safeZoom;
-  const maxPanX = Math.max(0, (width - cropSize) / 2);
-  const maxPanY = Math.max(0, (height - cropSize) / 2);
-  const centerX = width / 2 + (Math.max(-100, Math.min(100, Number(offsetX || 0))) / 100) * maxPanX;
-  const centerY = height / 2 + (Math.max(-100, Math.min(100, Number(offsetY || 0))) / 100) * maxPanY;
-  const sx = Math.max(0, Math.min(width - cropSize, centerX - cropSize / 2));
-  const sy = Math.max(0, Math.min(height - cropSize, centerY - cropSize / 2));
-
-  const canvas = document.createElement('canvas');
-  canvas.width = LOGO_OUTPUT_SIZE;
-  canvas.height = LOGO_OUTPUT_SIZE;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Unable to process logo image.');
-
-  ctx.translate(LOGO_OUTPUT_SIZE / 2, LOGO_OUTPUT_SIZE / 2);
-  ctx.rotate((Number(rotation || 0) * Math.PI) / 180);
-  ctx.filter = logoFilterMap[filterKey]?.canvas || 'none';
-  ctx.drawImage(image, sx, sy, cropSize, cropSize, -LOGO_OUTPUT_SIZE / 2, -LOGO_OUTPUT_SIZE / 2, LOGO_OUTPUT_SIZE, LOGO_OUTPUT_SIZE);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-  const qualities = [0.9, 0.8, 0.7, 0.6];
-  let picked = null;
-  for (const quality of qualities) {
-    const blob = await canvasToBlob(canvas, quality);
-    if (!blob) continue;
-    picked = blob;
-    if (blob.size <= LOGO_MAX_BYTES) break;
-  }
-  if (!picked) throw new Error('Unable to process logo image.');
-  return picked;
-};
-
 const normalizeHexColor = (value, fallback) => {
   const raw = String(value || '').trim();
   const match = raw.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
@@ -187,13 +133,21 @@ const BrandDetailsSection = () => {
   const [activeLogoEditorSlotId, setActiveLogoEditorSlotId] = useState('');
   const [logoRawUrl, setLogoRawUrl] = useState('');
   const [logoSourceUrl, setLogoSourceUrl] = useState('');
-  const [logoMeta, setLogoMeta] = useState({ width: 0, height: 0 });
   const [logoZoom, setLogoZoom] = useState(1);
-  const [logoOffsetX, setLogoOffsetX] = useState(0);
-  const [logoOffsetY, setLogoOffsetY] = useState(0);
   const [logoRotation, setLogoRotation] = useState(0);
   const [logoFilter, setLogoFilter] = useState('natural');
   const [logoDirty, setLogoDirty] = useState(false);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+    setLogoDirty(true);
+  }, []);
+
+  const setRotationWrapper = (val) => {
+    setLogoRotation(val);
+    setLogoDirty(true);
+  };
 
   useEffect(() => {
     let active = true;
@@ -294,26 +248,22 @@ const BrandDetailsSection = () => {
     setActiveLogoEditorSlotId(slotId);
     setLogoRawUrl('');
     setLogoSourceUrl(slot?.url || '/logo.png');
-    setLogoMeta({ width: 0, height: 0 });
     setLogoZoom(1);
-    setLogoOffsetX(0);
-    setLogoOffsetY(0);
     setLogoRotation(0);
     setLogoFilter('natural');
     setLogoDirty(false);
+    setCroppedAreaPixels(null);
   };
 
   const closeLogoEditor = () => {
     setActiveLogoEditorSlotId('');
     setLogoRawUrl('');
     setLogoSourceUrl('');
-    setLogoMeta({ width: 0, height: 0 });
     setLogoZoom(1);
-    setLogoOffsetX(0);
-    setLogoOffsetY(0);
     setLogoRotation(0);
     setLogoFilter('natural');
     setLogoDirty(false);
+    setCroppedAreaPixels(null);
   };
 
   const onLogoEditorFileChange = async (event) => {
@@ -328,19 +278,15 @@ const BrandDetailsSection = () => {
 
     try {
       const nextUrl = URL.createObjectURL(file);
-      const meta = await loadImageMeta(nextUrl);
       setLogoRawUrl(nextUrl);
       setLogoSourceUrl(nextUrl);
-      setLogoMeta(meta);
       setLogoZoom(1);
-      setLogoOffsetX(0);
-      setLogoOffsetY(0);
       setLogoRotation(0);
       setLogoFilter('natural');
       setLogoDirty(true);
       setLogoErrors((prev) => ({ ...prev, [activeLogoEditorSlotId]: '' }));
-    } catch (error) {
-      setLogoErrors((prev) => ({ ...prev, [activeLogoEditorSlotId]: error?.message || 'Unable to read image file.' }));
+    } catch {
+      setLogoErrors((prev) => ({ ...prev, [activeLogoEditorSlotId]: 'Unable to read image file.' }));
     }
   };
 
@@ -349,13 +295,11 @@ const BrandDetailsSection = () => {
     const slot = logoLibrary.find((item) => item.slotId === activeLogoEditorSlotId);
     setLogoRawUrl('');
     setLogoSourceUrl(slot?.url || '/logo.png');
-    setLogoMeta({ width: 0, height: 0 });
     setLogoZoom(1);
-    setLogoOffsetX(0);
-    setLogoOffsetY(0);
     setLogoRotation(0);
     setLogoFilter('natural');
     setLogoDirty(false);
+    setCroppedAreaPixels(null);
     setLogoErrors((prev) => ({ ...prev, [activeLogoEditorSlotId]: '' }));
   };
 
@@ -385,22 +329,18 @@ const BrandDetailsSection = () => {
 
   const applyLogoEditor = async () => {
     if (!activeLogoEditorSlotId) return;
-    if (!logoDirty || !logoRawUrl || logoMeta.width <= 0 || logoMeta.height <= 0) {
-      setLogoErrors((prev) => ({ ...prev, [activeLogoEditorSlotId]: 'Choose a logo file before upload.' }));
+    if (!logoDirty || !logoRawUrl || !croppedAreaPixels) {
+      setLogoErrors((prev) => ({ ...prev, [activeLogoEditorSlotId]: 'Adjust crop or choose file before upload.' }));
       return;
     }
 
     try {
-      const processedBlob = await buildBrandLogoBlob({
-        src: logoRawUrl,
-        width: logoMeta.width,
-        height: logoMeta.height,
-        zoom: logoZoom,
-        offsetX: logoOffsetX,
-        offsetY: logoOffsetY,
-        rotation: logoRotation,
-        filterKey: logoFilter,
-      });
+      const processedBlob = await getCroppedImg(
+        logoRawUrl,
+        croppedAreaPixels,
+        logoRotation,
+        logoFilterMap[logoFilter]?.canvas || 'none'
+      );
       await handleLogoUpload(activeLogoEditorSlotId, processedBlob);
       closeLogoEditor();
     } catch (error) {
@@ -1031,28 +971,24 @@ const BrandDetailsSection = () => {
                 </button>
               </div>
             </div>
-            <ImageZoomTool
-              sourceUrl={logoSourceUrl || '/logo.png'}
-              onReset={onLogoEditorReset}
-              zoom={logoZoom}
-              setZoom={setLogoZoom}
-              offsetX={logoOffsetX}
-              setOffsetX={setLogoOffsetX}
-              offsetY={logoOffsetY}
-              setOffsetY={setLogoOffsetY}
-              rotation={logoRotation}
-              setRotation={setLogoRotation}
-              showRotation
-              filter={logoFilter}
-              setFilter={setLogoFilter}
-              filterMap={logoFilterMap}
-              onFileChange={onLogoEditorFileChange}
-              title="Smart Logo Tool"
-              tip="Crop, zoom, pan, rotate, and color-adjust before upload."
-              previewBgClass="bg-white"
-              previewFrame={false}
-              previewRoundedClass="rounded-xl"
-            />
+            <div className="mt-4">
+              <ImageStudio
+                sourceUrl={logoSourceUrl}
+                onReset={onLogoEditorReset}
+                zoom={logoZoom}
+                setZoom={setLogoZoom}
+                rotation={logoRotation}
+                setRotation={setRotationWrapper}
+                filter={logoFilter}
+                setFilter={setLogoFilter}
+                filterMap={logoFilterMap}
+                onFileChange={onLogoEditorFileChange}
+                onCropComplete={onCropComplete}
+                title={`Editing ${logoLibrary.find((s) => s.slotId === activeLogoEditorSlotId)?.name}`}
+                aspect={1}
+                cropShape="rect"
+              />
+            </div>
           </div>
         ) : null}
 

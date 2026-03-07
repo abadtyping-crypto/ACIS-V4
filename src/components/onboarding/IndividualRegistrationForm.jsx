@@ -140,8 +140,8 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
                 status: 'active'
             };
 
-            if (normalized.primaryMobile.length !== 9) {
-                setStatus({ type: 'error', message: 'Primary mobile must be exactly 9 digits (excluding 0).' });
+            if (normalized.primaryMobile.length < 8) {
+                setStatus({ type: 'error', message: 'Primary mobile must be at least 8 digits (excluding 0).' });
                 return;
             }
 

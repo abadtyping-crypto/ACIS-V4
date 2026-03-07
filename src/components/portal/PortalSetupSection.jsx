@@ -15,7 +15,8 @@ import { createSyncEvent } from '../../lib/syncEvents';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
-import ImageZoomTool from '../common/ImageZoomTool';
+import ImageStudio from '../common/ImageStudio';
+import { getCroppedImg } from '../../lib/imageStudioUtils';
 
 const portalTypes = [
     { id: 'Bank', label: 'Bank', icon: '/portals/bank.png', methods: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'onlinePayment', 'cashWithdrawals'] },
@@ -53,55 +54,6 @@ const iconFilterMap = {
 const ICON_OUTPUT_SIZE = 256;
 const ICON_MAX_BYTES = 100 * 1024;
 
-const canvasToBlob = (canvas, quality) =>
-    new Promise((resolve) => {
-        canvas.toBlob((blob) => resolve(blob), 'image/webp', quality);
-    });
-
-const buildIconBlob = async ({ src, width, height, zoom, offsetX, offsetY, filterKey }) => {
-    const image = new Image();
-    image.src = src;
-    await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = reject;
-    });
-
-    const safeZoom = Math.max(1, Math.min(3, Number(zoom || 1)));
-    const minSide = Math.min(width, height);
-    const cropSize = minSide / safeZoom;
-    const maxPanX = Math.max(0, (width - cropSize) / 2);
-    const maxPanY = Math.max(0, (height - cropSize) / 2);
-    const centerX = width / 2 + (Math.max(-100, Math.min(100, Number(offsetX || 0))) / 100) * maxPanX;
-    const centerY = height / 2 + (Math.max(-100, Math.min(100, Number(offsetY || 0))) / 100) * maxPanY;
-    const sx = Math.max(0, Math.min(width - cropSize, centerX - cropSize / 2));
-    const sy = Math.max(0, Math.min(height - cropSize, centerY - cropSize / 2));
-
-    const canvas = document.createElement('canvas');
-    canvas.width = ICON_OUTPUT_SIZE;
-    canvas.height = ICON_OUTPUT_SIZE;
-    const ctx = canvas.getContext('2d');
-    ctx.filter = iconFilterMap[filterKey]?.canvas || 'none';
-    ctx.drawImage(image, sx, sy, cropSize, cropSize, 0, 0, ICON_OUTPUT_SIZE, ICON_OUTPUT_SIZE);
-
-    const qualities = [0.8, 0.7, 0.6];
-    let picked = null;
-    for (const quality of qualities) {
-        const blob = await canvasToBlob(canvas, quality);
-        if (!blob) continue;
-        picked = blob;
-        if (blob.size <= ICON_MAX_BYTES) break;
-    }
-    return picked;
-};
-
-const loadImageMeta = (src) =>
-    new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
-        img.onerror = () => reject(new Error('Invalid image file.'));
-        img.src = src;
-    });
-
 const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     const navigate = useNavigate();
     const { tenantId } = useTenant();
@@ -125,13 +77,22 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     // Icon State
     const [iconRawUrl, setIconRawUrl] = useState('');
     const [iconSourceUrl, setIconSourceUrl] = useState('');
-    const [iconMeta, setIconMeta] = useState({ width: 0, height: 0 });
     const [iconZoom, setIconZoom] = useState(1);
-    const [iconOffsetX, setIconOffsetX] = useState(0);
-    const [iconOffsetY, setIconOffsetY] = useState(0);
+    const [iconRotation, setIconRotation] = useState(0);
     const [iconFilter, setIconFilter] = useState('natural');
     const [iconDirty, setIconDirty] = useState(false);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
     const [methodIconMap, setMethodIconMap] = useState({});
+
+    const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+        setIconDirty(true);
+    }, []);
+
+    const setRotationWrapper = (val) => {
+        setIconRotation(val);
+        setIconDirty(true);
+    };
 
     const fetchPortals = useCallback(async () => {
         setIsLoading(true);
@@ -173,7 +134,9 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
             methods: p.methods || [],
         });
         setIconSourceUrl(p.iconUrl);
+        setIconRotation(0);
         setIconDirty(false);
+        setCroppedAreaPixels(null);
         setView('form');
     };
 
@@ -192,7 +155,9 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         });
         setIconSourceUrl(portalTypes[0].icon);
         setIconRawUrl('');
+        setIconRotation(0);
         setIconDirty(false);
+        setCroppedAreaPixels(null);
         setView('form');
     };
 
@@ -212,14 +177,12 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         if (!file) return;
         try {
             const nextUrl = URL.createObjectURL(file);
-            const meta = await loadImageMeta(nextUrl);
             setIconRawUrl(nextUrl);
-            setIconMeta(meta);
             setIconSourceUrl(nextUrl);
             setIconZoom(1);
-            setIconOffsetX(0);
-            setIconOffsetY(0);
+            setIconRotation(0);
             setIconDirty(true);
+            setCroppedAreaPixels(null);
         } catch (e) {
             console.error(e);
             setStatus({ message: 'Unable to read image file.', type: 'error' });
@@ -230,11 +193,10 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         setIconRawUrl('');
         const typeIcon = portalTypes.find(t => t.id === form.type)?.icon;
         setIconSourceUrl(typeIcon || '');
-        setIconMeta({ width: 0, height: 0 });
         setIconZoom(1);
-        setIconOffsetX(0);
-        setIconOffsetY(0);
+        setIconRotation(0);
         setIconDirty(false);
+        setCroppedAreaPixels(null);
     };
 
     const handleSave = async () => {
@@ -247,17 +209,16 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         const targetPortalId = editingPortal?.id || `portal_${Date.now()}`;
         let iconUrl = iconSourceUrl || portalTypes.find((t) => t.id === form.type)?.icon || '';
 
-        if (iconDirty && iconRawUrl && iconMeta.width > 0 && iconMeta.height > 0) {
+        if (iconDirty && iconRawUrl && croppedAreaPixels) {
             try {
-                const blob = await buildIconBlob({
-                    src: iconRawUrl,
-                    width: iconMeta.width,
-                    height: iconMeta.height,
-                    zoom: iconZoom,
-                    offsetX: iconOffsetX,
-                    offsetY: iconOffsetY,
-                    filterKey: iconFilter,
-                });
+                const blob = await getCroppedImg(
+                    iconRawUrl,
+                    croppedAreaPixels,
+                    iconRotation,
+                    iconFilter,
+                    ICON_OUTPUT_SIZE,
+                    ICON_MAX_BYTES
+                );
                 const uploadRes = await uploadPortalIcon({
                     tenantId,
                     portalId: targetPortalId,
@@ -499,20 +460,19 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
 
                             {/* Right Column: Icon & Methods */}
                             <div className="space-y-4">
-                                <ImageZoomTool
+                                <ImageStudio
                                     sourceUrl={iconSourceUrl}
                                     onReset={onIconReset}
                                     zoom={iconZoom}
                                     setZoom={setIconZoom}
-                                    offsetX={iconOffsetX}
-                                    setOffsetX={setIconOffsetX}
-                                    offsetY={iconOffsetY}
-                                    setOffsetY={setIconOffsetY}
+                                    rotation={iconRotation}
+                                    setRotation={setRotationWrapper}
                                     filter={iconFilter}
                                     setFilter={setIconFilter}
                                     filterMap={iconFilterMap}
                                     onFileChange={onIconFileChange}
-                                    title="Portal Icon"
+                                    onCropComplete={onCropComplete}
+                                    title="Portal Icon Studio"
                                     previewBgClass="bg-white"
                                     previewFrame={false}
                                     previewRoundedClass="rounded-xl"

@@ -14,6 +14,7 @@ const IDRulesSection = () => {
         LON: { prefix: 'LON', padding: 4, skipDate: false, sequenceStart: 1 },
         LOAN: { prefix: 'LOAN', padding: 4, skipDate: true, sequenceStart: 1 },
         TRK: { prefix: 'TRK', padding: 4, skipDate: false, sequenceStart: 1 },
+        DTID: { prefix: 'APP', padding: 4, skipDate: false, sequenceStart: 1 },
     });
     const [docRefs, setDocRefs] = useState({
         proformaInvoice: { prefix: 'PRO', dateFormat: 'YYYYMMDD', padding: 4 },
@@ -144,6 +145,7 @@ const IDRulesSection = () => {
         if (key === 'LON') return counters.transactions?.lastLONSeq || 0;
         if (key === 'LOAN') return counters.transactions?.lastLOANSeq || 0;
         if (key === 'TRF') return counters.transactions?.lastTRFSeq || 0;
+        if (key === 'DTID') return counters.transactions?.lastDTIDSeq || 0;
         return 0;
     };
 
@@ -156,6 +158,7 @@ const IDRulesSection = () => {
         if (key === 'LOAN') return { col: 'transactions', field: 'lastLOANSeq' };
         if (key === 'TRF') return { col: 'transactions', field: 'lastTRFSeq' };
         if (key === 'TRK') return { col: 'counters', field: 'lastTRKSeq' };
+        if (key === 'DTID') return { col: 'transactions', field: 'lastDTIDSeq' };
         return null;
     };
 
@@ -190,6 +193,7 @@ const IDRulesSection = () => {
                                         { key: 'LOAN', label: 'Loan Persons' },
                                         { key: 'TRF', label: 'Transfers' },
                                         { key: 'TRK', label: 'Tracking IDs' },
+                                        { key: 'DTID', label: 'Daily Trans (APP)' },
                                     ].map(item => {
                                         const currentSeq = getCounterVal(item.key);
                                         const meta = getCounterMeta(item.key);
@@ -260,7 +264,7 @@ const IDRulesSection = () => {
                                                     <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)]">
                                                         {skipDate || item.key === 'LOAN'
                                                             ? `${prefix}${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`
-                                                            : `${prefix}-${new Date().toLocaleDateString('en-GB').split('/').reverse().join('')}-${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`}
+                                                            : `${prefix}${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`}
                                                     </span>
                                                 </td>
                                             </tr>

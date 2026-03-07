@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PageShell from '../components/layout/PageShell';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
@@ -12,7 +12,8 @@ import {
 } from '../lib/backendStore';
 import { replaceTenantAvatar } from '../lib/avatarStorage';
 import { User } from 'lucide-react';
-import ImageZoomTool from '../components/common/ImageZoomTool';
+import ImageStudio from '../components/common/ImageStudio';
+import { getCroppedImg } from '../lib/imageStudioUtils';
 
 const inputClass =
   'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
@@ -23,57 +24,6 @@ const avatarFilterMap = {
   warm: { label: 'Warm', css: 'saturate(1.1) contrast(1.04)', canvas: 'saturate(110%) contrast(104%)' },
   cool: { label: 'Cool', css: 'saturate(0.95) contrast(1.05)', canvas: 'saturate(95%) contrast(105%) hue-rotate(6deg)' },
   mono: { label: 'Mono', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' },
-};
-
-const loadImageMeta = (src) =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
-    img.onerror = () => reject(new Error('Invalid image file.'));
-    img.src = src;
-  });
-
-const canvasToBlob = (canvas, quality) =>
-  new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), 'image/webp', quality);
-  });
-
-const buildAvatarBlob = async ({ src, width, height, zoom, offsetX, offsetY, filterKey }) => {
-  const image = new Image();
-  image.src = src;
-  await new Promise((resolve, reject) => {
-    image.onload = resolve;
-    image.onerror = reject;
-  });
-
-  const safeZoom = Math.max(1, Math.min(3, Number(zoom || 1)));
-  const minSide = Math.min(width, height);
-  const cropSize = minSide / safeZoom;
-  const maxPanX = Math.max(0, (width - cropSize) / 2);
-  const maxPanY = Math.max(0, (height - cropSize) / 2);
-  const centerX = width / 2 + (Math.max(-100, Math.min(100, Number(offsetX || 0))) / 100) * maxPanX;
-  const centerY = height / 2 + (Math.max(-100, Math.min(100, Number(offsetY || 0))) / 100) * maxPanY;
-  const sx = Math.max(0, Math.min(width - cropSize, centerX - cropSize / 2));
-  const sy = Math.max(0, Math.min(height - cropSize, centerY - cropSize / 2));
-
-  const canvas = document.createElement('canvas');
-  canvas.width = AVATAR_OUTPUT_SIZE;
-  canvas.height = AVATAR_OUTPUT_SIZE;
-  const ctx = canvas.getContext('2d');
-  ctx.filter = avatarFilterMap[filterKey]?.canvas || 'none';
-  ctx.drawImage(image, sx, sy, cropSize, cropSize, 0, 0, AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE);
-
-  const qualities = [0.84, 0.74, 0.64, 0.54];
-  let picked = null;
-  for (const quality of qualities) {
-    const blob = await canvasToBlob(canvas, quality);
-    if (!blob) continue;
-    picked = blob;
-    if (blob.size <= AVATAR_MAX_BYTES) break;
-  }
-
-  if (!picked) throw new Error('Unable to process avatar image.');
-  return picked;
 };
 
 const toPublicProfile = (item) => ({
@@ -114,12 +64,21 @@ const ProfilePage = () => {
   const [originalForm, setOriginalForm] = useState(null);
   const [avatarRawUrl, setAvatarRawUrl] = useState('');
   const [avatarSourceUrl, setAvatarSourceUrl] = useState(user?.photoURL || '/avatar.png');
-  const [avatarMeta, setAvatarMeta] = useState({ width: 0, height: 0 });
   const [avatarZoom, setAvatarZoom] = useState(1);
-  const [avatarOffsetX, setAvatarOffsetX] = useState(0);
-  const [avatarOffsetY, setAvatarOffsetY] = useState(0);
+  const [avatarRotation, setAvatarRotation] = useState(0);
   const [avatarFilter, setAvatarFilter] = useState('natural');
   const [avatarDirty, setAvatarDirty] = useState(false);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+    setAvatarDirty(true);
+  }, []);
+
+  const setRotationWrapper = (val) => {
+    setAvatarRotation(val);
+    setAvatarDirty(true);
+  };
   const [form, setForm] = useState({
     displayName: user?.displayName || 'User',
     headline: '',
@@ -180,10 +139,10 @@ const ProfilePage = () => {
           setAvatarSourceUrl(profileAvatar);
           setAvatarRawUrl('');
           setAvatarZoom(1);
-          setAvatarOffsetX(0);
-          setAvatarOffsetY(0);
+          setAvatarRotation(0);
           setAvatarFilter('natural');
           setAvatarDirty(false);
+          setCroppedAreaPixels(null);
           const initialForm = {
             displayName: mine.displayName || user.displayName,
             headline: mine.headline || '',
@@ -211,10 +170,10 @@ const ProfilePage = () => {
         setAvatarSourceUrl(user.photoURL || '/avatar.png');
         setAvatarRawUrl('');
         setAvatarZoom(1);
-        setAvatarOffsetX(0);
-        setAvatarOffsetY(0);
+        setAvatarRotation(0);
         setAvatarFilter('natural');
         setAvatarDirty(false);
+        setCroppedAreaPixels(null);
         setForm((prev) => ({
           ...prev,
           flashEnabled,
@@ -244,30 +203,27 @@ const ProfilePage = () => {
 
     try {
       const nextUrl = URL.createObjectURL(file);
-      const meta = await loadImageMeta(nextUrl);
       setAvatarRawUrl(nextUrl);
-      setAvatarMeta(meta);
       setAvatarSourceUrl(nextUrl);
       setAvatarZoom(1);
-      setAvatarOffsetX(0);
-      setAvatarOffsetY(0);
+      setAvatarRotation(0);
       setAvatarFilter('natural');
       setAvatarDirty(true);
+      setCroppedAreaPixels(null);
       setSaveMessage('Avatar ready. Click Save Profile to upload.');
-    } catch (error) {
-      setSaveMessage(error?.message || 'Unable to read image file.');
+    } catch {
+      setSaveMessage('Unable to read image file.');
     }
   };
 
   const onAvatarReset = () => {
     setAvatarRawUrl('');
-    setAvatarMeta({ width: 0, height: 0 });
     setAvatarSourceUrl(user.photoURL || '/avatar.png');
     setAvatarZoom(1);
-    setAvatarOffsetX(0);
-    setAvatarOffsetY(0);
+    setAvatarRotation(0);
     setAvatarFilter('natural');
     setAvatarDirty(false);
+    setCroppedAreaPixels(null);
     setSaveMessage('Avatar edit cleared.');
   };
 
@@ -276,17 +232,16 @@ const ProfilePage = () => {
     setIsSaving(true);
 
     let photoURL = user.photoURL || '/avatar.png';
-    if (avatarDirty && avatarRawUrl && avatarMeta.width > 0 && avatarMeta.height > 0) {
+    if (avatarDirty && avatarRawUrl && croppedAreaPixels) {
       try {
-        const blob = await buildAvatarBlob({
-          src: avatarRawUrl,
-          width: avatarMeta.width,
-          height: avatarMeta.height,
-          zoom: avatarZoom,
-          offsetX: avatarOffsetX,
-          offsetY: avatarOffsetY,
-          filterKey: avatarFilter,
-        });
+        const blob = await getCroppedImg(
+          avatarRawUrl,
+          croppedAreaPixels,
+          avatarRotation,
+          avatarFilter,
+          AVATAR_OUTPUT_SIZE,
+          AVATAR_MAX_BYTES
+        );
         const avatarResult = await replaceTenantAvatar({
           tenantId,
           uid: user.uid,
@@ -301,8 +256,8 @@ const ProfilePage = () => {
         photoURL = avatarResult.photoURL;
         setAvatarSourceUrl(photoURL);
         setAvatarRawUrl('');
-        setAvatarMeta({ width: AVATAR_OUTPUT_SIZE, height: AVATAR_OUTPUT_SIZE });
         setAvatarDirty(false);
+        setCroppedAreaPixels(null);
       } catch (error) {
         setSaveMessage(error?.message || 'Avatar processing failed.');
         setIsSaving(false);
@@ -543,21 +498,20 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="grid gap-5">
-                  <ImageZoomTool
+                  <ImageStudio
                     sourceUrl={avatarSourceUrl}
                     onReset={onAvatarReset}
                     zoom={avatarZoom}
                     setZoom={setAvatarZoom}
-                    offsetX={avatarOffsetX}
-                    setOffsetX={setAvatarOffsetX}
-                    offsetY={avatarOffsetY}
-                    setOffsetY={setAvatarOffsetY}
+                    rotation={avatarRotation}
+                    setRotation={setRotationWrapper}
                     filter={avatarFilter}
                     setFilter={setAvatarFilter}
                     filterMap={avatarFilterMap}
                     onFileChange={onAvatarFileChange}
-                    title="Polished Avatar Tool"
-                    tip="Tip: Zoom in first to enable more precise panning. Changes are saved with the profile."
+                    onCropComplete={onCropComplete}
+                    title="Smart Avatar Studio"
+                    tip="Tip: Use direct interaction to zoom and pan. Changes are saved with the profile."
                   />
 
                   <div className="grid gap-4 sm:grid-cols-2">

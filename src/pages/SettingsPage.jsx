@@ -10,6 +10,7 @@ import IDRulesSection from '../components/settings/IDRulesSection';
 import PdfCustomizationStudioSection from '../components/settings/PdfCustomizationStudioSection';
 import MailConfigurationSection from '../components/settings/MailConfigurationSection';
 import ApplicationIconLibrarySection from '../components/settings/ApplicationIconLibrarySection';
+import ServiceTemplateSection from '../components/settings/ServiceTemplateSection';
 import EmailTemplateSection from '../components/settings/EmailTemplateSection';
 import { useTenant } from '../context/TenantContext';
 
@@ -17,6 +18,7 @@ const SETTINGS_SECTIONS = [
   { key: 'brand', label: 'Brand Details' },
   { key: 'preferences', label: 'Preferences' },
   { key: 'pdfStudio', label: 'PDF Studio' },
+  { key: 'svcTemplates', label: 'Application Templates' },
   { key: 'appIconLibrary', label: 'Applications Icon Library' },
   { key: 'users', label: 'User Management' },
   { key: 'control', label: 'User Control Center' },
@@ -34,6 +36,7 @@ const SettingsPage = () => {
     if (activeSection === 'brand') return <BrandDetailsSection />;
     if (activeSection === 'preferences') return <PreferenceSection />;
     if (activeSection === 'pdfStudio') return <PdfCustomizationStudioSection />;
+    if (activeSection === 'svcTemplates') return <ServiceTemplateSection />;
     if (activeSection === 'appIconLibrary') return <ApplicationIconLibrarySection />;
     if (activeSection === 'users') return <UserCustomizationSection />;
     if (activeSection === 'control') return <UserControlCenterSection />;

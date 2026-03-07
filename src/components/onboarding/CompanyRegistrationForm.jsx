@@ -157,8 +157,8 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                 status: 'active'
             };
 
-            if (normalized.primaryMobile.length !== 9) {
-                setStatus({ type: 'error', message: 'Primary mobile must be exactly 9 digits (excluding 0).' });
+            if (normalized.primaryMobile.length < 8) {
+                setStatus({ type: 'error', message: 'Primary mobile must be at least 8 digits (excluding 0).' });
                 return;
             }
             if (!normalized.registeredEmirate) {
@@ -294,7 +294,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                             required
                             maxLength={15}
                             value={form.tradeLicenseNumber}
-                            onChange={(e) => setForm({ ...form, tradeLicenseNumber: e.target.value.toUpperCase() })}
+                            onChange={(e) => setForm((prev) => ({ ...prev, tradeLicenseNumber: e.target.value.toUpperCase() }))}
                             placeholder="e.g. 123456"
                             className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
                         />
@@ -319,7 +319,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                             name="tradeName"
                             required
                             value={form.tradeName}
-                            onChange={(e) => setForm({ ...form, tradeName: e.target.value.toUpperCase() })}
+                            onChange={(e) => setForm((prev) => ({ ...prev, tradeName: e.target.value.toUpperCase() }))}
                             placeholder="AS PER LICENSE"
                             className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
                         />
@@ -393,7 +393,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                             type="email"
                             name="primaryEmail"
                             value={form.primaryEmail}
-                            onChange={(e) => setForm({ ...form, primaryEmail: e.target.value.toLowerCase() })}
+                            onChange={(e) => setForm((prev) => ({ ...prev, primaryEmail: e.target.value.toLowerCase() }))}
                             placeholder="company@email.com"
                             className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
                         />
@@ -427,7 +427,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className={`text - xs font - bold uppercase tracking - wider transition ${form.poBox ? 'text-[var(--c-muted)]' : 'text-slate-300'} `}>PO Box Emirate {form.poBox && '*'}</label>
+                            <label className={`text-xs font-bold uppercase tracking-wider transition ${form.poBox ? 'text-[var(--c-muted)]' : 'text-slate-300'}`}>PO Box Emirate {form.poBox && '*'}</label>
                             <select
                                 name="poBoxEmirate"
                                 required={!!form.poBox}
@@ -478,7 +478,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                     </div>
 
                     <div className="space-y-2">
-                        <label className={`text - xs font - bold uppercase tracking - wider transition ${form.openingBalance ? 'text-[var(--c-muted)]' : 'text-slate-300'} `}>Balance Type {form.openingBalance && '*'}</label>
+                        <label className={`text-xs font-bold uppercase tracking-wider transition ${form.openingBalance ? 'text-[var(--c-muted)]' : 'text-slate-300'}`}>Balance Type {form.openingBalance && '*'}</label>
                         <select
                             name="balanceType"
                             required={!!form.openingBalance}
@@ -493,7 +493,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                     </div>
 
                     <div className="space-y-2">
-                        <label className={`text - xs font - bold uppercase tracking - wider transition ${form.openingBalance ? 'text-[var(--c-muted)]' : 'text-slate-300'} `}>Portal Transaction? {form.openingBalance && '*'}</label>
+                        <label className={`text-xs font-bold uppercase tracking-wider transition ${form.openingBalance ? 'text-[var(--c-muted)]' : 'text-slate-300'}`}>Portal Transaction? {form.openingBalance && '*'}</label>
                         <select
                             name="createPortalTransaction"
                             required={!!form.openingBalance}
@@ -515,7 +515,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                     </div>
 
                     <div className="space-y-2">
-                        <label className={`text - xs font - bold uppercase tracking - wider transition ${form.createPortalTransaction ? 'text-[var(--c-muted)]' : 'text-slate-300'} `}>Target Portal {form.createPortalTransaction && '*'}</label>
+                        <label className={`text-xs font-bold uppercase tracking-wider transition ${form.createPortalTransaction ? 'text-[var(--c-muted)]' : 'text-slate-300'}`}>Target Portal {form.createPortalTransaction && '*'}</label>
                         <IconSelect
                             value={form.portalId}
                             onChange={(nextPortalId) => setForm((prev) => ({ ...prev, portalId: nextPortalId, portalMethod: '' }))}
@@ -605,7 +605,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
             </div>
 
             {status.message && (
-                <div className={`rounded - xl border p - 4 text - center text - sm font - bold animate - pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'} `}>
+                <div className={`rounded-xl border p-4 text-center text-sm font-bold animate-pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'}`}>
                     {status.message}
                 </div>
             )}

@@ -83,6 +83,12 @@ const ClientDetailsPage = () => {
           >
             Back to Live List
           </Link>
+          <Link
+            to={`/t/${tenantId}/daily-transactions?clientId=${clientId}`}
+            className="rounded-xl bg-[var(--c-accent)] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:scale-105"
+          >
+            + Add Transaction
+          </Link>
         </div>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

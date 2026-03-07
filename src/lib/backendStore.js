@@ -1438,3 +1438,89 @@ export const sendTenantWelcomeEmail = async (
     return { ok: false, error: message };
   }
 };
+
+/**
+ * Marks a transaction as soft-deleted.
+ */
+export const softDeleteTransaction = async (tenantId, txId, deletedBy) => {
+  try {
+    const txRef = doc(db, 'tenants', tenantId, 'transactions', txId);
+    const txSnap = await getDoc(txRef);
+    if (!txSnap.exists()) return { ok: false, error: 'Transaction not found.' };
+
+    const data = txSnap.data();
+    if (data?.invoiceId) return { ok: false, error: 'Cannot delete an invoiced transaction.' };
+
+    await setDoc(txRef, {
+      deletedAt: serverTimestamp(),
+      deletedBy: deletedBy || 'unknown',
+      status: 'deleted'
+    }, { merge: true });
+
+    return { ok: true };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] soft delete failed for ${txId}:`, message);
+    return { ok: false, error: message };
+  }
+};
+
+/**
+ * Fetches recent active daily transactions for a tenant.
+ */
+export const fetchRecentDailyTransactions = async (tenantId, limitCount = 50) => {
+  try {
+    const txRef = collection(db, 'tenants', tenantId, 'transactions');
+    const q = query(
+      txRef,
+      where('status', '==', 'active'),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+    const snap = await getDocs(q);
+    const rows = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] recent transactions fetch failed:`, message);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
+/**
+ * Generates the next formatted Transaction ID based on tenant rules.
+ */
+export const generateNextTransactionId = async (tenantId, ruleKey = 'DTID') => {
+  try {
+    // 1. Fetch customizable rules
+    const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
+    const rules = settingsRes.ok && settingsRes.data ? settingsRes.data[ruleKey] || {} : {};
+
+    const prefix = rules.prefix || (ruleKey === 'DTID' ? 'APP' : ruleKey);
+    const padding = Number(rules.padding) || 4;
+    const sequenceStart = Number(rules.sequenceStart) || 1;
+    const skipDate = rules.skipDate === true;
+
+    // For Daily Transactions (DTID), we use a daily-resetting sequence
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
+    const actualSeqKey = ruleKey === 'DTID' ? `${ruleKey}_${dateStr}` : ruleKey;
+
+    // Ensure sequence hasn't fallen behind manual start
+    await ensureTransactionSequenceStart(tenantId, actualSeqKey, sequenceStart);
+
+    // 2. Fetch/Increment sequence
+    const seq = await incrementTransactionSequence(tenantId, actualSeqKey);
+    if (!seq) throw new Error('Failed to increment sequence.');
+
+    // 3. Format output
+    if (ruleKey === 'DTID' || (ruleKey !== 'CLID' && ruleKey !== 'DPID' && !skipDate)) {
+      return `${prefix}${dateStr}${String(seq).padStart(padding, '0')}`;
+    }
+
+    return `${prefix}${String(seq).padStart(padding, '0')}`;
+  } catch (error) {
+    console.warn(`[backendStore] next ID generation failed for ${ruleKey}:`, error);
+    return `${ruleKey}_${Date.now()}`;
+  }
+};

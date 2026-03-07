@@ -32,10 +32,10 @@ export const generateDisplayTxId = async (tenantId, type) => {
     let datePart = '';
     if (!skipDate) {
         const now = new Date();
-        const d = String(now.getDate()).padStart(2, '0');
-        const m = String(now.getMonth() + 1).padStart(2, '0');
         const y = now.getFullYear();
-        datePart = `${d}${m}${y}`;
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        datePart = `${y}${m}${d}`;
     }
 
     // 5. Format Sequence with padding
@@ -52,5 +52,5 @@ export const generateDisplayTxId = async (tenantId, type) => {
     if (datePart) parts.push(datePart);
     parts.push(seqPart);
 
-    return parts.join('-');
+    return parts.join('');
 };

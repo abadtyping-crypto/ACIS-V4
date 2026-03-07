@@ -21,6 +21,7 @@ import ClientsOnboardingPage from './pages/ClientsOnboardingPage';
 import ClientDetailsPage from './pages/ClientDetailsPage';
 import DependentDetailsPage from './pages/DependentDetailsPage';
 import ModulePlaceholderPage from './pages/ModulePlaceholderPage';
+import DailyTransactionPage from './pages/DailyTransactionPage';
 
 import TitleBar from './components/layout/TitleBar';
 
@@ -40,10 +41,7 @@ const App = () => {
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<DashboardPage />} />
                     <Route path="settings" element={<SettingsPage />} />
-                    <Route
-                      path="daily-transactions"
-                      element={<ModulePlaceholderPage title="Daily Transactions" subtitle="Daily Transactions module placeholder." />}
-                    />
+                    <Route path="daily-transactions" element={<DailyTransactionPage />} />
                     <Route
                       path="tasks-tracking"
                       element={<ModulePlaceholderPage title="Task's & Traking" subtitle="Tasks and tracking module placeholder." />}
