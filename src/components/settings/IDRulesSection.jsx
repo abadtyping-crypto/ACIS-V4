@@ -13,6 +13,7 @@ const IDRulesSection = () => {
         EXP: { prefix: 'EXP', padding: 4, skipDate: false, sequenceStart: 1 },
         LON: { prefix: 'LON', padding: 4, skipDate: false, sequenceStart: 1 },
         LOAN: { prefix: 'LOAN', padding: 4, skipDate: true, sequenceStart: 1 },
+        TRK: { prefix: 'TRK', padding: 4, skipDate: false, sequenceStart: 1 },
     });
     const [docRefs, setDocRefs] = useState({
         proformaInvoice: { prefix: 'PRO', dateFormat: 'YYYYMMDD', padding: 4 },
@@ -154,6 +155,7 @@ const IDRulesSection = () => {
         if (key === 'LON') return { col: 'transactions', field: 'lastLONSeq' };
         if (key === 'LOAN') return { col: 'transactions', field: 'lastLOANSeq' };
         if (key === 'TRF') return { col: 'transactions', field: 'lastTRFSeq' };
+        if (key === 'TRK') return { col: 'counters', field: 'lastTRKSeq' };
         return null;
     };
 
@@ -168,101 +170,102 @@ const IDRulesSection = () => {
                         <div className="overflow-x-auto rounded-xl">
                             <table className="min-w-[1040px] w-full text-left text-sm">
                                 <thead className="bg-[var(--c-surface)]">
-                                <tr className="border-b border-[var(--c-border)] text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
-                                    <th className="pb-3 pl-2">Entity Type</th>
-                                    <th className="pb-3">Prefix</th>
-                                    <th className="pb-3">Skip Date</th>
-                                    <th className="pb-3">Seq Start</th>
-                                    <th className="pb-3">Padding</th>
-                                    <th className="pb-3">Current Seq</th>
-                                    <th className="pb-3 text-right pr-2">Next ID Preview</th>
-                                </tr>
+                                    <tr className="border-b border-[var(--c-border)] text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
+                                        <th className="pb-3 pl-2">Entity Type</th>
+                                        <th className="pb-3">Prefix</th>
+                                        <th className="pb-3">Skip Date</th>
+                                        <th className="pb-3">Seq Start</th>
+                                        <th className="pb-3">Padding</th>
+                                        <th className="pb-3">Current Seq</th>
+                                        <th className="pb-3 text-right pr-2">Next ID Preview</th>
+                                    </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[var(--c-border)] bg-[var(--c-surface)]">
-                                {[
-                                    { key: 'CLID', label: 'Clients (Co/Ind)' },
-                                    { key: 'DPID', label: 'Dependents' },
-                                    { key: 'POR', label: 'Portal Trans.' },
-                                    { key: 'EXP', label: 'Expenses' },
-                                    { key: 'LON', label: 'Loans (Transactions)' },
-                                    { key: 'LOAN', label: 'Loan Persons' },
-                                    { key: 'TRF', label: 'Transfers' },
-                                ].map(item => {
-                                    const currentSeq = getCounterVal(item.key);
-                                    const meta = getCounterMeta(item.key);
-                                    const prefix = rules[item.key]?.prefix || item.key;
-                                    const skipDate = rules[item.key]?.skipDate === true;
-                                    const sequenceStart = Number(rules[item.key]?.sequenceStart) || 1;
-                                    const padding = Number(rules[item.key]?.padding) || 4;
+                                    {[
+                                        { key: 'CLID', label: 'Clients (Co/Ind)' },
+                                        { key: 'DPID', label: 'Dependents' },
+                                        { key: 'POR', label: 'Portal Trans.' },
+                                        { key: 'EXP', label: 'Expenses' },
+                                        { key: 'LON', label: 'Loans (Transactions)' },
+                                        { key: 'LOAN', label: 'Loan Persons' },
+                                        { key: 'TRF', label: 'Transfers' },
+                                        { key: 'TRK', label: 'Tracking IDs' },
+                                    ].map(item => {
+                                        const currentSeq = getCounterVal(item.key);
+                                        const meta = getCounterMeta(item.key);
+                                        const prefix = rules[item.key]?.prefix || item.key;
+                                        const skipDate = rules[item.key]?.skipDate === true;
+                                        const sequenceStart = Number(rules[item.key]?.sequenceStart) || 1;
+                                        const padding = Number(rules[item.key]?.padding) || 4;
 
-                                    return (
-                                        <tr key={item.key} className="group hover:bg-[var(--c-panel)]/50 transition">
-                                            <td className="py-4 pl-2 whitespace-nowrap">
-                                                <p className="font-bold text-[var(--c-text)]">{item.label}</p>
-                                                <p className="text-[10px] font-medium text-[var(--c-muted)]">{item.key}</p>
-                                            </td>
-                                            <td className="py-4">
-                                                <input
-                                                    type="text"
-                                                    maxLength={5}
-                                                    value={prefix}
-                                                    onChange={(e) => handleRuleChange(item.key, 'prefix', e.target.value.toUpperCase())}
-                                                    className="w-20 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-black text-[var(--c-accent)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                />
-                                            </td>
-                                            <td className="py-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRuleChange(item.key, 'skipDate', !skipDate)}
-                                                    className={`rounded-full px-3 py-1 text-[10px] font-bold ${skipDate ? 'bg-slate-700 text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
-                                                >
-                                                    {skipDate ? 'Yes' : 'No'}
-                                                </button>
-                                            </td>
-                                            <td className="py-4">
-                                                <input
-                                                    type="number"
-                                                    min={1}
-                                                    max={999999}
-                                                    value={sequenceStart}
-                                                    onChange={(e) => handleRuleChange(item.key, 'sequenceStart', e.target.value)}
-                                                    className="w-20 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                />
-                                            </td>
-                                            <td className="py-4">
-                                                <input
-                                                    type="number"
-                                                    min={2}
-                                                    max={8}
-                                                    value={padding}
-                                                    onChange={(e) => handleRuleChange(item.key, 'padding', e.target.value)}
-                                                    className="w-16 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                />
-                                            </td>
-                                            <td className="py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-sm font-bold text-[var(--c-text)]">{currentSeq}</span>
+                                        return (
+                                            <tr key={item.key} className="group hover:bg-[var(--c-panel)]/50 transition">
+                                                <td className="py-4 pl-2 whitespace-nowrap">
+                                                    <p className="font-bold text-[var(--c-text)]">{item.label}</p>
+                                                    <p className="text-[10px] font-medium text-[var(--c-muted)]">{item.key}</p>
+                                                </td>
+                                                <td className="py-4">
+                                                    <input
+                                                        type="text"
+                                                        maxLength={5}
+                                                        value={prefix}
+                                                        onChange={(e) => handleRuleChange(item.key, 'prefix', e.target.value.toUpperCase())}
+                                                        className="w-20 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-black text-[var(--c-accent)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                                    />
+                                                </td>
+                                                <td className="py-4">
                                                     <button
-                                                        onClick={() => {
-                                                            const next = prompt(`Update ${item.label} counter:`, currentSeq);
-                                                            if (next !== null && meta) handleUpdateCounter(meta.col, meta.field, next);
-                                                        }}
-                                                        className="text-[10px] font-bold text-[var(--c-accent)] opacity-0 group-hover:opacity-100 transition hover:underline"
+                                                        type="button"
+                                                        onClick={() => handleRuleChange(item.key, 'skipDate', !skipDate)}
+                                                        className={`rounded-full px-3 py-1 text-[10px] font-bold ${skipDate ? 'bg-slate-700 text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
                                                     >
-                                                        Edit
+                                                        {skipDate ? 'Yes' : 'No'}
                                                     </button>
-                                                </div>
-                                            </td>
-                                            <td className="py-4 text-right pr-2 whitespace-nowrap">
-                                                <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)]">
-                                                    {skipDate || item.key === 'LOAN'
-                                                        ? `${prefix}${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`
-                                                        : `${prefix}-${new Date().toLocaleDateString('en-GB').split('/').reverse().join('')}-${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                                </td>
+                                                <td className="py-4">
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={999999}
+                                                        value={sequenceStart}
+                                                        onChange={(e) => handleRuleChange(item.key, 'sequenceStart', e.target.value)}
+                                                        className="w-20 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                                    />
+                                                </td>
+                                                <td className="py-4">
+                                                    <input
+                                                        type="number"
+                                                        min={2}
+                                                        max={8}
+                                                        value={padding}
+                                                        onChange={(e) => handleRuleChange(item.key, 'padding', e.target.value)}
+                                                        className="w-16 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                                    />
+                                                </td>
+                                                <td className="py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-mono text-sm font-bold text-[var(--c-text)]">{currentSeq}</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                const next = prompt(`Update ${item.label} counter:`, currentSeq);
+                                                                if (next !== null && meta) handleUpdateCounter(meta.col, meta.field, next);
+                                                            }}
+                                                            className="text-[10px] font-bold text-[var(--c-accent)] opacity-0 group-hover:opacity-100 transition hover:underline"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 text-right pr-2 whitespace-nowrap">
+                                                    <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)]">
+                                                        {skipDate || item.key === 'LOAN'
+                                                            ? `${prefix}${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`
+                                                            : `${prefix}-${new Date().toLocaleDateString('en-GB').split('/').reverse().join('')}-${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -289,69 +292,69 @@ const IDRulesSection = () => {
                         <div className="overflow-x-auto rounded-xl">
                             <table className="min-w-[880px] w-full text-left text-sm">
                                 <thead className="bg-[var(--c-surface)]">
-                                <tr className="border-b border-[var(--c-border)] text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
-                                    <th className="pb-3 pl-2">Document Type</th>
-                                    <th className="pb-3">Prefix</th>
-                                    <th className="pb-3">Date Format</th>
-                                    <th className="pb-3">Padding</th>
-                                    <th className="pb-3 text-right pr-2">Example</th>
-                                </tr>
+                                    <tr className="border-b border-[var(--c-border)] text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
+                                        <th className="pb-3 pl-2">Document Type</th>
+                                        <th className="pb-3">Prefix</th>
+                                        <th className="pb-3">Date Format</th>
+                                        <th className="pb-3">Padding</th>
+                                        <th className="pb-3 text-right pr-2">Example</th>
+                                    </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[var(--c-border)] bg-[var(--c-surface)]">
-                                {[
-                                    { key: 'proformaInvoice', label: 'Proforma Invoice' },
-                                    { key: 'quotation', label: 'Quotation' },
-                                    { key: 'clientPayment', label: 'Client Payment' },
-                                    { key: 'invoice', label: 'Invoice' },
-                                    { key: 'taskAssignment', label: 'Task Assignment' },
-                                ].map(item => {
-                                    const prefix = docRefs[item.key]?.prefix || '';
-                                    const dateFormat = docRefs[item.key]?.dateFormat || 'YYYYMMDD';
-                                    const padding = Number(docRefs[item.key]?.padding) || 4;
-                                    const dateExample = dateFormat === 'DDMMYYYY' ? '24022026' : '20260224';
-                                    return (
-                                        <tr key={item.key} className="group hover:bg-[var(--c-panel)]/50 transition">
-                                            <td className="py-4 pl-2 whitespace-nowrap">
-                                                <p className="font-bold text-[var(--c-text)]">{item.label}</p>
-                                                <p className="text-[10px] font-medium text-[var(--c-muted)]">{item.key}</p>
-                                            </td>
-                                            <td className="py-4">
-                                                <input
-                                                    type="text"
-                                                    maxLength={8}
-                                                    value={prefix}
-                                                    onChange={(e) => handleDocRefChange(item.key, 'prefix', e.target.value.toUpperCase())}
-                                                    className="w-24 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-black text-[var(--c-accent)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                />
-                                            </td>
-                                            <td className="py-4">
-                                                <select
-                                                    value={dateFormat}
-                                                    onChange={(e) => handleDocRefChange(item.key, 'dateFormat', e.target.value)}
-                                                    className="w-28 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                >
-                                                    <option value="YYYYMMDD">YYYYMMDD</option>
-                                                    <option value="DDMMYYYY">DDMMYYYY</option>
-                                                </select>
-                                            </td>
-                                            <td className="py-4">
-                                                <input
-                                                    type="number"
-                                                    min={2}
-                                                    max={8}
-                                                    value={padding}
-                                                    onChange={(e) => handleDocRefChange(item.key, 'padding', e.target.value)}
-                                                    className="w-16 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                />
-                                            </td>
-                                            <td className="py-4 text-right pr-2 whitespace-nowrap">
-                                                <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)]">
-                                                    {prefix}-{dateExample}-{String(1).padStart(padding, '0')}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                    {[
+                                        { key: 'proformaInvoice', label: 'Proforma Invoice' },
+                                        { key: 'quotation', label: 'Quotation' },
+                                        { key: 'clientPayment', label: 'Client Payment' },
+                                        { key: 'invoice', label: 'Invoice' },
+                                        { key: 'taskAssignment', label: 'Task Assignment' },
+                                    ].map(item => {
+                                        const prefix = docRefs[item.key]?.prefix || '';
+                                        const dateFormat = docRefs[item.key]?.dateFormat || 'YYYYMMDD';
+                                        const padding = Number(docRefs[item.key]?.padding) || 4;
+                                        const dateExample = dateFormat === 'DDMMYYYY' ? '24022026' : '20260224';
+                                        return (
+                                            <tr key={item.key} className="group hover:bg-[var(--c-panel)]/50 transition">
+                                                <td className="py-4 pl-2 whitespace-nowrap">
+                                                    <p className="font-bold text-[var(--c-text)]">{item.label}</p>
+                                                    <p className="text-[10px] font-medium text-[var(--c-muted)]">{item.key}</p>
+                                                </td>
+                                                <td className="py-4">
+                                                    <input
+                                                        type="text"
+                                                        maxLength={8}
+                                                        value={prefix}
+                                                        onChange={(e) => handleDocRefChange(item.key, 'prefix', e.target.value.toUpperCase())}
+                                                        className="w-24 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-black text-[var(--c-accent)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                                    />
+                                                </td>
+                                                <td className="py-4">
+                                                    <select
+                                                        value={dateFormat}
+                                                        onChange={(e) => handleDocRefChange(item.key, 'dateFormat', e.target.value)}
+                                                        className="w-28 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                                    >
+                                                        <option value="YYYYMMDD">YYYYMMDD</option>
+                                                        <option value="DDMMYYYY">DDMMYYYY</option>
+                                                    </select>
+                                                </td>
+                                                <td className="py-4">
+                                                    <input
+                                                        type="number"
+                                                        min={2}
+                                                        max={8}
+                                                        value={padding}
+                                                        onChange={(e) => handleDocRefChange(item.key, 'padding', e.target.value)}
+                                                        className="w-16 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                                    />
+                                                </td>
+                                                <td className="py-4 text-right pr-2 whitespace-nowrap">
+                                                    <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)]">
+                                                        {prefix}-{dateExample}-{String(1).padStart(padding, '0')}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

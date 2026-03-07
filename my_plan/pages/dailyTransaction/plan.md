@@ -43,6 +43,9 @@ A dedicated "Add New Option" in the Application dropdown allows creating reusabl
 
 - **Client Selection**: Searchable dropdown showing **Client ID**, **Profile Picture**, and **Live Balance**.
 - **Dependent Selection**: Optional. Filters based on the selected Client.
+- **Pre-Selection & Locking (Profile Context)**:
+  - If transaction is opened from a **Client Profile**: The client is pre-selected and the field is hidden or locked (read-only).
+  - If transaction is opened from a **Dependent Page**: Both the **Parent Client** and the **Dependent** are pre-selected and locked.
 - **Financial Safety (Insufficient Funds)**:
   - System **must allow** transactions even if client balance is insufficient.
   - **Warning UI**: "Insufficient Client Balance" alert shown immediately.
@@ -84,6 +87,7 @@ Upon saving, the system must perform the following atomic operations:
 - **Consistency**: The Daily Transaction page must feature a **Live List** using the exact same design, styling, and layout as the **Clients Onboarding** page.
 - **Elements**: Row-based entries showing transaction details, client icons, status pills, and action buttons.
 - **Search & Filter**: Real-time filtering by client, date, or application type, consistent with the onboarding list behavior.
+- **Invoice Indicator**: Transactions with `invoiced: true` must display a small **Invoice Icon** (e.g., `receipt-check`) in the list.
 
 ### 4.3 Record Schema: `dailyTransactions`
 
@@ -102,13 +106,14 @@ Upon saving, the system must perform the following atomic operations:
 | `createdAt` | Timestamp | Server-side creation time. |
 | `createdBy` | String | UID of the operator. |
 
-### 4.3 Tracking ID Generation
+### 4.4 Tracking ID Generation
 
 Tracking IDs follow a daily sequential counter:
 
+- **Prefix**: Uses the customizable `TRK` prefix managed in the **ID Rules & Counters** section of the Settings page.
 - **Format**: `TRK-YYYYMMDD-####` (e.g., `TRK-20260307-0001`).
 - **Reset**: The counter resets to `0001` daily at 00:00 (managed via tenant counters).
-- **Prefix**: Uses the `TRK` prefix from global settings.
+- **Default**: The initial default prefix will be `TRK`.
 
 ---
 
@@ -116,7 +121,7 @@ Tracking IDs follow a daily sequential counter:
 
 | Phase | Task |
 | :--- | :--- |
-| **M1** | Implement Application Template management (Catalog). |
+| **M1** | Update **Settings > ID Rules** (`TRK` prefix) & **User Control Center** (Permissions/Notifications) & Application Templates. |
 | **M2** | Build the Daily Transaction form UI and **Exchange Button** placeholder. |
 | **M3** | Implement Client/Portal balance fetch & hidden visibility. |
 | **M4** | Develop Backend Atomic Transaction (Balance Updates + History + **Sync Events**). |
@@ -128,8 +133,9 @@ Tracking IDs follow a daily sequential counter:
 
 ## 6) Contextual Business Rules
 
-- **Profile Integration**: When adding from a Client/Dependent Profile, the `Client` field must be **hidden/locked** to that specific client.
-- **Financial History**: Transactions must immediately reflect in the Client’s Statement of Account.
+- **Auto-Selection**: When launched from a Client Profile or Dependent Page, the form automatically consumes the ID from the URL/Context and skips the manual selection step.
+- **Immediate Reflection**: Every transaction must immediately update the **Statement of Account** section *inside* the Client's Profile page. No manual refresh should be required.
+- **Financial History**: Transactions must immediately reflect in the cumulative balances shown on the Client profile header.
 
 ---
 
@@ -139,6 +145,9 @@ Tracking IDs follow a daily sequential counter:
 
 - **Invoiced Transactions**: System prevents the deletion of any transaction where `invoiced: true`.
   - **Alert**: "Deletion Failed. An invoice has been created for this transaction, and it cannot be deleted."
+- **Permission-Based Access**:
+  - **Soft Delete**: Move to Recycle Bin. (Allowed for Admin/Staff by default).
+  - **Hard Delete**: Permanent removal from Recycle Bin. (**Disabled for Staff**; Admin/Accountant only).
 - **Pending Transactions**: Deletion is allowed (Soft Delete method).
 
 ### 7.2 Deletion & Reversal Logic
@@ -147,37 +156,80 @@ When a transaction is deleted (Soft Delete):
 
 1. **Status Update**: The record is marked as `status: "deleted"`.
 2. **Client Statement (Silent Removal)**:
-   - The transaction is immediately hidden from the Client Statement.
-   - The `clientCharge` is added back to the Client's balance.
-   - From the client's perspective, the record is removed without trace.
+    - The transaction is immediately hidden from the Client Statement.
+    - The `clientCharge` is added back to the Client's balance.
+    - From the client's perspective, the record is removed without trace.
 3. **Portal Management (Audit Reversal)**:
-   - To maintain perfect compliance, the original portal record is **not** deleted.
-   - A **new Reversal Transaction** is created in the Portal to refund the `governmentCharge`. This ensures the portal statement matches the real-world balance.
+    - To maintain perfect compliance, the original portal record is **not** deleted.
+    - A **new Reversal Transaction** is created in the Portal to refund the `governmentCharge`. This ensures the portal statement matches the real-world balance.
 
 ### 7.3 Recycle Bin & Notifications
 
 1. **Recycle Bin**: Deleted transactions are moved to a system-wide recycle bin.
 2. **System Notification**: Triggered immediately after deletion with two options:
-   - **Confirm**: Finalizes the deletion (internal cleanup).
-   - **Retrieve**: Restores the transaction by flipping `status` to "active" and re-deducting balances.
-
-### 7.4 Live List Indication
-
-- **Invoice Icon**: Transactions with `invoiced: true` must display a small **Invoice Icon** (e.g., `receipt-check`) in the Live List as a visual status indicator.
+    - **Confirm**: Finalizes the deletion (internal cleanup - requires **Hard Delete** permission).
+    - **Retrieve**: Restores the transaction by flipping `status` to "active" and re-deducting balances.
 
 ---
 
-## 8) Global Standards & Compliance (Strict)
+## 8) User Control Center Configuration
 
-### 8.1 Currency & Monetary Display
+### 8.1 Function Access (Action Keys)
+
+The following keys must be added to `userControlPreferences.js` and manageable via the User Control Center:
+
+- `softDeleteTransaction`: Toggle for moving records to Recycle Bin.
+- `hardDeleteTransaction`: Toggle for permanent removal (Default: OFF for Staff).
+
+### 8.2 Notification Rules (Event Toggles)
+
+New event trigger for user-wise notification rules:
+
+- `negativeClientBalance`: Mandatory notification triggered whenever a transaction results in a client balance falling below zero. (Default: ON for All).
+
+---
+
+## 9) Global Standards & Compliance (Strict)
+
+### 9.1 Currency & Monetary Display
 
 - **Strict Rule**: No dollar symbols (`$`) or USD labels allowed.
 - **Component Standard**: All monetary displays MUST use the shared `DirhamIcon` and `CurrencyValue` components from `src/components/common/`.
 - **Text Labels**: Where icons are unsupported, use the plain text `AED` label.
 
-### 8.2 Data Naming & Metadata
+### 9.2 Data Naming & Metadata
 
 - **Naming**: All Firestore field names must be `camelCase` (e.g., `clientCharge`, `paidPortalId`).
 - **Audit Fields**: Every record must include `createdAt`, `createdBy`, `updatedAt`, and `updatedBy`.
 - **Identity**: `createdBy` and `updatedBy` must store the **UID string only** (no names or emails).
 - **Sync Events**: Every data-changing operation MUST trigger a `/syncEvents` write as per Rule #17 in `PROJECT_RULES.md`.
+
+---
+
+## 10) Post-Save Data Management
+
+### 10.1 Financial Lock (Strict)
+
+To ensure balance integrity in a client-side Firestore environment, the following fields are **locked** permanently after the transaction is saved:
+
+- **Application Type**
+- **Client / Dependent Identity**
+- **Funding Portal**
+- **Amounts** (`clientCharge`, `governmentCharge`, `profit`)
+
+### 10.2 Editable Informational Fields
+
+Users may update the following non-financial fields at any time:
+
+- **Transaction ID**: For adding government reference numbers received later.
+- **Add to Tracking?**: Users can opt-in to tracking after the transaction has been created.
+- **Tracking Meta**: Secondary tracking numbers and visibility (Public/Private) can be adjusted post-save.
+- **Notes/Comments**: Internal descriptors.
+
+### 10.3 Correction Workflow
+
+If a financial error is made (wrong amount/wrong client):
+
+1. Use the **Soft Delete** button (Section 7).
+2. The system handles the balance reversal automatically.
+3. User creates a new, correct transaction.

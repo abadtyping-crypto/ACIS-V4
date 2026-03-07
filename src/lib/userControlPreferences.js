@@ -15,6 +15,9 @@ const ACTION_KEYS = [
   'notifyInternalTransfer',
   'pdfStudioView',
   'pdfStudioEdit',
+  'softDeleteTransaction',
+  'notifySoftDeleteTransaction',
+  'hardDeleteTransaction',
 ];
 
 const defaultRolePermissions = {
@@ -29,6 +32,9 @@ const defaultRolePermissions = {
     notifyInternalTransfer: true,
     pdfStudioView: true,
     pdfStudioEdit: true,
+    softDeleteTransaction: true,
+    notifySoftDeleteTransaction: true,
+    hardDeleteTransaction: true,
   },
   staff: {
     createPortal: false,
@@ -41,6 +47,9 @@ const defaultRolePermissions = {
     notifyInternalTransfer: true,
     pdfStudioView: false,
     pdfStudioEdit: false,
+    softDeleteTransaction: true,
+    notifySoftDeleteTransaction: true,
+    hardDeleteTransaction: false,
   },
   accountant: {
     createPortal: false,
@@ -53,6 +62,9 @@ const defaultRolePermissions = {
     notifyInternalTransfer: true,
     pdfStudioView: false,
     pdfStudioEdit: false,
+    softDeleteTransaction: true,
+    notifySoftDeleteTransaction: true,
+    hardDeleteTransaction: true,
   },
   manager: {
     createPortal: false,
@@ -65,6 +77,9 @@ const defaultRolePermissions = {
     notifyInternalTransfer: true,
     pdfStudioView: true,
     pdfStudioEdit: true,
+    softDeleteTransaction: true,
+    notifySoftDeleteTransaction: true,
+    hardDeleteTransaction: true,
   },
   admin: {
     createPortal: true,
@@ -77,6 +92,9 @@ const defaultRolePermissions = {
     notifyInternalTransfer: true,
     pdfStudioView: true,
     pdfStudioEdit: true,
+    softDeleteTransaction: true,
+    notifySoftDeleteTransaction: true,
+    hardDeleteTransaction: true,
   },
 };
 
@@ -89,6 +107,8 @@ const defaultNotificationRules = {
     directBalanceAdjust: true,
     loanManagement: true,
     internalTransfer: true,
+    softDeleteTransaction: true,
+    negativeClientBalance: true,
   },
   quietHoursEnabled: false,
   quietFrom: '22:00',
@@ -251,6 +271,9 @@ export const USER_ACCESS_ACTIONS = [
   { key: 'notifyInternalTransfer', label: 'Internal Transfer Notification' },
   { key: 'pdfStudioView', label: 'PDF Studio View Access' },
   { key: 'pdfStudioEdit', label: 'PDF Studio Edit Access' },
+  { key: 'softDeleteTransaction', label: 'Soft Delete (Recycle Bin)' },
+  { key: 'notifySoftDeleteTransaction', label: 'Soft Delete Notification' },
+  { key: 'hardDeleteTransaction', label: 'Hard Delete (Permanent)' },
 ];
 
 export const USER_NOTIFICATION_EVENTS = [
@@ -258,4 +281,6 @@ export const USER_NOTIFICATION_EVENTS = [
   { key: 'directBalanceAdjust', label: 'Direct Balance Adjustment' },
   { key: 'loanManagement', label: 'Loan Management' },
   { key: 'internalTransfer', label: 'Internal Transfer' },
+  { key: 'softDeleteTransaction', label: 'Soft Delete Transaction' },
+  { key: 'negativeClientBalance', label: 'Negative Client Balance Alert' },
 ];
