@@ -164,3 +164,20 @@ When a transaction is deleted (Soft Delete):
 ### 7.4 Live List Indication
 
 - **Invoice Icon**: Transactions with `invoiced: true` must display a small **Invoice Icon** (e.g., `receipt-check`) in the Live List as a visual status indicator.
+
+---
+
+## 8) Global Standards & Compliance (Strict)
+
+### 8.1 Currency & Monetary Display
+
+- **Strict Rule**: No dollar symbols (`$`) or USD labels allowed.
+- **Component Standard**: All monetary displays MUST use the shared `DirhamIcon` and `CurrencyValue` components from `src/components/common/`.
+- **Text Labels**: Where icons are unsupported, use the plain text `AED` label.
+
+### 8.2 Data Naming & Metadata
+
+- **Naming**: All Firestore field names must be `camelCase` (e.g., `clientCharge`, `paidPortalId`).
+- **Audit Fields**: Every record must include `createdAt`, `createdBy`, `updatedAt`, and `updatedBy`.
+- **Identity**: `createdBy` and `updatedBy` must store the **UID string only** (no names or emails).
+- **Sync Events**: Every data-changing operation MUST trigger a `/syncEvents` write as per Rule #17 in `PROJECT_RULES.md`.
