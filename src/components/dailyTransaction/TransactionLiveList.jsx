@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useState } from 'react';
-import { fetchRecentDailyTransactions, fetchTenantClients, softDeleteTransaction } from '../../lib/backendStore';
+import { fetchDailyTransactionsPage, fetchTenantClients, softDeleteTransaction } from '../../lib/backendStore';
 import { fetchServiceTemplates } from '../../lib/serviceTemplateStore';
 import { useAuth } from '../../context/AuthContext';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
@@ -14,48 +14,87 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
 
     const [clientsById, setClientsById] = useState({});
     const [applicationsById, setApplicationsById] = useState({});
+    const [pageSize, setPageSize] = useState(50);
+    const [pageIndex, setPageIndex] = useState(0);
+    const [pageCursors, setPageCursors] = useState([null]);
+    const [nextCursor, setNextCursor] = useState(null);
+    const [hasNext, setHasNext] = useState(false);
     const canSoftDelete = canUserPerformAction(tenantId, user, 'softDeleteTransaction');
 
-    const loadData = useCallback(async () => {
+    const loadLookupData = useCallback(async () => {
+        if (!tenantId) return;
+        const [clientsRes, appRes] = await Promise.all([
+            fetchTenantClients(tenantId),
+            fetchServiceTemplates(tenantId),
+        ]);
+        if (clientsRes.ok) {
+            const next = {};
+            (clientsRes.rows || []).forEach((item) => {
+                next[item.id] = item;
+            });
+            setClientsById(next);
+        }
+        if (appRes.ok) {
+            const next = {};
+            (appRes.rows || []).forEach((item) => {
+                next[item.id] = item;
+            });
+            setApplicationsById(next);
+        }
+    }, [tenantId]);
+
+    const loadPage = useCallback(async (index, cursorOverride = null) => {
         if (!tenantId) return;
         setIsLoading(true);
         try {
-            const [txRes, clientsRes, appRes] = await Promise.all([
-                fetchRecentDailyTransactions(tenantId, 20),
-                fetchTenantClients(tenantId),
-                fetchServiceTemplates(tenantId),
-            ]);
-
-            if (txRes.ok) setRows(txRes.rows);
-            if (clientsRes.ok) {
-                const next = {};
-                (clientsRes.rows || []).forEach((item) => {
-                    next[item.id] = item;
-                });
-                setClientsById(next);
-            }
-            if (appRes.ok) {
-                const next = {};
-                (appRes.rows || []).forEach((item) => {
-                    next[item.id] = item;
-                });
-                setApplicationsById(next);
+            const cursor = cursorOverride !== null ? cursorOverride : (pageCursors[index] || null);
+            const txRes = await fetchDailyTransactionsPage(tenantId, { pageSize, cursor });
+            if (txRes.ok) {
+                setRows(txRes.rows || []);
+                setNextCursor(txRes.lastDoc || null);
+                setHasNext(txRes.hasNext === true && Boolean(txRes.lastDoc));
+                setPageIndex(index);
             }
         } finally {
             setIsLoading(false);
         }
-    }, [tenantId]);
+    }, [tenantId, pageCursors, pageSize]);
 
     useEffect(() => {
-        loadData();
-    }, [loadData, refreshKey]);
+        loadLookupData();
+    }, [loadLookupData, refreshKey]);
+
+    useEffect(() => {
+        setPageIndex(0);
+        setPageCursors([null]);
+        void loadPage(0, null);
+    }, [loadPage, pageSize, refreshKey]);
+
+    const handleNextPage = async () => {
+        if (!hasNext || !nextCursor) return;
+        const nextIndex = pageIndex + 1;
+        const updated = [...pageCursors];
+        updated[nextIndex] = nextCursor;
+        setPageCursors(updated);
+        await loadPage(nextIndex, nextCursor);
+    };
+
+    const handlePrevPage = async () => {
+        if (pageIndex <= 0) return;
+        const prevIndex = pageIndex - 1;
+        await loadPage(prevIndex, pageCursors[prevIndex] || null);
+    };
+
+    const handlePageSizeChange = (event) => {
+        setPageSize(Number(event.target.value || 50));
+    };
 
     const handleDelete = async (txId) => {
         if (!window.confirm('Are you sure you want to soft-delete this transaction for audit reversal?')) return;
         setDeletingId(txId);
         const res = await softDeleteTransaction(tenantId, txId, user.uid);
         if (res.ok) {
-            loadData();
+            await loadPage(pageIndex, pageCursors[pageIndex] || null);
         } else {
             alert(res.error || 'Failed to delete transaction.');
         }
@@ -73,17 +112,28 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
     if (rows.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[var(--c-border)] bg-[var(--c-panel)]/30 p-12 text-center text-sm">
-                <p className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">No Transactions Recorded Today</p>
-                <p className="mt-2 text-[10px] text-[var(--c-muted)]">Post your first transaction above to see it here.</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">No Transactions Recorded</p>
+                <p className="mt-2 text-[10px] text-[var(--c-muted)]">Try switching to Add New and post a transaction.</p>
             </div>
         );
     }
 
     return (
         <section className="space-y-4">
-            <div className="flex items-center justify-between px-2">
-                <h3 className="text-sm font-black text-[var(--c-text)]">Recent Applications</h3>
-                <span className="text-[10px] font-bold uppercase text-[var(--c-muted)] tracking-widest">Live Updates</span>
+            <div className="flex items-center justify-between gap-3 px-2">
+                <h3 className="text-sm font-black text-[var(--c-text)]">Existing Transactions</h3>
+                <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--c-muted)]">Per page</label>
+                    <select
+                        value={pageSize}
+                        onChange={handlePageSizeChange}
+                        className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 text-[11px] font-bold text-[var(--c-text)]"
+                    >
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                        <option value={200}>200</option>
+                    </select>
+                </div>
             </div>
 
             <div className="overflow-hidden rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] shadow-sm">
@@ -160,6 +210,26 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+                <button
+                    type="button"
+                    onClick={handlePrevPage}
+                    disabled={isLoading || pageIndex <= 0}
+                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1.5 text-xs font-bold text-[var(--c-text)] disabled:opacity-50"
+                >
+                    Previous
+                </button>
+                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--c-muted)]">Page {pageIndex + 1}</span>
+                <button
+                    type="button"
+                    onClick={handleNextPage}
+                    disabled={isLoading || !hasNext}
+                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1.5 text-xs font-bold text-[var(--c-text)] disabled:opacity-50"
+                >
+                    Next
+                </button>
             </div>
         </section>
     );

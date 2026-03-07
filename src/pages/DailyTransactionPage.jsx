@@ -57,6 +57,7 @@ const DailyTransactionPage = () => {
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [hasDependentsForSelectedClient, setHasDependentsForSelectedClient] = useState(false);
     const [methodIconMap, setMethodIconMap] = useState({});
+    const [activeView, setActiveView] = useState('add');
 
     // Context from URL
     const urlClientId = searchParams.get('clientId');
@@ -227,6 +228,26 @@ const DailyTransactionPage = () => {
             icon={Plus}
         >
             <div className="space-y-6">
+                    <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm">
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setActiveView('add')}
+                                className={`rounded-2xl px-4 py-3 text-lg font-black transition ${activeView === 'add' ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
+                            >
+                                Add New
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveView('existing')}
+                                className={`rounded-2xl px-4 py-3 text-lg font-black transition ${activeView === 'existing' ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
+                            >
+                                Existing
+                            </button>
+                        </div>
+                    </div>
+                    {activeView === 'add' ? (
+                    <>
                     {/* Hero Header matching screenshot */}
                     <div className="flex items-center gap-4 rounded-3xl bg-sky-500/10 p-6 border border-sky-500/20 shadow-sm">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-500/20">
@@ -434,10 +455,13 @@ const DailyTransactionPage = () => {
                         {success && <p className="text-center text-xs font-bold text-emerald-500 uppercase tracking-widest">{success}</p>}
                     </form>
 
+                    </>
+                    ) : (
                     <TransactionLiveList
                         tenantId={tenantId}
                         refreshKey={refreshListKey}
                     />
+                    )}
             </div>
             <QuickAddServiceTemplateModal
                 isOpen={isQuickAddOpen}

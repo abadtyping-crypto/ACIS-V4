@@ -13,6 +13,7 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  startAfter,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -1873,6 +1874,27 @@ export const fetchRecentDailyTransactions = async (tenantId, limitCount = 50) =>
     const message = toSafeError(error);
     console.warn(`[backendStore] recent transactions fetch failed:`, message);
     return { ok: false, error: message, rows: [] };
+  }
+};
+
+export const fetchDailyTransactionsPage = async (tenantId, { pageSize = 50, cursor = null } = {}) => {
+  try {
+    const txRef = collection(db, 'tenants', tenantId, 'dailyTransactions');
+    const constraints = [
+      where('status', '==', 'active'),
+      orderBy('createdAt', 'desc'),
+      limit(pageSize),
+    ];
+    if (cursor) constraints.push(startAfter(cursor));
+    const q = query(txRef, ...constraints);
+    const snap = await getDocs(q);
+    const rows = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    const lastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null;
+    return { ok: true, rows, lastDoc, hasNext: snap.docs.length === pageSize };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] daily transaction paged fetch failed:`, message);
+    return { ok: false, error: message, rows: [], lastDoc: null, hasNext: false };
   }
 };
 
