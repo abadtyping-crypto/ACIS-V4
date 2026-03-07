@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useTenant } from '../context/TenantContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,7 @@ import { toSafeDocId } from '../lib/idUtils';
 import ClientSearchField from '../components/dailyTransaction/ClientSearchField';
 import ServiceSearchField from '../components/dailyTransaction/ServiceSearchField';
 import TransactionLiveList from '../components/dailyTransaction/TransactionLiveList';
+import QuickAddServiceTemplateModal from '../components/dailyTransaction/QuickAddServiceTemplateModal';
 import DirhamIcon from '../components/common/DirhamIcon';
 import { CreditCard, Plus, ArrowLeftRight, Clock, Info, FileText, Calendar, User, Users } from 'lucide-react';
 
@@ -22,7 +23,6 @@ const inputClass = "mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[
 const DailyTransactionPage = () => {
     const { tenantId } = useTenant();
     const { user } = useAuth();
-    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
     // Form State
@@ -42,6 +42,9 @@ const DailyTransactionPage = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [refreshListKey, setRefreshListKey] = useState(0);
+    const [serviceRefreshKey, setServiceRefreshKey] = useState(0);
+    const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+    const [hasDependentsForSelectedClient, setHasDependentsForSelectedClient] = useState(false);
 
     // Context from URL
     const urlClientId = searchParams.get('clientId');
@@ -77,6 +80,32 @@ const DailyTransactionPage = () => {
         const handle = requestAnimationFrame(loadEssentials);
         return () => cancelAnimationFrame(handle);
     }, [loadEssentials]);
+
+    useEffect(() => {
+        let active = true;
+        const checkDependents = async () => {
+            if (!tenantId || !selectedParent?.id) {
+                setHasDependentsForSelectedClient(false);
+                return;
+            }
+            const res = await fetchTenantClients(tenantId);
+            if (!active || !res.ok) {
+                setHasDependentsForSelectedClient(false);
+                return;
+            }
+            const hasDependents = (res.rows || []).some(
+                (item) =>
+                    String(item.type || '').toLowerCase() === 'dependent' &&
+                    String(item.parentId) === String(selectedParent.id),
+            );
+            setHasDependentsForSelectedClient(hasDependents);
+            if (!hasDependents) setSelectedDependent(null);
+        };
+        void checkDependents();
+        return () => {
+            active = false;
+        };
+    }, [tenantId, selectedParent?.id]);
 
     const profit = useMemo(() => {
         const c = Number(clientCharge) || 0;
@@ -217,7 +246,11 @@ const DailyTransactionPage = () => {
                                 <div className="space-y-1.5">
                                     <div className="flex items-center justify-between">
                                         <label className="text-[11px] font-black uppercase tracking-wider text-[var(--c-text)]">Application Name *</label>
-                                        <button type="button" onClick={() => navigate('/settings?tab=services')} className="flex items-center gap-1 text-[10px] font-black uppercase text-[var(--c-accent)] hover:underline">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsQuickAddOpen(true)}
+                                            className="flex items-center gap-1 text-[10px] font-black uppercase text-[var(--c-accent)] hover:underline"
+                                        >
                                             <Plus size={10} /> Add
                                         </button>
                                     </div>
@@ -225,6 +258,8 @@ const DailyTransactionPage = () => {
                                         onSelect={handleServiceSelect}
                                         selectedId={selectedService?.id}
                                         placeholder="Search applications..."
+                                        onCreateNew={() => setIsQuickAddOpen(true)}
+                                        refreshKey={serviceRefreshKey}
                                     />
                                 </div>
                             </div>
@@ -238,6 +273,7 @@ const DailyTransactionPage = () => {
                                     onSelect={(c) => {
                                         setSelectedParent(c);
                                         setSelectedDependent(null);
+                                        setHasDependentsForSelectedClient(false);
                                     }}
                                     selectedId={selectedParent?.id}
                                     filterType="parent"
@@ -245,13 +281,14 @@ const DailyTransactionPage = () => {
                                 />
                             </div>
 
-                            {selectedParent && (
+                            {selectedParent && hasDependentsForSelectedClient && (
                                 <div className="animate-in slide-in-from-top-2 duration-200">
                                     <div className="space-y-1.5">
                                         <label className="text-[11px] font-black uppercase tracking-wider text-[var(--c-text)]">Dependent Selection (Optional)</label>
                                         <ClientSearchField
                                             onSelect={setSelectedDependent}
                                             selectedId={selectedDependent?.id}
+                                            filterType="dependent"
                                             parentId={selectedParent.id}
                                             placeholder={`Search dependents for ${selectedParent.fullName || selectedParent.tradeName}...`}
                                         />
@@ -377,6 +414,16 @@ const DailyTransactionPage = () => {
                     </section>
                 </aside>
             </div>
+            <QuickAddServiceTemplateModal
+                isOpen={isQuickAddOpen}
+                onClose={() => setIsQuickAddOpen(false)}
+                onCreated={(template) => {
+                    handleServiceSelect(template);
+                    setServiceRefreshKey((prev) => prev + 1);
+                    setSuccess(`Application "${template.name}" created and selected.`);
+                    setError('');
+                }}
+            />
         </PageShell>
     );
 };

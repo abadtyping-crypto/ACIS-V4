@@ -17,7 +17,7 @@ const EMIRATES = [
  * Reusable Service/Template Search Component
  * Optimized for quick selection of application types.
  */
-const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Template...' }) => {
+const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Template...', onCreateNew, refreshKey = 0 }) => {
     const { tenantId } = useTenant();
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +39,7 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
         };
         load();
         return () => { isMounted = false; };
-    }, [tenantId]);
+    }, [tenantId, refreshKey]);
 
     // Close on click outside
     useEffect(() => {
@@ -102,6 +102,9 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
                             <p className="truncate text-sm font-black text-[var(--c-text)]">
                                 {selectedItem.name}
                             </p>
+                            {selectedItem.description ? (
+                                <p className="truncate text-[10px] text-[var(--c-muted)]">{selectedItem.description}</p>
+                            ) : null}
                             <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
                                 {selectedItem.code} • {selectedItem.group}
                             </p>
@@ -135,7 +138,11 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
                         ) : filtered.length === 0 ? (
                             <div className="p-8 text-center space-y-3">
                                 <p className="text-xs font-bold text-[var(--c-muted)]">No matching template found.</p>
-                                <button className="flex items-center gap-2 mx-auto px-4 py-2 rounded-xl bg-[var(--c-accent)] text-[10px] font-black text-white uppercase shadow-lg shadow-[var(--c-accent)]/20">
+                                <button
+                                    type="button"
+                                    onClick={() => onCreateNew?.()}
+                                    className="flex items-center gap-2 mx-auto px-4 py-2 rounded-xl bg-[var(--c-accent)] text-[10px] font-black text-white uppercase shadow-lg shadow-[var(--c-accent)]/20"
+                                >
                                     <Plus size={12} /> Create Custom
                                 </button>
                             </div>
@@ -143,6 +150,7 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
                             filtered.map((item) => (
                                 <button
                                     key={item.id}
+                                    type="button"
                                     onClick={() => handleSelect(item)}
                                     className={`flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--c-accent)]/5 ${selectedId === item.id ? 'bg-[var(--c-accent)]/10' : ''
                                         }`}
@@ -154,6 +162,9 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
                                         <p className="truncate text-sm font-black text-[var(--c-text)]">
                                             {item.name}
                                         </p>
+                                        {item.description ? (
+                                            <p className="truncate text-[10px] text-[var(--c-muted)]">{item.description}</p>
+                                        ) : null}
                                         <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
                                             {item.code} • {item.group}
                                         </p>

@@ -23,6 +23,9 @@ const ImageStudio = ({
     aspect = 1, // 1 for square (avatars/logos)
     cropShape = 'round', // 'rect' or 'round'
     showFilters = true,
+    workspaceHeightClass = 'h-[300px] sm:h-[340px] lg:h-[360px]',
+    minZoom = 1,
+    maxZoom = 3,
 }) => {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
 
@@ -30,8 +33,8 @@ const ImageStudio = ({
         setCrop(crop);
     };
 
-    const handleZoomIn = () => setZoom(Math.min(3, zoom + 0.2));
-    const handleZoomOut = () => setZoom(Math.max(1, zoom - 0.2));
+    const handleZoomIn = () => setZoom(Math.min(maxZoom, zoom + 0.2));
+    const handleZoomOut = () => setZoom(Math.max(minZoom, zoom - 0.2));
     const handleRotateLeft = () => setRotation(rotation - 90);
     const handleRotateRight = () => setRotation(rotation + 90);
 
@@ -60,7 +63,7 @@ const ImageStudio = ({
             </div>
 
             {/* Main Interactive Work Area */}
-            <div className="relative h-[400px] w-full bg-[#0a0a0a] overflow-hidden">
+            <div className={`relative w-full overflow-hidden bg-[#0a0a0a] ${workspaceHeightClass}`}>
                 {sourceUrl ? (
                     <Cropper
                         image={sourceUrl}
@@ -72,6 +75,8 @@ const ImageStudio = ({
                         showGrid={true}
                         onCropChange={onCropChange}
                         onCropComplete={onCropComplete}
+                        minZoom={minZoom}
+                        maxZoom={maxZoom}
                         onZoomChange={setZoom}
                         onRotationChange={setRotation}
                         style={{
@@ -96,7 +101,7 @@ const ImageStudio = ({
 
             {/* Controls Bar */}
             {sourceUrl && (
-                <div className="flex flex-col gap-6 bg-[var(--c-panel)] p-6">
+                <div className="flex flex-col gap-5 bg-[var(--c-panel)] p-4 sm:p-5">
                     {/* Visual Controls */}
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto]">
                         <div className="flex flex-wrap items-center gap-4">
@@ -110,8 +115,8 @@ const ImageStudio = ({
                                     <button onClick={handleZoomOut} className="text-[var(--c-muted)] hover:text-[var(--c-accent)]"><ZoomOut className="h-4 w-4" /></button>
                                     <input
                                         type="range"
-                                        min="1"
-                                        max="3"
+                                        min={minZoom}
+                                        max={maxZoom}
                                         step="0.01"
                                         value={zoom}
                                         onChange={(e) => setZoom(Number(e.target.value))}

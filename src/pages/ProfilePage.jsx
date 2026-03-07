@@ -511,6 +511,7 @@ const ProfilePage = () => {
                     onFileChange={onAvatarFileChange}
                     onCropComplete={onCropComplete}
                     title="Smart Avatar Studio"
+                    workspaceHeightClass="h-[260px] sm:h-[300px] lg:h-[340px]"
                     tip="Tip: Use direct interaction to zoom and pan. Changes are saved with the profile."
                   />
 

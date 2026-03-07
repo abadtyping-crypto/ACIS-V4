@@ -1,26 +1,8 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { Search, User, Users, ChevronRight, Building2, UserCircle } from 'lucide-react';
+import { Search, ChevronRight } from 'lucide-react';
 import { fetchTenantClients } from '../../lib/backendStore';
 import { useTenant } from '../../context/TenantContext';
-
-const RELATION_ICONS = {
-    'daughter': '/onboardingIcons/daughter.svg',
-    'father': '/onboardingIcons/father.svg',
-    'husband': '/onboardingIcons/husband.svg',
-    'mother': '/onboardingIcons/mother.svg',
-    'son': '/onboardingIcons/son.svg',
-    'wife': '/onboardingIcons/wife.svg',
-};
-
-const EMIRATES_MAP = {
-    'dubai': '/emiratesIcon/dubai.png',
-    'abu dhabi': '/emiratesIcon/abudhabi.png',
-    'sharjah': '/emiratesIcon/sharjah.png',
-    'ajman': '/emiratesIcon/ajman.png',
-    'fujairah': '/emiratesIcon/fujairah.png',
-    'umm al quwain': '/emiratesIcon/ummAlQuwain.png',
-    'ras al khaimah': '/emiratesIcon/rasAlKhaaimah.png',
-};
+import { resolveClientTypeIcon } from '../../lib/clientIcons';
 
 /**
  * Reusable Client Search Component
@@ -47,8 +29,13 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
                     if (filterType === 'parent') {
                         data = data.filter(c => c.type === 'company' || c.type === 'individual');
                     }
+                    if (filterType === 'dependent') {
+                        data = data.filter(c => String(c.type || '').toLowerCase() === 'dependent');
+                    }
                     if (parentId) {
-                        data = data.filter(c => c.parentId === parentId || c.id === parentId);
+                        data = data.filter(
+                            (c) => String(c.type || '').toLowerCase() === 'dependent' && String(c.parentId) === String(parentId),
+                        );
                     }
                     setRows(data);
                 }
@@ -84,24 +71,16 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
             );
         }).slice(0, 15);
 
+    const parentById = rows.reduce((acc, current) => {
+        acc[current.id] = current;
+        return acc;
+    }, {});
+
     const getClientIcon = (item) => {
         if (!item) return <Search className="h-5 w-5" />;
-
-        if (item.type === 'dependent' && item.relation) {
-            const iconPath = RELATION_ICONS[item.relation.toLowerCase()];
-            if (iconPath) return <img src={iconPath} className="h-6 w-6 object-contain" alt={item.relation} />;
-        }
-
-        if (item.type === 'company') {
-            const name = item.tradeName?.toLowerCase() || '';
-            const foundEmirateKey = Object.keys(EMIRATES_MAP).find(k => name.includes(k));
-            if (foundEmirateKey) return <img src={EMIRATES_MAP[foundEmirateKey]} className="h-6 w-6 object-contain" alt="" />;
-            return <Building2 className="h-5 w-5 text-sky-500" />;
-        }
-
-        if (item.type === 'individual') return <UserCircle className="h-5 w-5 text-amber-500" />;
-
-        return <User className="h-5 w-5 opacity-40" />;
+        const parent = item.parentId ? parentById[item.parentId] : null;
+        const iconPath = resolveClientTypeIcon(item, parent);
+        return <img src={iconPath || '/avatar.png'} className="h-6 w-6 object-contain" alt="" />;
     };
 
     const selectedItem = rows.find(r => r.id === selectedId);
@@ -176,7 +155,7 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
                                             {item.fullName || item.tradeName}
                                         </p>
                                         <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
-                                            {item.displayClientId} • {item.type} {item.relation ? `(${item.relation})` : ''}
+                                            {item.displayClientId} • {item.type} {item.relationship ? `(${item.relationship})` : ''}
                                         </p>
                                     </div>
                                     {selectedId === item.id && (

@@ -29,6 +29,7 @@ const ServiceTemplateSection = () => {
 
     // Form State
     const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
     const [govCharge, setGovCharge] = useState('');
     const [clientCharge, setClientCharge] = useState('');
     const [selectedIconId, setSelectedIconId] = useState('');
@@ -53,6 +54,7 @@ const ServiceTemplateSection = () => {
 
     const resetForm = () => {
         setName('');
+        setDescription('');
         setGovCharge('');
         setClientCharge('');
         setSelectedIconId('');
@@ -63,6 +65,7 @@ const ServiceTemplateSection = () => {
     const handleEdit = (row) => {
         setEditingId(row.id);
         setName(row.name || '');
+        setDescription(row.description || '');
         setGovCharge(String(row.govCharge || ''));
         setClientCharge(String(row.clientCharge || ''));
         setSelectedIconId(row.iconId || '');
@@ -85,6 +88,7 @@ const ServiceTemplateSection = () => {
 
         const payload = {
             name: trimmedName,
+            description: description.trim(),
             govCharge: Number(govCharge),
             clientCharge: Number(clientCharge),
             profit: Number(clientCharge) - Number(govCharge),
@@ -155,8 +159,19 @@ const ServiceTemplateSection = () => {
                         />
                     </label>
 
+                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)] md:col-span-2">
+                        Description (Optional)
+                        <textarea
+                            className={inputClass}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Short note about when/why this application is used"
+                            rows={2}
+                        />
+                    </label>
+
                     <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Gov. Charge (AED) *
+                        Gov. Charge <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
                         <input
                             type="number"
                             className={inputClass}
@@ -167,7 +182,7 @@ const ServiceTemplateSection = () => {
                     </label>
 
                     <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Client Charge (AED) *
+                        Client Charge <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
                         <input
                             type="number"
                             className={inputClass}
@@ -240,6 +255,9 @@ const ServiceTemplateSection = () => {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-bold text-[var(--c-text)]">{row.name}</p>
+                                    {row.description ? (
+                                        <p className="mt-1 line-clamp-2 text-xs text-[var(--c-muted)]">{row.description}</p>
+                                    ) : null}
                                     <div className="mt-1 flex gap-3 text-[10px] font-bold uppercase text-[var(--c-muted)]">
                                         <span className="flex items-center gap-1">
                                             Gov: <CurrencyValue amount={row.govCharge} hideIcon />

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Settings } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import PreferenceSection from '../components/settings/PreferenceSection';
@@ -28,9 +29,29 @@ const SETTINGS_SECTIONS = [
   { key: 'counters', label: 'ID Rules & Counters' },
 ];
 
+const TAB_ALIAS_MAP = {
+  services: 'svcTemplates',
+  serviceTemplates: 'svcTemplates',
+  svcTemplates: 'svcTemplates',
+  applicationTemplates: 'svcTemplates',
+  appIcons: 'appIconLibrary',
+  appIconLibrary: 'appIconLibrary',
+  idRules: 'counters',
+  counters: 'counters',
+};
+
 const SettingsPage = () => {
   const { tenant } = useTenant();
+  const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState('brand');
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (!requestedTab) return;
+    const nextSection = TAB_ALIAS_MAP[requestedTab] || requestedTab;
+    const exists = SETTINGS_SECTIONS.some((section) => section.key === nextSection);
+    if (exists) setActiveSection(nextSection);
+  }, [searchParams]);
 
   const sectionContent = useMemo(() => {
     if (activeSection === 'brand') return <BrandDetailsSection />;
