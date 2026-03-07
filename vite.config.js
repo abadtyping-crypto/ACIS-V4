@@ -9,6 +9,11 @@ export default defineConfig({
     electron({
       main: {
         entry: 'electron/main.js',
+        onstart({ startup }) {
+          const env = { ...process.env }
+          delete env.ELECTRON_RUN_AS_NODE
+          startup(undefined, { env })
+        },
       },
       preload: {
         input: 'electron/preload.mjs',

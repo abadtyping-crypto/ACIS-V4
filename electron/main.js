@@ -1,9 +1,12 @@
 /* global process */
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { createRequire } from 'module';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import nodemailer from 'nodemailer';
+
+const require = createRequire(import.meta.url);
+const { app, BrowserWindow, ipcMain } = require('electron');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

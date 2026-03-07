@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { createRequire } from "module";
 import require$$0$4, { dirname, join } from "path";
 import require$$0$1, { fileURLToPath } from "url";
 import require$$2, { existsSync, readFileSync, writeFileSync } from "fs";
@@ -11277,6 +11277,8 @@ function requireNodemailer() {
 }
 var nodemailerExports = requireNodemailer();
 const nodemailer = /* @__PURE__ */ getDefaultExportFromCjs(nodemailerExports);
+const require$1 = createRequire(import.meta.url);
+const { app, BrowserWindow, ipcMain } = require$1("electron");
 const __filename$1 = fileURLToPath(import.meta.url);
 const __dirname$1 = dirname(__filename$1);
 const isDev = process.env.VITE_DEV_SERVER_URL !== void 0;
