@@ -84,22 +84,20 @@ const ServiceTemplateSection = () => {
         setStatus('');
 
         const templateId = editingId || toSafeDocId(trimmedName, 'svc_tpl');
-        const selectedIcon = icons.find(i => i.iconId === selectedIconId);
-
         const payload = {
             name: trimmedName,
             description: description.trim(),
             govCharge: Number(govCharge),
             clientCharge: Number(clientCharge),
-            profit: Number(clientCharge) - Number(govCharge),
             iconId: selectedIconId,
-            iconUrl: selectedIcon?.iconUrl || '',
-            updatedBy: user.uid,
         };
 
         if (!editingId) {
             payload.createdAt = new Date().toISOString();
             payload.createdBy = user.uid;
+        } else {
+            payload.updatedBy = user.uid;
+            payload.updatedAt = new Date().toISOString();
         }
 
         const res = await upsertServiceTemplate(tenantId, templateId, payload);
@@ -171,7 +169,7 @@ const ServiceTemplateSection = () => {
                     </label>
 
                     <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Gov. Charge <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
+                        Default Government Charge (Required) <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
                         <input
                             type="number"
                             className={inputClass}
@@ -182,7 +180,7 @@ const ServiceTemplateSection = () => {
                     </label>
 
                     <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Client Charge <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
+                        Default Client Charge (Required) <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
                         <input
                             type="number"
                             className={inputClass}
@@ -247,8 +245,8 @@ const ServiceTemplateSection = () => {
                                 className="group relative flex items-center gap-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4 transition hover:border-[var(--c-accent)]/50"
                             >
                                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
-                                    {row.iconUrl ? (
-                                        <img src={row.iconUrl} alt="" className="h-8 w-8 object-contain" />
+                                    {(icons.find((icon) => icon.iconId === row.iconId)?.iconUrl) ? (
+                                        <img src={icons.find((icon) => icon.iconId === row.iconId)?.iconUrl} alt="" className="h-8 w-8 object-contain" />
                                     ) : (
                                         <span className="text-2xl">📄</span>
                                     )}

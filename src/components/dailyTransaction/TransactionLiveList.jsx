@@ -1,8 +1,10 @@
 import { memo, useCallback, useEffect, useState } from 'react';
-import { fetchRecentDailyTransactions, softDeleteTransaction, upsertTenantTransaction } from '../../lib/backendStore';
+import { fetchRecentDailyTransactions, fetchTenantClients, softDeleteTransaction } from '../../lib/backendStore';
+import { fetchServiceTemplates } from '../../lib/serviceTemplateStore';
 import { useAuth } from '../../context/AuthContext';
+import { canUserPerformAction } from '../../lib/userControlPreferences';
 import CurrencyValue from '../common/CurrencyValue';
-import { Trash2, Edit3, Lock, X, Check, Clock } from 'lucide-react';
+import { Trash2, Lock, Clock } from 'lucide-react';
 
 const TransactionLiveList = ({ tenantId, refreshKey }) => {
     const { user } = useAuth();
@@ -10,18 +12,35 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
 
-    // Editing Tracking context
-    const [editingTx, setEditingTx] = useState(null);
-    const [editTrkId, setEditTrkId] = useState('');
-    const [editNote, setEditNote] = useState('');
-    const [isUpdating, setIsUpdating] = useState(false);
+    const [clientsById, setClientsById] = useState({});
+    const [applicationsById, setApplicationsById] = useState({});
+    const canSoftDelete = canUserPerformAction(tenantId, user, 'softDeleteTransaction');
 
     const loadData = useCallback(async () => {
         if (!tenantId) return;
         setIsLoading(true);
         try {
-            const res = await fetchRecentDailyTransactions(tenantId, 20);
-            if (res.ok) setRows(res.rows);
+            const [txRes, clientsRes, appRes] = await Promise.all([
+                fetchRecentDailyTransactions(tenantId, 20),
+                fetchTenantClients(tenantId),
+                fetchServiceTemplates(tenantId),
+            ]);
+
+            if (txRes.ok) setRows(txRes.rows);
+            if (clientsRes.ok) {
+                const next = {};
+                (clientsRes.rows || []).forEach((item) => {
+                    next[item.id] = item;
+                });
+                setClientsById(next);
+            }
+            if (appRes.ok) {
+                const next = {};
+                (appRes.rows || []).forEach((item) => {
+                    next[item.id] = item;
+                });
+                setApplicationsById(next);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -41,32 +60,6 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
             alert(res.error || 'Failed to delete transaction.');
         }
         setDeletingId(null);
-    };
-
-    const startEditing = (tx) => {
-        setEditingTx(tx);
-        setEditTrkId(tx.trackingId || '');
-        setEditNote(tx.note || '');
-    };
-
-    const handleUpdateInfo = async () => {
-        if (!editingTx) return;
-        setIsUpdating(true);
-        const payload = {
-            ...editingTx,
-            trackingId: editTrkId,
-            note: editNote,
-            updatedAt: new Date().toISOString(),
-            updatedBy: user.uid
-        };
-        const res = await upsertTenantTransaction(tenantId, editingTx.id, payload);
-        if (res.ok) {
-            setEditingTx(null);
-            loadData();
-        } else {
-            alert(res.error || 'Failed to update info.');
-        }
-        setIsUpdating(false);
     };
 
     if (isLoading && rows.length === 0) {
@@ -108,29 +101,28 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                         <tbody className="divide-y divide-[var(--c-border)]">
                             {rows.map((row) => {
                                 const isLocked = !!row.invoiceId;
+                                const client = clientsById[row.clientId];
+                                const app = applicationsById[row.applicationId];
+                                const clientName = client?.fullName || client?.tradeName || 'Unknown Client';
+                                const applicationName = app?.name || 'Unknown Application';
                                 return (
                                     <tr key={row.id} className="transition hover:bg-[var(--c-panel)]/50">
                                         <td className="p-4">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-bold text-[var(--c-text)]">{row.displayTransactionId || row.id}</span>
-                                                {row.trackingId && (
-                                                    <span className="rounded-lg bg-[var(--c-accent)]/5 px-2 py-0.5 text-[9px] font-black text-[var(--c-accent)]">
-                                                        {row.trackingId}
-                                                    </span>
-                                                )}
+                                                <span className="font-bold text-[var(--c-text)]">{row.transactionId || row.id}</span>
                                             </div>
                                             <p className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--c-muted)]">
                                                 <Clock className="h-2.5 w-2.5" />
-                                                {new Date(row.createdAt || row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(row.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </td>
                                         <td className="p-4">
-                                            <p className="font-bold text-[var(--c-text)]">{row.clientName || 'Unknown Client'}</p>
-                                            <p className="text-[10px] text-[var(--c-muted)] uppercase">{row.clientType || 'client'}</p>
+                                            <p className="font-bold text-[var(--c-text)]">{clientName}</p>
+                                            <p className="text-[10px] text-[var(--c-muted)] uppercase">{String(client?.type || 'client')}</p>
                                         </td>
                                         <td className="p-4">
-                                            <p className="font-bold text-[var(--c-text)]">{row.serviceName || '-'}</p>
-                                            <p className="text-[10px] text-[var(--c-muted)] truncate max-w-[120px]">{row.note || 'No note'}</p>
+                                            <p className="font-bold text-[var(--c-text)]">{applicationName}</p>
+                                            <p className="text-[10px] text-[var(--c-muted)] truncate max-w-[120px]">{row.applicationId || '-'}</p>
                                         </td>
                                         <td className="p-4 text-right">
                                             <div className="font-black text-[var(--c-text)]">
@@ -148,21 +140,16 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <button
-                                                            disabled={deletingId === row.id}
-                                                            onClick={() => handleDelete(row.id)}
-                                                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-rose-500 transition hover:bg-rose-500 hover:text-white disabled:opacity-50"
-                                                            title="Soft Delete"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => startEditing(row)}
-                                                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)]"
-                                                            title="Update Tracking/Note"
-                                                        >
-                                                            <Edit3 className="h-4 w-4" />
-                                                        </button>
+                                                        {canSoftDelete ? (
+                                                            <button
+                                                                disabled={deletingId === row.id}
+                                                                onClick={() => handleDelete(row.id)}
+                                                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-rose-500 transition hover:bg-rose-500 hover:text-white disabled:opacity-50"
+                                                                title="Soft Delete"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
+                                                        ) : null}
                                                     </>
                                                 )}
                                             </div>
@@ -174,53 +161,6 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                     </table>
                 </div>
             </div>
-
-            {/* Edit Info Overlay */}
-            {editingTx && (
-                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-6 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <h4 className="text-lg font-bold text-[var(--c-text)]">Update Info</h4>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">{editingTx.displayTransactionId}</p>
-                            </div>
-                            <button onClick={() => setEditingTx(null)} className="rounded-xl p-2 text-[var(--c-muted)] hover:bg-[var(--c-panel)]">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Tracking ID (TRK)</label>
-                                <input
-                                    className="w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
-                                    value={editTrkId}
-                                    onChange={(e) => setEditTrkId(e.target.value)}
-                                    placeholder="Enter tracking number..."
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Update Note</label>
-                                <textarea
-                                    className="min-h-[100px] w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
-                                    value={editNote}
-                                    onChange={(e) => setEditNote(e.target.value)}
-                                    placeholder="Add internal details..."
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            disabled={isUpdating}
-                            onClick={handleUpdateInfo}
-                            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--c-accent)] py-4 text-sm font-bold text-white shadow-lg transition active:scale-95 disabled:opacity-50"
-                        >
-                            <Check className="h-5 w-5" />
-                            {isUpdating ? 'Saving Changes...' : 'Save Updates'}
-                        </button>
-                    </div>
-                </div>
-            )}
         </section>
     );
 };

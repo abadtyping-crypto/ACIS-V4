@@ -9,10 +9,10 @@ const toSafeError = (error) => {
 };
 
 const toIconsCollection = (tenantId) =>
-  collection(db, 'tenants', tenantId, 'settings', 'applicationIconLibrary', 'icons');
+  collection(db, 'tenants', tenantId, 'IconLibrary');
 
 const toIconDoc = (tenantId, iconId) =>
-  doc(db, 'tenants', tenantId, 'settings', 'applicationIconLibrary', 'icons', iconId);
+  doc(db, 'tenants', tenantId, 'IconLibrary', iconId);
 
 export const fetchApplicationIconLibrary = async (tenantId) => {
   try {
@@ -23,7 +23,7 @@ export const fetchApplicationIconLibrary = async (tenantId) => {
     return { ok: true, rows };
   } catch (error) {
     const message = toSafeError(error);
-    console.warn(`[applicationIconLibraryStore] read failed tenants/${tenantId}/settings/applicationIconLibrary/icons: ${message}`);
+    console.warn(`[applicationIconLibraryStore] read failed tenants/${tenantId}/IconLibrary: ${message}`);
     return { ok: false, error: message, rows: [] };
   }
 };
@@ -34,23 +34,26 @@ export const getApplicationIconById = async (tenantId, iconId) => {
     return { ok: true, exists: snap.exists(), data: snap.exists() ? { iconId: snap.id, ...snap.data() } : null };
   } catch (error) {
     const message = toSafeError(error);
-    console.warn(`[applicationIconLibraryStore] get failed tenants/${tenantId}/settings/applicationIconLibrary/icons/${iconId}: ${message}`);
+    console.warn(`[applicationIconLibraryStore] get failed tenants/${tenantId}/IconLibrary/${iconId}: ${message}`);
     return { ok: false, exists: false, error: message, data: null };
   }
 };
 
 export const upsertApplicationIcon = async (tenantId, iconId, payload, options = {}) => {
   try {
-    const data = {
-      ...payload,
-      updatedAt: serverTimestamp(),
-    };
-    if (options.isCreate) data.createdAt = serverTimestamp();
+    const data = { ...payload };
+    if (options.isCreate) {
+      data.createdAt = serverTimestamp();
+      delete data.updatedAt;
+      delete data.updatedBy;
+    } else {
+      data.updatedAt = serverTimestamp();
+    }
     await setDoc(toIconDoc(tenantId, iconId), data, { merge: true });
     return { ok: true };
   } catch (error) {
     const message = toSafeError(error);
-    console.warn(`[applicationIconLibraryStore] upsert failed tenants/${tenantId}/settings/applicationIconLibrary/icons/${iconId}: ${message}`);
+    console.warn(`[applicationIconLibraryStore] upsert failed tenants/${tenantId}/IconLibrary/${iconId}: ${message}`);
     return { ok: false, error: message };
   }
 };
@@ -61,7 +64,7 @@ export const deleteApplicationIcon = async (tenantId, iconId) => {
     return { ok: true };
   } catch (error) {
     const message = toSafeError(error);
-    console.warn(`[applicationIconLibraryStore] delete failed tenants/${tenantId}/settings/applicationIconLibrary/icons/${iconId}: ${message}`);
+    console.warn(`[applicationIconLibraryStore] delete failed tenants/${tenantId}/IconLibrary/${iconId}: ${message}`);
     return { ok: false, error: message };
   }
 };

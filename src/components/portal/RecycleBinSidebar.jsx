@@ -3,6 +3,7 @@ import { useRecycleBinData } from '../../hooks/useRecycleBinData';
 import { useTenant } from '../../context/TenantContext';
 import { useRecycleBin } from '../../context/RecycleBinContext';
 import { useAuth } from '../../context/AuthContext';
+import { canUserPerformAction } from '../../lib/userControlPreferences';
 
 const domains = [
     { id: 'clients', label: 'Clients', badge: 'Onboarding', icon: 'M15 19a4 4 0 00-8 0m8 0a4 4 0 01-8 0m8 0v-2a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10-10a4 4 0 11-8 0 4 4 0 018 0z' },
@@ -25,6 +26,8 @@ const RecycleBinSidebar = () => {
         activeDomain,
         user?.uid,
     );
+    const canHardDeleteTransaction = canUserPerformAction(tenantId, user, 'hardDeleteTransaction');
+    const canHardDeleteCurrentDomain = activeDomain !== 'transactions' || canHardDeleteTransaction;
     const { isOpen, closeRecycleBin, notifyRestore } = useRecycleBin();
 
     const handleRestore = async (id) => {
@@ -157,19 +160,21 @@ const RecycleBinSidebar = () => {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                             </svg>
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                if (confirm('Permanently delete this item? This cannot be undone.')) {
-                                                    handleDelete(item.id);
-                                                }
-                                            }}
-                                            className="rounded-lg bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 transition"
-                                            title="Delete Permanently"
-                                        >
-                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
+                                        {canHardDeleteCurrentDomain ? (
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('Permanently delete this item? This cannot be undone.')) {
+                                                        handleDelete(item.id);
+                                                    }
+                                                }}
+                                                className="rounded-lg bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 transition"
+                                                title="Delete Permanently"
+                                            >
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        ) : null}
                                     </div>
                                 </div>
                                 {expandedId === item.id ? (
@@ -200,7 +205,11 @@ const RecycleBinSidebar = () => {
                 </div>
 
                 <footer className="border-t border-[var(--c-border)] p-4 text-center">
-                    <p className="text-[10px] font-medium text-[var(--c-muted)]">Items in the bin are permanently stored until manually cleared.</p>
+                    <p className="text-[10px] font-medium text-[var(--c-muted)]">
+                        {activeDomain === 'transactions' && !canHardDeleteTransaction
+                            ? 'Permanent removal is restricted for your user. You can still restore.'
+                            : 'Items in the bin are permanently stored until manually cleared.'}
+                    </p>
                 </footer>
             </div>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
 import { useAuth } from '../../context/AuthContext';
@@ -19,7 +19,7 @@ import {
 } from '../../lib/applicationIconStorage';
 
 const inputClass =
-  'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
+  'mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20';
 
 const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
   const { tenantId } = useTenant();
@@ -61,11 +61,6 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, onClose]);
-
-  const selectedIcon = useMemo(
-    () => icons.find((item) => item.iconId === selectedIconId) || null,
-    [icons, selectedIconId],
-  );
 
   const resetState = () => {
     setName('');
@@ -113,7 +108,6 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
     setError('');
 
     let resolvedIconId = selectedIconId || '';
-    let resolvedIconUrl = selectedIcon?.iconUrl || '';
     if (newIconFile) {
       let iconBlobForUpload = newIconFile;
       if (newIconRawUrl && newIconCropPixels) {
@@ -160,7 +154,6 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
           iconName: iconNameToUse,
           iconUrl: uploadRes.iconUrl,
           createdBy: user.uid,
-          updatedBy: user.uid,
         },
         { isCreate: true },
       );
@@ -175,12 +168,11 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
         eventType: 'create',
         entityType: 'applicationIcon',
         entityId: iconId,
-        changedFields: ['iconName', 'iconUrl', 'createdBy', 'updatedBy'],
+        changedFields: ['iconName', 'iconUrl', 'createdBy'],
         createdBy: user.uid,
       });
 
       resolvedIconId = iconId;
-      resolvedIconUrl = uploadRes.iconUrl;
     }
 
     const templateId = toSafeDocId(trimmedName, 'svc_tpl');
@@ -189,13 +181,10 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
       description: description.trim(),
       govCharge: Number(govCharge),
       clientCharge: Number(clientCharge),
-      profit: Number(clientCharge) - Number(govCharge),
       iconId: resolvedIconId,
-      iconUrl: resolvedIconUrl,
       status: 'active',
       createdAt: new Date().toISOString(),
       createdBy: user.uid,
-      updatedBy: user.uid,
     };
 
     const res = await upsertServiceTemplate(tenantId, templateId, payload);
@@ -226,17 +215,17 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[var(--c-border)] px-5 py-4">
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-sky-500/40 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
           <div>
-            <p className="text-lg font-black text-[var(--c-text)]">Quick Add Application</p>
-            <p className="text-xs text-[var(--c-muted)]">Create reusable template without opening Settings.</p>
+            <p className="text-sm font-black tracking-widest text-sky-300 uppercase">Add New Application</p>
+            <p className="text-xs text-slate-400">Create reusable application without leaving this page.</p>
           </div>
           <button
             type="button"
             onClick={handleClose}
-            className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-2 text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
+            className="rounded-xl border border-slate-600 bg-slate-800 p-2 text-slate-300 transition hover:text-white"
             aria-label="Close quick add"
           >
             <X className="h-4 w-4" />
@@ -245,29 +234,29 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
               Application Name *
               <input
                 className={inputClass}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Visa Processing"
+                placeholder="Enter service name"
               />
             </label>
 
-            <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)] sm:col-span-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-300 sm:col-span-2">
               Description (Optional)
               <textarea
                 className={inputClass}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Short note about this application/service"
+                placeholder="Service details, rules or notes..."
                 rows={2}
               />
             </label>
 
-            <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-              Default Icon
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
+              Application Icon (Reusable / Optional)
               <select className={inputClass} value={selectedIconId} onChange={(e) => setSelectedIconId(e.target.value)}>
                 <option value="">Default (📄)</option>
                 {icons.map((icon) => (
@@ -278,7 +267,7 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
               </select>
             </label>
 
-            <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)] sm:col-span-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-300 sm:col-span-2">
               Upload New Icon (Optional)
               <input
                 type="file"
@@ -340,7 +329,7 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
             ) : null}
 
             {newIconFile ? (
-              <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)] sm:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-300 sm:col-span-2">
                 New Icon Name (Required for Upload)
                 <input
                   className={inputClass}
@@ -351,8 +340,8 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
               </label>
             ) : null}
 
-            <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-              Gov. Charge <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
+              Default Gov <DirhamIcon className="inline h-3 w-3 align-text-bottom text-slate-300" /> * (Required)
               <input
                 type="number"
                 className={inputClass}
@@ -362,8 +351,8 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
               />
             </label>
 
-            <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-              Client Charge <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
+              Default Client <DirhamIcon className="inline h-3 w-3 align-text-bottom text-slate-300" /> * (Required)
               <input
                 type="number"
                 className={inputClass}
@@ -374,24 +363,24 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
             </label>
           </div>
 
-          {error ? <p className="text-xs font-bold text-rose-500">{error}</p> : null}
+          {error ? <p className="text-xs font-bold text-rose-400">{error}</p> : null}
 
-          <div className="flex items-center justify-end gap-2 border-t border-[var(--c-border)] pt-4">
+          <div className="flex items-center justify-end gap-2 border-t border-slate-700 pt-4">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSaving}
-              className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2 text-sm font-bold text-[var(--c-text)]"
+              className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-100"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--c-accent)] px-4 py-2 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-sky-400 disabled:opacity-60"
             >
               <Plus className="h-4 w-4" />
-              {isSaving ? 'Saving...' : 'Save Template'}
+              {isSaving ? 'Saving...' : 'Save Application'}
             </button>
           </div>
         </form>

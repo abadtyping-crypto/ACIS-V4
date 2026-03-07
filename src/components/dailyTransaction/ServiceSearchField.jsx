@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { Search, Tag, ChevronRight, Hash, Plus } from 'lucide-react';
 import { fetchServiceTemplates } from '../../lib/serviceTemplateStore';
 import { useTenant } from '../../context/TenantContext';
+import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
 
 const EMIRATES = [
     { name: 'Abu Dhabi', icon: '/emiratesIcon/abudhabi.png' },
@@ -22,6 +23,7 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [rows, setRows] = useState([]);
+    const [iconUrlById, setIconUrlById] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const wrapperRef = useRef(null);
 
@@ -31,8 +33,18 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
             if (!tenantId) return;
             setIsLoading(true);
             try {
-                const res = await fetchServiceTemplates(tenantId);
+                const [res, iconRes] = await Promise.all([
+                    fetchServiceTemplates(tenantId),
+                    fetchApplicationIconLibrary(tenantId),
+                ]);
                 if (isMounted && res.ok) setRows(res.rows);
+                if (isMounted && iconRes.ok) {
+                    const next = {};
+                    (iconRes.rows || []).forEach((item) => {
+                        if (item.iconId && item.iconUrl) next[item.iconId] = item.iconUrl;
+                    });
+                    setIconUrlById(next);
+                }
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -65,7 +77,8 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
 
     const getTemplateIcon = (item) => {
         if (!item) return <Search className="h-5 w-5" />;
-        if (item.iconUrl) return <img src={item.iconUrl} className="h-full w-full object-cover rounded-lg" alt="" />;
+        const iconUrl = iconUrlById[item.iconId] || '';
+        if (iconUrl) return <img src={iconUrl} className="h-full w-full object-cover rounded-lg" alt="" />;
 
         // Match Emirates
         const name = item.name || '';

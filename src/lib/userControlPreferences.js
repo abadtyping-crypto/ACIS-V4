@@ -64,7 +64,7 @@ const defaultRolePermissions = {
     pdfStudioEdit: false,
     softDeleteTransaction: true,
     notifySoftDeleteTransaction: true,
-    hardDeleteTransaction: true,
+    hardDeleteTransaction: false,
   },
   manager: {
     createPortal: false,

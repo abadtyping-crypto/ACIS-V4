@@ -10,6 +10,7 @@ import {
   limit,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -304,6 +305,159 @@ export const upsertTenantTransaction = async (tenantId, txId, payload) => {
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] transaction upsert failed tenants/${tenantId}/transactions/${txId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const createDailyTransactionWithFinancials = async (tenantId, txId, payload) => {
+  try {
+    if (!tenantId || !txId) return { ok: false, error: 'Missing tenantId or txId.' };
+
+    const clientId = String(payload?.clientId || '').trim();
+    const portalId = String(payload?.paidPortalId || '').trim();
+    const createdBy = String(payload?.createdBy || '').trim();
+    if (!clientId || !portalId || !createdBy) {
+      return { ok: false, error: 'Missing required financial fields (clientId, paidPortalId, createdBy).' };
+    }
+
+    const clientCharge = Number(payload?.clientCharge || 0);
+    const governmentCharge = Number(payload?.govCharge ?? 0);
+    const safeClientCharge = Number.isFinite(clientCharge) ? clientCharge : 0;
+    const safeGovernmentCharge = Number.isFinite(governmentCharge) ? governmentCharge : 0;
+
+    const dailyTxRef = doc(db, 'tenants', tenantId, 'dailyTransactions', txId);
+    const clientRef = doc(db, 'tenants', tenantId, 'clients', clientId);
+    const portalRef = doc(db, 'tenants', tenantId, 'portals', portalId);
+
+    const transactionId = String(payload?.transactionId || txId).trim() || txId;
+    const portalTxId = toSafeDocId(`${transactionId}-PORT`, 'portal_tx');
+    const portalTxRef = doc(db, 'tenants', tenantId, 'portalTransactions', portalTxId);
+    const negativeBalanceNotificationId = toSafeDocId(`negative_client_balance_${txId}`, 'ntf');
+    const notificationRef = doc(db, 'tenants', tenantId, 'notifications', negativeBalanceNotificationId);
+
+    let result = {
+      ok: true,
+      clientBalanceAfter: 0,
+      portalBalanceAfter: 0,
+      createdPortalTransaction: false,
+      createdNegativeBalanceNotification: false,
+    };
+
+    await runTransaction(db, async (txn) => {
+      const [clientSnap, portalSnap] = await Promise.all([
+        txn.get(clientRef),
+        txn.get(portalRef),
+      ]);
+
+      if (!clientSnap.exists()) throw new Error('Selected client not found.');
+      if (!portalSnap.exists()) throw new Error('Selected portal not found.');
+
+      const clientData = clientSnap.data() || {};
+      const portalData = portalSnap.data() || {};
+
+      const currentClientBalanceRaw = clientData.balance ?? clientData.openingBalance ?? 0;
+      const currentPortalBalanceRaw = portalData.balance ?? 0;
+      const currentClientBalance = Number.isFinite(Number(currentClientBalanceRaw)) ? Number(currentClientBalanceRaw) : 0;
+      const currentPortalBalance = Number.isFinite(Number(currentPortalBalanceRaw)) ? Number(currentPortalBalanceRaw) : 0;
+
+      const nextClientBalance = currentClientBalance - safeClientCharge;
+      const nextPortalBalance = currentPortalBalance - safeGovernmentCharge;
+
+      txn.set(
+        dailyTxRef,
+        {
+          transactionId,
+          applicationId: String(payload?.applicationId || ''),
+          clientCharge: safeClientCharge,
+          clientId,
+          createdAt: String(payload?.createdAt || new Date().toISOString()),
+          createdBy,
+          dependentId: payload?.dependentId || null,
+          govCharge: safeGovernmentCharge,
+          invoiced: payload?.invoiced === true,
+          paidPortalId: portalId,
+          portalTransactionMethod: String(payload?.portalTransactionMethod || ''),
+          profit: Number.isFinite(Number(payload?.profit)) ? Number(payload.profit) : safeClientCharge - safeGovernmentCharge,
+          status: payload?.status || 'active',
+        },
+        { merge: false },
+      );
+
+      txn.set(
+        clientRef,
+        {
+          openingBalance: nextClientBalance,
+          balance: nextClientBalance,
+          updatedAt: serverTimestamp(),
+          updatedBy: createdBy,
+        },
+        { merge: true },
+      );
+
+      txn.set(
+        portalRef,
+        {
+          balance: nextPortalBalance,
+          balanceType: nextPortalBalance < 0 ? 'negative' : 'positive',
+          updatedAt: serverTimestamp(),
+          updatedBy: createdBy,
+        },
+        { merge: true },
+      );
+
+      if (safeGovernmentCharge > 0) {
+        txn.set(
+          portalTxRef,
+          {
+            portalId,
+            displayTransactionId: transactionId,
+            amount: -safeGovernmentCharge,
+            type: 'Daily Transaction',
+            category: 'Government Charge',
+            method: payload?.portalTransactionMethod || '',
+            description: `Government charge for ${transactionId}`,
+            date: payload?.createdAt || new Date().toISOString(),
+            entityType: 'transaction',
+            entityId: txId,
+            affectsPortalBalance: true,
+            status: 'active',
+            createdAt: serverTimestamp(),
+            createdBy,
+          },
+          { merge: true },
+        );
+        result.createdPortalTransaction = true;
+      }
+
+      if (nextClientBalance < 0) {
+        txn.set(
+          notificationRef,
+          {
+            title: 'Insufficient Client Balance',
+            message: `Transaction ${transactionId} resulted in a negative balance.`,
+            eventKey: 'negativeClientBalance',
+            tenantId,
+            transactionId: txId,
+            clientId,
+            routePath: `/t/${tenantId}/daily-transactions`,
+            targetRoles: ['staff', 'accountant', 'manager', 'admin'],
+            status: 'unread',
+            createdAt: serverTimestamp(),
+            createdBy,
+          },
+          { merge: true },
+        );
+        result.createdNegativeBalanceNotification = true;
+      }
+
+      result.clientBalanceAfter = nextClientBalance;
+      result.portalBalanceAfter = nextPortalBalance;
+    });
+
+    return result;
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] daily transaction create failed tenants/${tenantId}/dailyTransactions/${txId}: ${message}`);
     return { ok: false, error: message };
   }
 };
@@ -729,7 +883,8 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
 
 export const fetchDeletedEntities = async (tenantId, domain) => {
   try {
-    const path = `tenants/${tenantId}/${domain}`;
+    const canonicalDomain = domain === 'transactions' ? 'dailyTransactions' : domain;
+    const path = `tenants/${tenantId}/${canonicalDomain}`;
     const q = query(collection(db, path), where('deletedAt', '!=', null));
     const snap = await getDocs(q);
     return { ok: true, rows: snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) };
@@ -738,8 +893,97 @@ export const fetchDeletedEntities = async (tenantId, domain) => {
   }
 };
 
-export const restoreEntity = async (tenantId, domain, entityId) => {
+export const restoreEntity = async (tenantId, domain, entityId, restoredBy) => {
   try {
+    if (domain === 'transactions') {
+      const dailyTxRef = doc(db, 'tenants', tenantId, 'dailyTransactions', entityId);
+
+      await runTransaction(db, async (txn) => {
+        const txSnap = await txn.get(dailyTxRef);
+        if (!txSnap.exists()) throw new Error('Transaction not found.');
+        const data = txSnap.data() || {};
+        const actor = restoredBy || 'system';
+
+        const clientId = String(data?.clientId || '').trim();
+        const portalId = String(data?.paidPortalId || '').trim();
+        const clientChargeRaw = Number(data?.clientCharge ?? 0);
+        const governmentChargeRaw = Number(data?.govCharge ?? 0);
+        const clientCharge = Number.isFinite(clientChargeRaw) ? Math.abs(clientChargeRaw) : 0;
+        const governmentCharge = Number.isFinite(governmentChargeRaw) ? Math.abs(governmentChargeRaw) : 0;
+        const displayTxId = String(data?.transactionId || entityId);
+
+        if (clientId) {
+          const clientRef = doc(db, 'tenants', tenantId, 'clients', clientId);
+          const clientSnap = await txn.get(clientRef);
+          if (clientSnap.exists()) {
+            const clientData = clientSnap.data() || {};
+            const currentBalanceRaw = clientData?.balance ?? clientData?.openingBalance ?? 0;
+            const currentBalance = Number.isFinite(Number(currentBalanceRaw)) ? Number(currentBalanceRaw) : 0;
+            const nextBalance = currentBalance - clientCharge;
+            txn.set(clientRef, {
+              openingBalance: nextBalance,
+              balance: nextBalance,
+              updatedAt: serverTimestamp(),
+              updatedBy: actor,
+            }, { merge: true });
+          }
+        }
+
+        if (portalId && governmentCharge > 0) {
+          const portalRef = doc(db, 'tenants', tenantId, 'portals', portalId);
+          const portalSnap = await txn.get(portalRef);
+          if (portalSnap.exists()) {
+            const portalData = portalSnap.data() || {};
+            const currentPortalBalance = Number.isFinite(Number(portalData?.balance))
+              ? Number(portalData.balance)
+              : 0;
+            const nextPortalBalance = currentPortalBalance - governmentCharge;
+            txn.set(portalRef, {
+              balance: nextPortalBalance,
+              balanceType: nextPortalBalance < 0 ? 'negative' : 'positive',
+              updatedAt: serverTimestamp(),
+              updatedBy: actor,
+            }, { merge: true });
+          }
+
+          const restorePortalTxId = toSafeDocId(`${entityId}-restore-charge`, 'portal_tx');
+          txn.set(
+            doc(db, 'tenants', tenantId, 'portalTransactions', restorePortalTxId),
+            {
+              portalId,
+              displayTransactionId: `${displayTxId}-RSTR`,
+              amount: -governmentCharge,
+              type: 'Daily Transaction Restore',
+              category: 'Recycle Bin',
+              method: String(data?.portalTransactionMethod || ''),
+              description: `Charge reapplied after restore for ${displayTxId}`,
+              date: new Date().toISOString(),
+              entityType: 'transaction',
+              entityId,
+              affectsPortalBalance: true,
+              status: 'active',
+              createdAt: serverTimestamp(),
+              createdBy: actor,
+              updatedAt: serverTimestamp(),
+              updatedBy: actor,
+            },
+            { merge: true },
+          );
+        }
+
+        const restorePayload = {
+          deletedAt: deleteField(),
+          deletedBy: deleteField(),
+          status: 'active',
+          lifecycleTag: 'revisalo',
+          restoredAt: serverTimestamp(),
+          restoredBy: actor,
+        };
+        txn.set(dailyTxRef, restorePayload, { merge: true });
+      });
+      return { ok: true };
+    }
+
     const ref = doc(db, 'tenants', tenantId, domain, entityId);
     await updateDoc(ref, {
       deletedAt: deleteField(),
@@ -754,7 +998,8 @@ export const restoreEntity = async (tenantId, domain, entityId) => {
 
 export const permanentlyDeleteEntity = async (tenantId, domain, entityId) => {
   try {
-    const ref = doc(db, 'tenants', tenantId, domain, entityId);
+    const canonicalDomain = domain === 'transactions' ? 'dailyTransactions' : domain;
+    const ref = doc(db, 'tenants', tenantId, canonicalDomain, entityId);
     await deleteDoc(ref);
     return { ok: true };
   } catch (error) {
@@ -847,12 +1092,22 @@ export const searchClients = async (tenantId, queryStr) => {
 
 export const fetchTenantTransactions = async (tenantId) => {
   try {
-    const snap = await getDocs(collection(db, 'tenants', tenantId, 'transactions'));
-    const rows = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    const snap = await getDocs(collection(db, 'tenants', tenantId, 'dailyTransactions'));
+    const rows = snap.docs.map((item) => {
+      const data = item.data() || {};
+      return {
+        id: item.id,
+        ...data,
+        displayTransactionId: data.transactionId || item.id,
+        amount: Number(data.clientCharge || 0),
+        date: data.createdAt || null,
+        type: 'Daily Transaction',
+      };
+    });
     return { ok: true, rows };
   } catch (error) {
     const message = toSafeError(error);
-    console.warn(`[backendStore] transactions read failed tenants/${tenantId}/transactions: ${message}`);
+    console.warn(`[backendStore] transactions read failed tenants/${tenantId}/dailyTransactions: ${message}`);
     return { ok: false, error: message, rows: [] };
   }
 };
@@ -1444,18 +1699,144 @@ export const sendTenantWelcomeEmail = async (
  */
 export const softDeleteTransaction = async (tenantId, txId, deletedBy) => {
   try {
-    const txRef = doc(db, 'tenants', tenantId, 'transactions', txId);
-    const txSnap = await getDoc(txRef);
-    if (!txSnap.exists()) return { ok: false, error: 'Transaction not found.' };
+    const dailyTxRef = doc(db, 'tenants', tenantId, 'dailyTransactions', txId);
 
-    const data = txSnap.data();
-    if (data?.invoiceId) return { ok: false, error: 'Cannot delete an invoiced transaction.' };
+    await runTransaction(db, async (txn) => {
+      const txSnap = await txn.get(dailyTxRef);
+      if (!txSnap.exists()) throw new Error('Transaction not found.');
 
-    await setDoc(txRef, {
-      deletedAt: serverTimestamp(),
-      deletedBy: deletedBy || 'unknown',
-      status: 'deleted'
-    }, { merge: true });
+      const data = txSnap.data() || {};
+      const normalizedStatus = String(data?.status || '').toLowerCase();
+      const isInvoiced = data?.invoiced === true || Boolean(data?.invoiceId) || normalizedStatus === 'invoiced';
+      if (isInvoiced) {
+        throw new Error('This application cannot be deleted because this application already converted to invoice.');
+      }
+
+      if (data?.deletedAt || normalizedStatus === 'deleted') return;
+
+      const clientId = String(data?.clientId || '').trim();
+      const portalId = String(data?.paidPortalId || '').trim();
+      const clientChargeRaw = Number(data?.clientCharge ?? 0);
+      const governmentChargeRaw = Number(data?.govCharge ?? 0);
+      const clientCharge = Number.isFinite(clientChargeRaw) ? Math.abs(clientChargeRaw) : 0;
+      const governmentCharge = Number.isFinite(governmentChargeRaw) ? Math.abs(governmentChargeRaw) : 0;
+
+      const actorId = deletedBy || 'unknown';
+      const displayTxId = String(data?.transactionId || txId);
+      const deletedPayload = {
+        status: 'deleted',
+        deletedAt: serverTimestamp(),
+        deletedBy: actorId,
+      };
+
+      if (clientId) {
+        const clientRef = doc(db, 'tenants', tenantId, 'clients', clientId);
+        const clientSnap = await txn.get(clientRef);
+        if (clientSnap.exists()) {
+          const clientData = clientSnap.data() || {};
+          const currentBalanceRaw = clientData?.balance ?? clientData?.openingBalance ?? 0;
+          const currentBalance = Number.isFinite(Number(currentBalanceRaw)) ? Number(currentBalanceRaw) : 0;
+          const nextBalance = currentBalance + clientCharge;
+          txn.set(clientRef, {
+            openingBalance: nextBalance,
+            balance: nextBalance,
+            updatedAt: serverTimestamp(),
+            updatedBy: actorId,
+          }, { merge: true });
+        }
+      }
+
+      if (portalId) {
+        const portalRef = doc(db, 'tenants', tenantId, 'portals', portalId);
+        const portalSnap = await txn.get(portalRef);
+        if (portalSnap.exists()) {
+          const portalData = portalSnap.data() || {};
+          const currentPortalBalance = Number.isFinite(Number(portalData?.balance))
+            ? Number(portalData.balance)
+            : 0;
+          const nextPortalBalance = currentPortalBalance + governmentCharge;
+
+          txn.set(portalRef, {
+            balance: nextPortalBalance,
+            balanceType: nextPortalBalance < 0 ? 'negative' : 'positive',
+            updatedAt: serverTimestamp(),
+            updatedBy: actorId,
+          }, { merge: true });
+        }
+
+        if (governmentCharge > 0) {
+          const reversalPortalTxId = toSafeDocId(`${txId}-soft-delete-reversal`, 'portal_tx');
+          txn.set(
+            doc(db, 'tenants', tenantId, 'portalTransactions', reversalPortalTxId),
+            {
+              portalId,
+              displayTransactionId: `${displayTxId}-REV`,
+              amount: governmentCharge,
+              type: 'Daily Transaction Reversal',
+              category: 'Recycle Bin',
+              method: String(data?.portalTransactionMethod || ''),
+              description: `Reversal after soft delete for ${displayTxId}`,
+              date: new Date().toISOString(),
+              entityType: 'transaction',
+              entityId: txId,
+              affectsPortalBalance: true,
+              status: 'active',
+              createdAt: serverTimestamp(),
+              createdBy: actorId,
+              updatedAt: serverTimestamp(),
+              updatedBy: actorId,
+            },
+            { merge: true },
+          );
+        }
+      }
+
+      const softDeleteNotificationId = toSafeDocId(`soft-delete-${txId}`, 'ntf');
+      txn.set(
+        doc(db, 'tenants', tenantId, 'notifications', softDeleteNotificationId),
+        {
+          title: 'Application moved to recycle bin',
+          message: `${displayTxId} is in recycle bin. Confirm and retrieve if needed.`,
+          eventKey: 'softDeleteTransaction',
+          tenantId,
+          transactionId: txId,
+          entityId: txId,
+          entityType: 'transaction',
+          routePath: `/t/${tenantId}/daily-transactions`,
+          actionLabel: 'Confirm & Retrieve',
+          actionType: 'restore',
+          status: 'unread',
+          createdAt: serverTimestamp(),
+          createdBy: actorId,
+          updatedAt: serverTimestamp(),
+          updatedBy: actorId,
+        },
+        { merge: true },
+      );
+
+      txn.set(
+        doc(db, 'tenants', tenantId, 'notifications', toSafeDocId(`hard-delete-option-${txId}`, 'ntf')),
+        {
+          title: 'Permanent remove or Retrieve this application',
+          message: `${displayTxId} can be permanently removed or retrieved from recycle bin.`,
+          eventKey: 'hardDeleteTransaction',
+          tenantId,
+          transactionId: txId,
+          entityId: txId,
+          entityType: 'transaction',
+          routePath: `/t/${tenantId}/daily-transactions`,
+          status: 'unread',
+          targetRoles: ['manager', 'admin'],
+          createdAt: serverTimestamp(),
+          createdBy: actorId,
+          updatedAt: serverTimestamp(),
+          updatedBy: actorId,
+        },
+        { merge: true },
+      );
+
+      txn.set(dailyTxRef, deletedPayload, { merge: true });
+    });
 
     return { ok: true };
   } catch (error) {
@@ -1465,12 +1846,20 @@ export const softDeleteTransaction = async (tenantId, txId, deletedBy) => {
   }
 };
 
+export const updateDailyTransactionReference = async (tenantId, txId, referenceValue, updatedBy) => {
+  void tenantId;
+  void txId;
+  void referenceValue;
+  void updatedBy;
+  return { ok: false, error: 'Tracking write is disabled in this phase.' };
+};
+
 /**
  * Fetches recent active daily transactions for a tenant.
  */
 export const fetchRecentDailyTransactions = async (tenantId, limitCount = 50) => {
   try {
-    const txRef = collection(db, 'tenants', tenantId, 'transactions');
+    const txRef = collection(db, 'tenants', tenantId, 'dailyTransactions');
     const q = query(
       txRef,
       where('status', '==', 'active'),

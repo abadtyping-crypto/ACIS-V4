@@ -33,7 +33,7 @@ export const useRecycleBinData = (tenantId, domain, createdBy) => {
     }, [refresh]);
 
     const restoreItem = async (itemId) => {
-        const res = await restoreBackend(tenantId, domain, itemId);
+        const res = await restoreBackend(tenantId, domain, itemId, createdBy || 'system');
         if (res.ok) {
             await createSyncEvent({
                 tenantId,

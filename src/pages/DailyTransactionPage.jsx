@@ -5,20 +5,32 @@ import { useTenant } from '../context/TenantContext';
 import { useAuth } from '../context/AuthContext';
 import {
     generateNextTransactionId,
-    upsertTenantTransaction,
+    createDailyTransactionWithFinancials,
     fetchTenantPortals,
     fetchTenantClients
 } from '../lib/backendStore';
 import { createSyncEvent } from '../lib/syncEvents';
-import { toSafeDocId } from '../lib/idUtils';
 import ClientSearchField from '../components/dailyTransaction/ClientSearchField';
 import ServiceSearchField from '../components/dailyTransaction/ServiceSearchField';
 import TransactionLiveList from '../components/dailyTransaction/TransactionLiveList';
 import QuickAddServiceTemplateModal from '../components/dailyTransaction/QuickAddServiceTemplateModal';
+import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
 import DirhamIcon from '../components/common/DirhamIcon';
-import { CreditCard, Plus, ArrowLeftRight, Clock, Info, FileText, Calendar, User, Users } from 'lucide-react';
+import { Plus, FileText, Calendar } from 'lucide-react';
 
 const inputClass = "mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5 font-bold";
+const selectClass = "mt-1 w-full rounded-2xl border-2 border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm font-black text-[var(--c-text)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-500/20";
+
+const transactionMethods = [
+    { id: 'cashByHand', label: 'Cash by Hand', icon: '/portals/methods/cashByHand.png' },
+    { id: 'bankTransfer', label: 'Bank Transfer', icon: '/portals/methods/banktransfer.png' },
+    { id: 'cdmDeposit', label: 'CDM Deposit', icon: '/portals/methods/cdmDeposit.png' },
+    { id: 'checqueDeposit', label: 'Cheque Deposit', icon: '/portals/methods/checqueDeposit.png' },
+    { id: 'onlinePayment', label: 'Online Payment', icon: '/portals/methods/onlinePayment.png' },
+    { id: 'cashWithdrawals', label: 'Cash Withdrawals', icon: '/portals/methods/cashWithdrawal.png' },
+    { id: 'tabby', label: 'Tabby', icon: '/portals/methods/tabby.png' },
+    { id: 'Tamara', label: 'Tamara', icon: '/portals/methods/tamara.png' },
+];
 
 const DailyTransactionPage = () => {
     const { tenantId } = useTenant();
@@ -30,12 +42,11 @@ const DailyTransactionPage = () => {
     const [selectedDependent, setSelectedDependent] = useState(null);
     const [selectedService, setSelectedService] = useState(null);
     const [selectedPortalId, setSelectedPortalId] = useState('');
+    const [selectedPortalMethod, setSelectedPortalMethod] = useState('');
     const [dtid, setDtid] = useState('');
-    const [trkid, setTrkid] = useState('');
     const [govCharge, setGovCharge] = useState('');
     const [clientCharge, setClientCharge] = useState('');
     const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0]);
-    const [note, setNote] = useState('');
 
     const [portals, setPortals] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
@@ -45,6 +56,7 @@ const DailyTransactionPage = () => {
     const [serviceRefreshKey, setServiceRefreshKey] = useState(0);
     const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [hasDependentsForSelectedClient, setHasDependentsForSelectedClient] = useState(false);
+    const [methodIconMap, setMethodIconMap] = useState({});
 
     // Context from URL
     const urlClientId = searchParams.get('clientId');
@@ -61,7 +73,8 @@ const DailyTransactionPage = () => {
             setDtid(id);
             if (portalRes.ok) {
                 setPortals(portalRes.rows);
-                if (portalRes.rows.length > 0) setSelectedPortalId(portalRes.rows[0].id);
+                setSelectedPortalId('');
+                setSelectedPortalMethod('');
             }
 
             if (clientRes.ok && urlClientId) {
@@ -107,11 +120,38 @@ const DailyTransactionPage = () => {
         };
     }, [tenantId, selectedParent?.id]);
 
+    useEffect(() => {
+        if (!tenantId) return;
+        let isMounted = true;
+        fetchApplicationIconLibrary(tenantId).then((res) => {
+            if (!isMounted || !res.ok) return;
+            const next = {};
+            (res.rows || []).forEach((row) => {
+                const key = String(row?.iconId || '').trim().toLowerCase();
+                if (!key || !row?.iconUrl) return;
+                next[key] = row.iconUrl;
+            });
+            setMethodIconMap(next);
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, [tenantId]);
+
     const profit = useMemo(() => {
         const c = Number(clientCharge) || 0;
         const g = Number(govCharge) || 0;
         return c - g;
     }, [clientCharge, govCharge]);
+
+    const selectedPortal = useMemo(
+        () => portals.find((item) => item.id === selectedPortalId) || null,
+        [portals, selectedPortalId],
+    );
+    const portalMethods = useMemo(
+        () => transactionMethods.filter((method) => (selectedPortal?.methods || []).includes(method.id)),
+        [selectedPortal],
+    );
 
     const handleServiceSelect = (tpl) => {
         setSelectedService(tpl);
@@ -125,8 +165,6 @@ const DailyTransactionPage = () => {
         setSelectedService(null);
         setGovCharge('');
         setClientCharge('');
-        setNote('');
-        setTrkid('');
         setSuccess('');
         setError('');
         const nextId = await generateNextTransactionId(tenantId, 'DTID');
@@ -139,34 +177,31 @@ const DailyTransactionPage = () => {
         if (!clientToSave) return setError('Please select a client.');
         if (!selectedService) return setError('Please select an application type.');
         if (!selectedPortalId) return setError('Please select a payment portal.');
+        if (!selectedPortalMethod) return setError('Please select a portal transaction method.');
         if (!clientCharge || isNaN(clientCharge)) return setError('Invalid client charge.');
 
         setIsSaving(true);
         setError('');
 
-        const txId = toSafeDocId(dtid, 'tx');
+        const txId = dtid;
+        const selectedClient = selectedParent;
         const payload = {
-            displayTransactionId: dtid,
-            trackingId: trkid || '',
-            clientId: clientToSave.id,
-            clientName: clientToSave.fullName || clientToSave.tradeName,
-            clientType: clientToSave.type,
-            parentId: selectedParent?.id || null,
-            portalId: selectedPortalId,
-            serviceName: selectedService?.name || 'Manual Service',
-            serviceId: selectedService?.id || null,
+            transactionId: dtid,
+            applicationId: selectedService?.id || null,
+            clientId: selectedClient?.id || clientToSave.id,
+            dependentId: selectedDependent?.id || null,
+            paidPortalId: selectedPortalId,
+            portalTransactionMethod: selectedPortalMethod,
             govCharge: Number(govCharge || 0),
             clientCharge: Number(clientCharge || 0),
-            amount: Number(clientCharge || 0),
             profit: profit,
-            note: note,
-            date: new Date(transactionDate).toISOString(),
             status: 'active',
+            invoiced: false,
             createdBy: user.uid,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(transactionDate).toISOString(),
         };
 
-        const res = await upsertTenantTransaction(tenantId, txId, payload);
+        const res = await createDailyTransactionWithFinancials(tenantId, txId, payload);
         if (res.ok) {
             await createSyncEvent({
                 tenantId,
@@ -191,8 +226,7 @@ const DailyTransactionPage = () => {
             subtitle="Record and manage daily applications and financial entries."
             icon={Plus}
         >
-            <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-                <div className="space-y-6">
+            <div className="space-y-6">
                     {/* Hero Header matching screenshot */}
                     <div className="flex items-center gap-4 rounded-3xl bg-sky-500/10 p-6 border border-sky-500/20 shadow-sm">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-500/20">
@@ -297,7 +331,7 @@ const DailyTransactionPage = () => {
                             )}
                         </div>
 
-                        {/* Section 3: Financials & Description */}
+                        {/* Section 3: Financials */}
                         <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm space-y-6">
                             <div className="grid gap-4 sm:grid-cols-2 font-bold">
                                 <div className="space-y-1.5">
@@ -334,12 +368,16 @@ const DailyTransactionPage = () => {
                                 <div className="space-y-1.5">
                                     <label className="text-[11px] font-black uppercase tracking-wider text-[var(--c-text)]">Paid Portal *</label>
                                     <select
-                                        className={inputClass}
+                                        className={selectClass}
                                         value={selectedPortalId}
-                                        onChange={(e) => setSelectedPortalId(e.target.value)}
+                                        onChange={(e) => {
+                                            const portalId = e.target.value;
+                                            setSelectedPortalId(portalId);
+                                            setSelectedPortalMethod('');
+                                        }}
                                         required
                                     >
-                                        <option value="">Select payment portal...</option>
+                                        <option value="">Select payment portal first...</option>
                                         {portals.map(p => (
                                             <option key={p.id} value={p.id}>{p.name} ({p.balance})</option>
                                         ))}
@@ -347,32 +385,37 @@ const DailyTransactionPage = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <div className="flex items-center gap-1">
-                                    <label className="text-[11px] font-black uppercase tracking-wider text-[var(--c-text)]">Description (Optional)</label>
-                                    <Info size={12} className="text-[var(--c-muted)]" />
-                                </div>
-                                <input
-                                    className={inputClass}
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    placeholder="Portal reference / application number (optional)"
-                                />
+                            <div className="space-y-2">
+                                <label className="text-[11px] font-black uppercase tracking-wider text-[var(--c-text)]">Portal Transaction Method *</label>
+                                {!selectedPortalId ? (
+                                    <div className="rounded-2xl border-2 border-dashed border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
+                                        Select a payment portal first to view transaction methods.
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        {portalMethods.map((method) => {
+                                            const iconUrl = methodIconMap[String(method.id).toLowerCase()] || method.icon;
+                                            const active = selectedPortalMethod === method.id;
+                                            return (
+                                                <button
+                                                    key={method.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedPortalMethod(method.id)}
+                                                    className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition ${active ? 'border-sky-500 bg-sky-500/10 shadow-sm' : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:border-sky-400/60'}`}
+                                                >
+                                                    <img src={iconUrl} alt={method.label} className="h-6 w-6 object-contain" />
+                                                    <span className="text-xs font-black text-[var(--c-text)]">{method.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2 pt-2 border-t border-[var(--c-border)]/50">
+                            <div className="grid gap-4 md:grid-cols-1 pt-2 border-t border-[var(--c-border)]/50">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Internal TX ID</label>
                                     <input className={`${inputClass} !bg-transparent border-dashed opacity-60`} value={dtid} readOnly />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Tracking ID (Optional)</label>
-                                    <input
-                                        className={`${inputClass} !bg-transparent border-dashed opacity-60`}
-                                        value={trkid}
-                                        onChange={(e) => setTrkid(e.target.value)}
-                                        placeholder="Reference..."
-                                    />
                                 </div>
                             </div>
                         </div>
@@ -395,24 +438,6 @@ const DailyTransactionPage = () => {
                         tenantId={tenantId}
                         refreshKey={refreshListKey}
                     />
-                </div>
-
-                <aside className="space-y-6">
-                    <section className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--c-muted)]">
-                            <Info className="h-3 w-3" />
-                            <span>Quick Insights</span>
-                        </div>
-                        <div className="mt-4 space-y-4">
-                            <div className="rounded-2xl bg-[var(--c-panel)] p-4 border border-[var(--c-border)]/40">
-                                <p className="text-xs font-black text-[var(--c-text)]">Efficient Searching</p>
-                                <p className="mt-1 text-[10px] text-[var(--c-muted)] leading-relaxed">
-                                    Selecting a company/client first narrows down the list of employees/dependents, ensuring accuracy for large organizations.
-                                </p>
-                            </div>
-                        </div>
-                    </section>
-                </aside>
             </div>
             <QuickAddServiceTemplateModal
                 isOpen={isQuickAddOpen}

@@ -3,7 +3,6 @@ import {
     deleteDoc,
     doc,
     getDocs,
-    serverTimestamp,
     setDoc,
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
@@ -22,12 +21,22 @@ const toSafeError = (error) => {
 export const fetchServiceTemplates = async (tenantId) => {
     try {
         if (!tenantId) return { ok: false, error: 'Missing tenantId', rows: [] };
-        const snap = await getDocs(collection(db, 'tenants', tenantId, 'serviceTemplates'));
-        const rows = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+        const [servicesSnap, legacySnap] = await Promise.all([
+            getDocs(collection(db, 'tenants', tenantId, 'services')),
+            getDocs(collection(db, 'tenants', tenantId, 'serviceTemplates')),
+        ]);
+        const byId = {};
+        servicesSnap.docs.forEach((item) => {
+            byId[item.id] = { id: item.id, ...item.data() };
+        });
+        legacySnap.docs.forEach((item) => {
+            if (!byId[item.id]) byId[item.id] = { id: item.id, ...item.data() };
+        });
+        const rows = Object.values(byId);
         return { ok: true, rows };
     } catch (error) {
         const message = toSafeError(error);
-        console.warn(`[serviceTemplateStore] read failed tenants/${tenantId}/serviceTemplates: ${message}`);
+        console.warn(`[serviceTemplateStore] read failed tenants/${tenantId}/services: ${message}`);
         return { ok: false, error: message, rows: [] };
     }
 };
@@ -38,14 +47,13 @@ export const fetchServiceTemplates = async (tenantId) => {
 export const upsertServiceTemplate = async (tenantId, templateId, payload) => {
     try {
         if (!tenantId || !templateId) return { ok: false, error: 'Missing tenantId or templateId' };
-        await setDoc(doc(db, 'tenants', tenantId, 'serviceTemplates', templateId), {
+        await setDoc(doc(db, 'tenants', tenantId, 'services', templateId), {
             ...payload,
-            updatedAt: serverTimestamp(),
         }, { merge: true });
         return { ok: true };
     } catch (error) {
         const message = toSafeError(error);
-        console.warn(`[serviceTemplateStore] upsert failed tenants/${tenantId}/serviceTemplates/${templateId}: ${message}`);
+        console.warn(`[serviceTemplateStore] upsert failed tenants/${tenantId}/services/${templateId}: ${message}`);
         return { ok: false, error: message };
     }
 };
@@ -56,11 +64,11 @@ export const upsertServiceTemplate = async (tenantId, templateId, payload) => {
 export const deleteServiceTemplate = async (tenantId, templateId) => {
     try {
         if (!tenantId || !templateId) return { ok: false, error: 'Missing tenantId or templateId' };
-        await deleteDoc(doc(db, 'tenants', tenantId, 'serviceTemplates', templateId));
+        await deleteDoc(doc(db, 'tenants', tenantId, 'services', templateId));
         return { ok: true };
     } catch (error) {
         const message = toSafeError(error);
-        console.warn(`[serviceTemplateStore] delete failed tenants/${tenantId}/serviceTemplates/${templateId}: ${message}`);
+        console.warn(`[serviceTemplateStore] delete failed tenants/${tenantId}/services/${templateId}: ${message}`);
         return { ok: false, error: message };
     }
 };
