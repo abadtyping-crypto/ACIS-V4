@@ -175,6 +175,7 @@ const BrandDetailsSection = () => {
     uiTertiaryColor: '#6DE3D7',
     uiTextOnAccent: '#FFFFFF',
     uiGradientEnabled: true,
+    locationPin: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -228,6 +229,7 @@ const BrandDetailsSection = () => {
         uiTertiaryColor: normalizeHexColor(data.uiTertiaryColor, '#6DE3D7'),
         uiTextOnAccent: normalizeHexColor(data.uiTextOnAccent, '#FFFFFF'),
         uiGradientEnabled: data.uiGradientEnabled !== false,
+        locationPin: String(data.locationPin || ''),
       }));
       const incomingLibrary = Array.isArray(data.logoLibrary) ? data.logoLibrary : [];
       const normalizedLibrary = defaultLogoLibrary.map((slot) => {
@@ -435,6 +437,7 @@ const BrandDetailsSection = () => {
       uiTertiaryColor: normalizeHexColor(form.uiTertiaryColor, '#6DE3D7'),
       uiTextOnAccent: normalizeHexColor(form.uiTextOnAccent, '#FFFFFF'),
       uiGradientEnabled: Boolean(form.uiGradientEnabled),
+      locationPin: String(form.locationPin || '').trim(),
       logoLibrary: defaultLogoLibrary.map((baseSlot) => {
         const slot = logoLibrary.find((item) => item.slotId === baseSlot.slotId) || baseSlot;
         return {
@@ -524,6 +527,7 @@ const BrandDetailsSection = () => {
       uiTertiaryColor: payload.uiTertiaryColor,
       uiTextOnAccent: payload.uiTextOnAccent,
       uiGradientEnabled: payload.uiGradientEnabled,
+      locationPin: payload.locationPin,
     }));
 
     const write = await upsertTenantSettingDoc(tenantId, 'branding', payload);
@@ -733,17 +737,41 @@ const BrandDetailsSection = () => {
           />
         </label>
 
+        <label className={`${labelClass} sm:col-span-2`}>
+          Google Maps Location Pin (URL)
+          <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
+            <input
+              className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
+              value={form.locationPin}
+              onChange={(event) => updateField('locationPin', event.target.value)}
+              placeholder="https://maps.google.com/..."
+            />
+            {form.locationPin && (
+              <a
+                href={form.locationPin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 text-xs font-semibold text-[var(--c-accent)] hover:underline"
+              >
+                Test Pin
+              </a>
+            )}
+          </div>
+          <p className="mt-1 text-[10px] text-[var(--c-muted)]">
+            Paste the Google Maps "Share" link or "Plus Code" here for future reference.
+          </p>
+        </label>
+
         <div className="sm:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium text-[var(--c-text)]">Tax / Registration</p>
             <button
               type="button"
               onClick={() => updateField('taxEnabled', !form.taxEnabled)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                form.taxEnabled
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
-                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-              }`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${form.taxEnabled
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
+                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                }`}
             >
               {form.taxEnabled ? 'Enabled' : 'Disabled'}
             </button>
@@ -1064,7 +1092,7 @@ const BrandDetailsSection = () => {
         </button>
         {saveMessage ? <p className="text-sm text-[var(--c-muted)]">{saveMessage}</p> : null}
       </div>
-    </SettingCard>
+    </SettingCard >
   );
 };
 

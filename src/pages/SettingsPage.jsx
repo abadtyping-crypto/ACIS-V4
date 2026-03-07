@@ -10,6 +10,7 @@ import IDRulesSection from '../components/settings/IDRulesSection';
 import PdfCustomizationStudioSection from '../components/settings/PdfCustomizationStudioSection';
 import MailConfigurationSection from '../components/settings/MailConfigurationSection';
 import ApplicationIconLibrarySection from '../components/settings/ApplicationIconLibrarySection';
+import EmailTemplateSection from '../components/settings/EmailTemplateSection';
 import { useTenant } from '../context/TenantContext';
 
 const SETTINGS_SECTIONS = [
@@ -20,6 +21,7 @@ const SETTINGS_SECTIONS = [
   { key: 'users', label: 'User Management' },
   { key: 'control', label: 'User Control Center' },
   { key: 'mail', label: 'Mail Configuration' },
+  { key: 'mailTemplates', label: 'Email Templates' },
   { key: 'security', label: 'Security' },
   { key: 'counters', label: 'ID Rules & Counters' },
 ];
@@ -36,6 +38,7 @@ const SettingsPage = () => {
     if (activeSection === 'users') return <UserCustomizationSection />;
     if (activeSection === 'control') return <UserControlCenterSection />;
     if (activeSection === 'mail') return <MailConfigurationSection />;
+    if (activeSection === 'mailTemplates') return <EmailTemplateSection />;
     if (activeSection === 'counters') return <IDRulesSection />;
     return <SecuritySection />;
   }, [activeSection]);

@@ -129,3 +129,11 @@ a[class*='bg-[var(--c-accent)]'] {
 .dirham-icon {
   filter: var(--dirham-filter);
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

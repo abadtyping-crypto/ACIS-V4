@@ -575,7 +575,10 @@ const PortalDetailPage = () => {
       email,
       'portalStatement',
       pdfRes.base64,
-      { txId: data.txId }
+      {
+        txId: data.txId,
+        recipientName: portal?.name || portalId
+      }
     );
     setIsStatementSending(false);
     if (!emailRes.ok) {

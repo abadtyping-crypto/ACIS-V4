@@ -1247,22 +1247,55 @@ export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdf
 
     const tenantRef = doc(db, 'tenants', tenantId);
     const tenantSnap = await getDoc(tenantRef);
-    const tenantName = tenantSnap.exists() ? tenantSnap.data().name : 'ACIS Platform';
+    const tenantData = tenantSnap.exists() ? tenantSnap.data() : {};
+    const tenantName = tenantData.name || 'ACIS Platform';
+    const brandColor = tenantData.brandColor || '#0074e8';
 
     const cleanType = documentType.replace(/([A-Z])/g, ' $1').toLowerCase();
-    const subject = `${tenantName} - Your ${cleanType}`;
-    const html = `
-      <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
-        <h2 style="color: #444;">Hello,</h2>
-        <p>Please find attached your <strong>${cleanType}</strong> for transaction <strong>${data.txId}</strong>.</p>
-        <p>This document was generated and sent via <strong>${tenantName}</strong>.</p>
-        <br/>
-        <hr style="border: none; border-top: 1px solid #eee;" />
-        <footer style="font-size: 11px; color: #999;">
-          This is an automated administrative message. Please do not reply directly to this email.
-        </footer>
+
+    // Choose template based on document type
+    let subjectTemplate = `${tenantName} - Your ${cleanType}`;
+    let htmlTemplate = `
+      <div style="background-color: #f8fafc; padding: 40px 20px; font-family: sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+          <div style="background-color: {{brandColor}}; height: 6px;"></div>
+          <div style="padding: 40px;">
+            <p style="margin: 0 0 20px; font-size: 20px; font-weight: 800; color: #1e293b; letter-spacing: -0.02em;">{{tenantName}}</p>
+            <div style="color: #475569; font-size: 16px; line-height: 1.6;">
+              <h2 style="color: #1e293b; font-size: 18px; margin-top: 0;">Hello {{recipientName}},</h2>
+              <p>Please find attached your <strong>{{documentType}}</strong> for transaction <strong>{{txId}}</strong>.</p>
+              <p>This document was generated and delivered via <strong>{{tenantName}}</strong>.</p>
+              <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
+                <p style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b;">Best regards,</p>
+                <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">The {{tenantName}} Team</p>
+                <p style="margin: 16px 0 0; font-size: 12px; color: #94a3b8;">Questions? <a href="mailto:{{supportEmail}}" style="color: {{brandColor}}; text-decoration: none;">{{supportEmail}}</a></p>
+              </div>
+            </div>
+          </div>
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #f1f5f9;">
+            <p style="margin: 0; font-size: 11px; color: #94a3b8;">© {{year}} {{tenantName}}. All rights reserved.</p>
+          </div>
+        </div>
       </div>
     `;
+
+    if (documentType === 'portalStatement') {
+      subjectTemplate = cfg.statementSubject || subjectTemplate;
+      htmlTemplate = cfg.statementHtml || htmlTemplate;
+    }
+
+    const tokens = {
+      tenantName,
+      brandColor,
+      year: new Date().getFullYear(),
+      recipientName: data.recipientName || 'Client',
+      documentType: cleanType,
+      txId: data.txId || '-',
+      supportEmail: cfg.replyTo || cfg.fromEmail || '',
+    };
+
+    const subject = applyTemplateTokens(subjectTemplate, tokens);
+    const html = applyTemplateTokens(htmlTemplate, tokens);
 
     const attachments = [
       {
@@ -1371,10 +1404,15 @@ export const sendTenantWelcomeEmail = async (
       '<h3>Welcome {{clientName}}</h3><p>Your client ID is <strong>{{displayClientId}}</strong>.</p><p>Thank you for joining {{tenantName}}.</p>';
 
     const tenantSnap = await getDoc(doc(db, 'tenants', tenantId));
-    const tenantName = tenantSnap.exists() ? tenantSnap.data().name || 'Our Organization' : 'Our Organization';
+    const tenantData = tenantSnap.exists() ? tenantSnap.data() : {};
+    const tenantName = tenantData.name || 'Our Organization';
+    const brandColor = tenantData.brandColor || '#0074e8';
 
     const tokens = {
       tenantName,
+      brandColor,
+      year: new Date().getFullYear(),
+      recipientName: clientName || 'Client',
       clientName: clientName || 'Client',
       clientType: clientType || 'client',
       displayClientId: displayClientId || '-',

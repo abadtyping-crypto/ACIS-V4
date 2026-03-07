@@ -46,8 +46,8 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
 
   return (
     <aside className={`desktop-sidebar hidden h-full shrink-0 overflow-hidden border-r border-[var(--c-border)] glass transition-all duration-300 lg:block ${isCollapsed ? 'w-[5.5rem]' : 'w-[17.8rem]'}`}>
-      <div className="flex h-full flex-col justify-between">
-        <div className={`${isCollapsed ? 'px-2.5 py-4' : 'px-3 py-4'}`}>
+      <div className="flex h-full flex-col">
+        <div className={`flex-1 overflow-y-auto scrollbar-hide ${isCollapsed ? 'px-2.5 py-4' : 'px-3 py-4'}`}>
           <nav className="space-y-1.5">
             {visibleNavItems.map((item) => (
               <div key={item.key} className="group relative flex items-center gap-1">

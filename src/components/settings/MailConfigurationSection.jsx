@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
-import { fetchTenantMailConfig, sendTenantWelcomeEmail, upsertTenantMailConfig } from '../../lib/backendStore';
+import { fetchTenantMailConfig, upsertTenantMailConfig } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import SettingCard from './SettingCard';
 
@@ -19,13 +19,7 @@ const MailConfigurationSection = () => {
         fromName: '',
         fromEmail: '',
         replyTo: '',
-        enableWelcomeEmail: false,
-        welcomeForCompany: true,
-        welcomeForIndividual: true,
-        welcomeSubject: 'Welcome to {{tenantName}}',
-        welcomeHtml: '<h3>Welcome {{clientName}}</h3><p>Your client ID: <strong>{{displayClientId}}</strong></p><p>Thank you for joining {{tenantName}}.</p>',
     });
-    const [testWelcomeTo, setTestWelcomeTo] = useState('');
     const [status, setStatus] = useState({ message: '', type: '' });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -108,27 +102,7 @@ const MailConfigurationSection = () => {
         }
     };
 
-    const handleSendWelcomeTest = async () => {
-        if (!testWelcomeTo.trim()) {
-            setStatus({ message: 'Enter a test recipient email.', type: 'error' });
-            return;
-        }
-        setStatus({ message: 'Sending test welcome email...', type: 'info' });
-        const result = await sendTenantWelcomeEmail(tenantId, {
-            toEmail: testWelcomeTo.trim(),
-            clientName: 'Test Client',
-            clientType: 'individual',
-            displayClientId: 'CLID-TEST-0001',
-            forceSend: true,
-        });
-        if (result.ok && !result.skipped) {
-            setStatus({ message: 'Test welcome email queued successfully.', type: 'success' });
-        } else if (result.ok && result.skipped) {
-            setStatus({ message: `Test skipped: ${result.reason || 'disabled'}`, type: 'info' });
-        } else {
-            setStatus({ message: `Test failed: ${result.error || 'unknown'}`, type: 'error' });
-        }
-    };
+
 
     return (
         <SettingCard
@@ -180,84 +154,6 @@ const MailConfigurationSection = () => {
                                 className={inputClass}
                             />
                         </div>
-                    </div>
-                </div>
-
-                <hr className="border-[var(--c-border)]" />
-
-                <div className="space-y-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Welcome Email Automation</h3>
-
-                    <div className={rowClass}>
-                        <label className="text-xs font-bold text-[var(--c-muted)]">Enable Auto Welcome</label>
-                        <input
-                            type="checkbox"
-                            checked={!!config.enableWelcomeEmail}
-                            onChange={(e) => setConfig({ ...config, enableWelcomeEmail: e.target.checked })}
-                            className="h-4 w-4 accent-[var(--c-accent)]"
-                        />
-                    </div>
-
-                    <div className={rowClass}>
-                        <label className="text-xs font-bold text-[var(--c-muted)]">Company Clients</label>
-                        <input
-                            type="checkbox"
-                            checked={!!config.welcomeForCompany}
-                            onChange={(e) => setConfig({ ...config, welcomeForCompany: e.target.checked })}
-                            className="h-4 w-4 accent-[var(--c-accent)]"
-                        />
-                    </div>
-
-                    <div className={rowClass}>
-                        <label className="text-xs font-bold text-[var(--c-muted)]">Individual Clients</label>
-                        <input
-                            type="checkbox"
-                            checked={!!config.welcomeForIndividual}
-                            onChange={(e) => setConfig({ ...config, welcomeForIndividual: e.target.checked })}
-                            className="h-4 w-4 accent-[var(--c-accent)]"
-                        />
-                    </div>
-
-                    <div className={rowClass}>
-                        <label className="text-xs font-bold text-[var(--c-muted)]">Subject Template</label>
-                        <input
-                            type="text"
-                            value={config.welcomeSubject || ''}
-                            onChange={(e) => setConfig({ ...config, welcomeSubject: e.target.value })}
-                            className={inputClass}
-                            placeholder="Welcome to {{tenantName}}"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-[var(--c-muted)]">HTML Template</label>
-                        <textarea
-                            rows={6}
-                            value={config.welcomeHtml || ''}
-                            onChange={(e) => setConfig({ ...config, welcomeHtml: e.target.value })}
-                            className={inputClass}
-                            placeholder="<h3>Welcome {{clientName}}</h3>"
-                        />
-                        <p className="text-[10px] text-[var(--c-muted)]">
-                            Tokens: {'{{tenantName}}'}, {'{{clientName}}'}, {'{{clientType}}'}, {'{{displayClientId}}'}, {'{{supportEmail}}'}
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
-                        <input
-                            type="email"
-                            value={testWelcomeTo}
-                            onChange={(e) => setTestWelcomeTo(e.target.value)}
-                            className={inputClass}
-                            placeholder="test@example.com"
-                        />
-                        <button
-                            type="button"
-                            onClick={handleSendWelcomeTest}
-                            className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
-                        >
-                            Send Test Welcome
-                        </button>
                     </div>
                 </div>
 

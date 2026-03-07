@@ -76,7 +76,10 @@ const RecentTransactionsSection = ({ isOpen, onToggle, refreshKey }) => {
                 email,
                 docType,
                 pdfRes.base64,
-                { txId: tx.displayTransactionId || tx.id }
+                {
+                    txId: tx.displayTransactionId || tx.id,
+                    recipientName: tx.entityId || 'Client'
+                }
             );
             if (emailRes.ok) alert("Email sent successfully!");
             else alert("Failed to send email: " + emailRes.error);
