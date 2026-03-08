@@ -1,11 +1,7 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {
-		"chatgpt.openOnStartup": true,
-		"chatgpt.runCodexInWindowsSubsystemForLinux": true
-	}
+    "folders": [
+        {
+            "path": ".."
+        }
+    ]
 }
