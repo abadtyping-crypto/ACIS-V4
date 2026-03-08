@@ -608,6 +608,40 @@ export const getTenantSettingDoc = async (tenantId, settingDocId) => {
   }
 };
 
+export const getTenantLoginSettings = async (tenantId) => {
+  try {
+    const snap = await getDoc(doc(db, 'tenants', tenantId, 'settings', 'loginPage'));
+    return {
+      ok: true,
+      data: snap.exists() ? snap.data() : {
+        privacyPolicy: '',
+        announcement: { isVisible: false, title: '', message: '', imageUrl: '' },
+        supportInfo: { whatsapp: '', email: '' }
+      },
+    };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] login settings read failed tenants/${tenantId}: ${message}`);
+    return { ok: false, error: message, data: null };
+  }
+};
+
+export const submitSupportTicket = async (tenantId, payload) => {
+  try {
+    const ticketRef = doc(collection(db, 'tenants', tenantId, 'supportTickets'));
+    await setDoc(ticketRef, {
+      ...payload,
+      status: 'Open',
+      createdAt: serverTimestamp(),
+    });
+    return { ok: true, ticketId: ticketRef.id };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] support ticket submit failed: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
 export const fetchTenantPdfTemplates = async (tenantId) => {
   try {
     const snap = await getDocs(collection(db, 'tenants', tenantId, 'settings', 'pdfTemplates', 'templates'));

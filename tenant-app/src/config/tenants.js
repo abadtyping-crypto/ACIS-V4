@@ -1,7 +1,7 @@
 export const TENANTS = [
   {
     id: 'acis',
-    name: 'ACIS Ajman',
+    name: 'ACISAjman',
     brandColor: '#0074e8',
     locale: 'en-AE',
     currency: 'AED',
