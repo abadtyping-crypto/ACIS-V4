@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BellIcon } from '../icons/AppIcons';
+import { BellIcon, SearchIcon } from '../icons/AppIcons';
 import { useTheme } from '../../context/ThemeContext';
 import { Monitor, MoonStar, SunMedium } from 'lucide-react';
 
@@ -92,16 +92,21 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
           <button
             type="button"
             onClick={toggleTheme}
-            className="inline-flex min-h-11 min-w-[150px] items-center justify-between gap-2 rounded-xl border border-[var(--c-ring)] bg-[color:color-mix(in_srgb,var(--c-surface)_90%,transparent)] px-3 text-sm font-semibold text-[var(--c-text)] shadow-sm transition hover:bg-[var(--c-panel)]"
-            aria-label="Quick dark light toggle"
+            className="inline-flex min-h-11 w-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] text-sm font-semibold text-[var(--c-text)] shadow-sm transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+            aria-label={`Toggle theme (currently ${themeLabel})`}
+            title={`Theme: ${themeLabel} (${theme === 'system' ? 'Auto' : 'Manual'})`}
           >
-            <span className="inline-flex items-center gap-2">
-              <ThemeIcon className="h-4 w-4 text-[var(--c-accent)]" />
-              <span className="text-xs font-bold">{themeLabel}</span>
-            </span>
-            <span className="rounded-md bg-[color:color-mix(in_srgb,var(--c-accent)_16%,transparent)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--c-accent)]">
-              {theme === 'system' ? 'Auto' : 'Manual'}
-            </span>
+            <ThemeIcon className="h-5 w-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goTo('search')}
+            className="inline-flex min-h-11 w-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] text-sm font-semibold text-[var(--c-text)] shadow-sm transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+            aria-label="Search clients and dependants"
+            title="Search Workspace"
+          >
+            <SearchIcon className="h-5 w-5" />
           </button>
 
           <div className="relative" ref={notificationsRef}>
@@ -233,7 +238,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
           </div>
         </div>
       </div>
-    </header>
+    </header >
   );
 };
 

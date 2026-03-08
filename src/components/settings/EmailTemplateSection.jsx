@@ -67,6 +67,23 @@ const EmailTemplateSection = () => {
     const [testTo, setTestTo] = useState('');
     const [status, setStatus] = useState({ message: '', type: '' });
     const [isSaving, setIsSaving] = useState(false);
+    const [previewWelcome, setPreviewWelcome] = useState(false);
+    const [previewStatement, setPreviewStatement] = useState(false);
+
+    const createPreviewHtml = (html) => {
+        if (!html) return '';
+        return html
+            .replace(/{{tenantName}}/g, tenantId || 'Workspace Name')
+            .replace(/{{brandColor}}/g, 'var(--c-accent, #0b5ed7)')
+            .replace(/{{clientName}}/g, 'John Doe')
+            .replace(/{{recipientName}}/g, 'Jane Doe')
+            .replace(/{{clientType}}/g, 'Individual')
+            .replace(/{{displayClientId}}/g, 'CLID-TEST-001')
+            .replace(/{{documentType}}/g, 'Invoice')
+            .replace(/{{txId}}/g, 'TX-1234')
+            .replace(/{{year}}/g, new Date().getFullYear())
+            .replace(/{{supportEmail}}/g, 'support@example.com');
+    };
 
     useEffect(() => {
         let active = true;
@@ -185,16 +202,35 @@ const EmailTemplateSection = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-[var(--c-muted)]">HTML Content</label>
-                            <textarea
-                                rows={5}
-                                value={config.welcomeHtml || ''}
-                                onChange={(e) => setConfig({ ...config, welcomeHtml: e.target.value })}
-                                className={inputClass}
-                            />
-                            <p className="text-[10px] text-[var(--c-muted)]">
-                                Tokens: {'{{tenantName}}'}, {'{{clientName}}'}, {'{{clientType}}'}, {'{{displayClientId}}'}, {'{{brandColor}}'}, {'{{year}}'}
-                            </p>
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-[var(--c-muted)]">HTML Content</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewWelcome(!previewWelcome)}
+                                    className="rounded-md border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--c-accent)] transition hover:bg-[var(--c-panel)]"
+                                >
+                                    {previewWelcome ? 'Edit HTML' : 'Live Preview'}
+                                </button>
+                            </div>
+
+                            {previewWelcome ? (
+                                <div
+                                    className="w-full rounded-xl border border-[var(--c-border)] bg-slate-50 p-4 max-h-[400px] overflow-auto shadow-inner"
+                                    dangerouslySetInnerHTML={{ __html: createPreviewHtml(config.welcomeHtml) }}
+                                />
+                            ) : (
+                                <>
+                                    <textarea
+                                        rows={8}
+                                        value={config.welcomeHtml || ''}
+                                        onChange={(e) => setConfig({ ...config, welcomeHtml: e.target.value })}
+                                        className={`${inputClass} font-mono text-xs`}
+                                    />
+                                    <p className="text-[10px] text-[var(--c-muted)]">
+                                        Tokens: {'{{tenantName}}'}, {'{{clientName}}'}, {'{{clientType}}'}, {'{{displayClientId}}'}, {'{{brandColor}}'}, {'{{year}}'}, {'{{supportEmail}}'}
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -219,16 +255,35 @@ const EmailTemplateSection = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-[var(--c-muted)]">HTML Content</label>
-                            <textarea
-                                rows={5}
-                                value={config.statementHtml || ''}
-                                onChange={(e) => setConfig({ ...config, statementHtml: e.target.value })}
-                                className={inputClass}
-                            />
-                            <p className="text-[10px] text-[var(--c-muted)]">
-                                Tokens: {'{{tenantName}}'}, {'{{recipientName}}'}, {'{{documentType}}'}, {'{{txId}}'}, {'{{brandColor}}'}, {'{{year}}'}
-                            </p>
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-[var(--c-muted)]">HTML Content</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewStatement(!previewStatement)}
+                                    className="rounded-md border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--c-accent)] transition hover:bg-[var(--c-panel)]"
+                                >
+                                    {previewStatement ? 'Edit HTML' : 'Live Preview'}
+                                </button>
+                            </div>
+
+                            {previewStatement ? (
+                                <div
+                                    className="w-full rounded-xl border border-[var(--c-border)] bg-slate-50 p-4 max-h-[400px] overflow-auto shadow-inner"
+                                    dangerouslySetInnerHTML={{ __html: createPreviewHtml(config.statementHtml) }}
+                                />
+                            ) : (
+                                <>
+                                    <textarea
+                                        rows={8}
+                                        value={config.statementHtml || ''}
+                                        onChange={(e) => setConfig({ ...config, statementHtml: e.target.value })}
+                                        className={`${inputClass} font-mono text-xs`}
+                                    />
+                                    <p className="text-[10px] text-[var(--c-muted)]">
+                                        Tokens: {'{{tenantName}}'}, {'{{recipientName}}'}, {'{{documentType}}'}, {'{{txId}}'}, {'{{brandColor}}'}, {'{{year}}'}, {'{{supportEmail}}'}
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

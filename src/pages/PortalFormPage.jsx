@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useAuth } from '../context/AuthContext';
@@ -10,9 +10,6 @@ import {
     upsertTenantNotification,
     upsertTenantPortalTransaction,
 } from '../lib/backendStore';
-import { uploadPortalIcon } from '../lib/portalStorage';
-import ImageStudio from '../components/common/ImageStudio';
-import { getCroppedImg } from '../lib/imageStudioUtils';
 import { canUserPerformAction } from '../lib/userControlPreferences';
 import { generateDisplayTxId, toSafeDocId } from '../lib/txIdGenerator';
 import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
@@ -35,15 +32,6 @@ const transactionMethods = [
     { id: 'tabby', label: 'Tabby', icon: '/portals/methods/tabby.png' },
     { id: 'Tamara', label: 'Tamara', icon: '/portals/methods/tamara.png' },
 ];
-
-const iconFilterMap = {
-    natural: { label: 'Natural', css: 'none', canvas: 'none' },
-    vibrant: { label: 'Vibrant', css: 'saturate(1.2) contrast(1.1)', canvas: 'saturate(120%) contrast(110%)' },
-    soft: { label: 'Soft', css: 'brightness(1.05) saturate(0.9)', canvas: 'brightness(105%) saturate(90%)' },
-};
-
-const ICON_OUTPUT_SIZE = 256;
-const ICON_MAX_BYTES = 100 * 1024;
 
 const PortalFormPage = () => {
     const { portalId } = useParams();
@@ -68,24 +56,9 @@ const PortalFormPage = () => {
     const [existingPortal, setExistingPortal] = useState(null);
 
     // Icon Tool State
-    const [iconRawUrl, setIconRawUrl] = useState('');
-    const [iconSourceUrl, setIconSourceUrl] = useState('');
-    const [iconZoom, setIconZoom] = useState(1);
-    const [iconRotation, setIconRotation] = useState(0);
-    const [iconFilter, setIconFilter] = useState('natural');
-    const [iconDirty, setIconDirty] = useState(false);
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [selectedIconUrl, setSelectedIconUrl] = useState('');
     const [methodIconMap, setMethodIconMap] = useState({});
-
-    const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
-        setCroppedAreaPixels(croppedAreaPixels);
-        setIconDirty(true);
-    }, []);
-
-    const setRotationWrapper = (val) => {
-        setIconRotation(val);
-        setIconDirty(true);
-    };
+    const [iconLibrary, setIconLibrary] = useState([]);
 
     useEffect(() => {
         if (!tenantId || !portalId) return;
@@ -101,7 +74,7 @@ const PortalFormPage = () => {
                         type: p.type || 'Bank',
                         methods: p.methods || [],
                     });
-                    setIconSourceUrl(p.iconUrl);
+                    setSelectedIconUrl(p.iconUrl || '');
                 }
             }
             setIsLoading(false);
@@ -120,6 +93,7 @@ const PortalFormPage = () => {
                 nextMap[key] = row.iconUrl;
             });
             setMethodIconMap(nextMap);
+            setIconLibrary((res.rows || []).filter((r) => !!r.iconUrl));
         });
         return () => {
             isMounted = false;
@@ -133,34 +107,6 @@ const PortalFormPage = () => {
             type: newType,
             methods: typeObj ? typeObj.methods : prev.methods,
         }));
-    };
-
-    const onIconFileChange = async (event) => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-        if (!file) return;
-        try {
-            const nextUrl = URL.createObjectURL(file);
-            setIconRawUrl(nextUrl);
-            setIconSourceUrl(nextUrl);
-            setIconZoom(1);
-            setIconRotation(0);
-            setIconDirty(true);
-            setCroppedAreaPixels(null);
-        } catch (e) {
-            console.error(e);
-            setStatusMessage('Unable to read image file.');
-            setStatusType('error');
-        }
-    };
-
-    const onIconReset = () => {
-        setIconRawUrl('');
-        setIconSourceUrl('');
-        setIconZoom(1);
-        setIconRotation(0);
-        setIconDirty(false);
-        setCroppedAreaPixels(null);
     };
 
     const handleSavePortal = async () => {
@@ -180,40 +126,7 @@ const PortalFormPage = () => {
 
         setIsSaving(true);
         const finalPortalId = portalId || `portal_${Date.now()}`;
-        let iconUrl = iconSourceUrl || portalTypes.find((t) => t.id === form.type)?.icon || '';
-
-        if (iconDirty && iconRawUrl && croppedAreaPixels) {
-            try {
-                const blob = await getCroppedImg(
-                    iconRawUrl,
-                    croppedAreaPixels,
-                    iconRotation,
-                    iconFilter,
-                    ICON_OUTPUT_SIZE,
-                    ICON_MAX_BYTES
-                );
-                const uploadRes = await uploadPortalIcon({
-                    tenantId,
-                    portalId: finalPortalId,
-                    fileBlob: blob,
-                    oldIconUrl: existingPortal?.iconUrl,
-                });
-                if (uploadRes.ok) {
-                    iconUrl = uploadRes.iconUrl;
-                } else {
-                    setStatusMessage(uploadRes.error || 'Icon upload failed.');
-                    setStatusType('error');
-                    setIsSaving(false);
-                    return;
-                }
-            } catch (e) {
-                console.error(e);
-                setStatusMessage('Icon processing failed.');
-                setStatusType('error');
-                setIsSaving(false);
-                return;
-            }
-        }
+        let iconUrl = selectedIconUrl || portalTypes.find((t) => t.id === form.type)?.icon || '';
 
         const openingAmount = Number(form.balance) || 0;
         const openingSignedBalance = openingAmount * (form.balanceType === 'negative' ? -1 : 1);
@@ -348,24 +261,38 @@ const PortalFormPage = () => {
                         </div>
 
                         <div className="space-y-4">
-                            <ImageStudio
-                                sourceUrl={iconSourceUrl || portalTypes.find((t) => t.id === form.type)?.icon}
-                                onReset={onIconReset}
-                                zoom={iconZoom}
-                                setZoom={setIconZoom}
-                                rotation={iconRotation}
-                                setRotation={setRotationWrapper}
-                                filter={iconFilter}
-                                setFilter={setIconFilter}
-                                filterMap={iconFilterMap}
-                                onFileChange={onIconFileChange}
-                                onCropComplete={onCropComplete}
-                                title="Portal Icon Studio"
-                                tip="Optional: Customize the icon for this portal."
-                                previewBgClass="bg-white"
-                                previewFrame={false}
-                                previewRoundedClass="rounded-xl"
-                            />
+                            <div className="space-y-4">
+                                <p className="text-sm font-bold text-[var(--c-muted)] uppercase tracking-wider">Custom Portal Icon</p>
+                                {iconLibrary.length > 0 ? (
+                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-5 gap-3">
+                                        {iconLibrary.map((item) => {
+                                            const isSelected = selectedIconUrl === item.iconUrl;
+                                            return (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedIconUrl(isSelected ? '' : item.iconUrl)}
+                                                    title={item.iconId || 'Custom Icon'}
+                                                    className={`aspect-square w-full rounded-xl flex items-center justify-center p-2.5 transition border ${isSelected
+                                                        ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/10 ring-2 ring-[var(--c-accent)] ring-offset-2 ring-offset-[var(--c-surface)]'
+                                                        : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:border-[var(--c-muted)]'
+                                                        }`}
+                                                >
+                                                    <img
+                                                        src={item.iconUrl}
+                                                        alt="Icon"
+                                                        className="h-full w-full object-contain"
+                                                    />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] p-4 text-center text-sm text-[var(--c-muted)]">
+                                        No custom icons available. Go to <span className="font-semibold text-[var(--c-text)]">Settings → Icon Library</span> to add some!
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="space-y-2">
                                 <p className="text-sm font-bold text-[var(--c-muted)] uppercase tracking-wider">Transaction Methods</p>
