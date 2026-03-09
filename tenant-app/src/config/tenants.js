@@ -1,17 +1,19 @@
 export const TENANTS = [
   {
-    id: 'testTenants',
-    name: 'Test Tenants',
-    brandColor: '#0074e8',
-    locale: 'en-AE',
-    currency: 'AED',
-  },
-  {
     id: 'acis',
     name: 'ACIS Ajman',
     brandColor: '#0074e8',
     locale: 'en-AE',
     currency: 'AED',
+    logoUrl: '/logo.png',
+  },
+  {
+    id: 'testTenants',
+    name: 'Test Tenants',
+    brandColor: '#0074e8',
+    locale: 'en-AE',
+    currency: 'AED',
+    logoUrl: '/logo.png',
   },
   {
     id: 'nexus',
@@ -19,6 +21,7 @@ export const TENANTS = [
     brandColor: '#0ea5e9',
     locale: 'en-AE',
     currency: 'AED',
+    logoUrl: '/logo.png',
   },
   {
     id: 'orbit',
@@ -26,9 +29,10 @@ export const TENANTS = [
     brandColor: '#14b8a6',
     locale: 'en-GB',
     currency: 'GBP',
+    logoUrl: '/logo.png',
   },
 ];
 
-export const DEFAULT_TENANT_ID = TENANTS[0].id;
+export const DEFAULT_TENANT_ID = 'acis';
 
 export const findTenantById = (tenantId) => TENANTS.find((tenant) => tenant.id === tenantId) || null;

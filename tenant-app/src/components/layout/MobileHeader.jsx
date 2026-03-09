@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { RecycleBinIcon } from '../icons/AppIcons';
+import { RecycleBinIcon, SearchIcon, UserPlusIcon } from '../icons/AppIcons';
 import { useRecycleBin } from '../../context/RecycleBinContext';
 import { useRecycleBinSummary } from '../../hooks/useRecycleBinSummary';
 
@@ -24,6 +24,8 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const displayName = toDisplayName(user);
+  const tenantLogoUrl = tenant?.logoUrl || '/logo.png';
+  const tenantLabel = tenant?.name || 'Tenant';
 
   const goTo = (path) => navigate(`/t/${tenantId}/${path}`);
 
@@ -45,8 +47,8 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
           style={{ textDecoration: 'none' }}
         >
           <img
-            src="/logo.png"
-            alt="ACIS Ajman"
+            src={tenantLogoUrl}
+            alt={tenantLabel}
             className="h-10 w-10 rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] object-cover"
           />
           <div className="min-w-0">
@@ -58,8 +60,26 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
         <div className="flex items-center gap-2.5">
           <button
             type="button"
+            onClick={() => goTo('client-onboarding')}
+            className="mobile-icon-control relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]/70 text-[var(--c-muted)]"
+            aria-label="Quick add"
+            title="Quick add"
+          >
+            <UserPlusIcon className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => goTo('search')}
+            className="mobile-icon-control relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]/70 text-[var(--c-muted)]"
+            aria-label="Search"
+            title="Search"
+          >
+            <SearchIcon className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
             onClick={openRecycleBin}
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]/70 text-[var(--c-muted)]"
+            className="mobile-icon-control relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]/70 text-[var(--c-muted)]"
             aria-label="Open recycle bin"
             title="Open recycle bin"
           >
@@ -74,7 +94,7 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
           <button
             type="button"
             onClick={() => setMenuOpen((prev) => !prev)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]"
+            className="mobile-icon-control inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
           >

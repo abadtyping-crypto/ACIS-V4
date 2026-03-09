@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --c-bg: #eaf2ff;
+  --c-bg: #eef3ff;
   --c-surface: #ffffff;
-  --c-panel: #f2f7ff;
-  --c-border: #cfddf3;
-  --c-text: #12223b;
-  --c-muted: #4f678a;
-  --c-accent: #1778f2;
-  --c-accent-2: #45b6ff;
-  --c-accent-3: #6de3d7;
+  --c-panel: #f4f8ff;
+  --c-border: #ccd9ef;
+  --c-text: #14243d;
+  --c-muted: #4f6687;
+  --c-accent: #1d74e8;
+  --c-accent-2: #37b5ff;
+  --c-accent-3: #54dbc8;
   --c-on-accent: #ffffff;
   --c-accent-soft: color-mix(in srgb, var(--c-accent) 14%, transparent);
   --dirham-filter: none;
-  --c-ring: rgba(23, 120, 242, 0.24);
+  --c-ring: rgba(29, 116, 232, 0.24);
   --brand-gradient: linear-gradient(125deg, var(--c-accent) 0%, var(--c-accent-2) 54%, var(--c-accent-3) 100%);
-  --glass-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(242, 248, 255, 0.6));
-  --glass-border: rgba(255, 255, 255, 0.58);
-  --glass-blur: blur(16px);
-  --glass-shadow: 0 12px 35px -24px rgba(23, 120, 242, 0.55);
+  --glass-bg: linear-gradient(150deg, rgba(255, 255, 255, 0.58), rgba(236, 245, 255, 0.32));
+  --glass-border: rgba(255, 255, 255, 0.68);
+  --glass-blur: blur(20px);
+  --glass-shadow: 0 16px 44px -30px rgba(29, 116, 232, 0.62);
 
   color: var(--c-text);
   background-color: var(--c-bg);
@@ -30,23 +30,23 @@
 }
 
 :root[data-theme='dark'] {
-  --c-bg: #0e1830;
-  --c-surface: #192a49;
-  --c-panel: #223559;
-  --c-border: #3a5584;
-  --c-text: #f4f8ff;
-  --c-muted: #c2d1eb;
-  --c-accent: #69bcff;
-  --c-accent-2: #63d9ff;
-  --c-accent-3: #91efd9;
+  --c-bg: #081122;
+  --c-surface: #132542;
+  --c-panel: #193154;
+  --c-border: #355178;
+  --c-text: #eef5ff;
+  --c-muted: #bfd0e9;
+  --c-accent: #5aaeff;
+  --c-accent-2: #54d5ff;
+  --c-accent-3: #78ecd0;
   --c-on-accent: #ffffff;
   --c-accent-soft: color-mix(in srgb, var(--c-accent) 30%, transparent);
   --dirham-filter: brightness(0) invert(1) contrast(1.08) saturate(1.05);
-  --c-ring: rgba(105, 188, 255, 0.34);
+  --c-ring: rgba(90, 174, 255, 0.36);
   --brand-gradient: linear-gradient(125deg, var(--c-accent) 0%, var(--c-accent-2) 54%, var(--c-accent-3) 100%);
-  --glass-bg: linear-gradient(145deg, rgba(40, 58, 93, 0.76), rgba(24, 39, 67, 0.68));
-  --glass-border: rgba(181, 215, 255, 0.24);
-  --glass-shadow: 0 12px 35px -24px rgba(108, 191, 255, 0.56);
+  --glass-bg: linear-gradient(150deg, rgba(22, 44, 78, 0.62), rgba(11, 25, 49, 0.44));
+  --glass-border: rgba(151, 194, 244, 0.26);
+  --glass-shadow: 0 16px 44px -30px rgba(84, 179, 255, 0.52);
 }
 
 * {
@@ -67,10 +67,25 @@ body {
   min-height: 100vh;
   color: var(--c-text);
   background:
-    radial-gradient(circle at 12% 4%, color-mix(in srgb, var(--c-accent) 24%, transparent), transparent 28%),
-    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--c-accent-2) 20%, transparent), transparent 24%),
-    radial-gradient(circle at 50% 120%, color-mix(in srgb, var(--c-accent-3) 18%, transparent), transparent 44%),
+    radial-gradient(140% 90% at -12% -18%, color-mix(in srgb, var(--c-accent) 36%, transparent) 0%, transparent 56%),
+    radial-gradient(95% 76% at 108% -10%, color-mix(in srgb, var(--c-accent-2) 30%, transparent) 0%, transparent 54%),
+    radial-gradient(130% 110% at 50% 118%, color-mix(in srgb, var(--c-accent-3) 24%, transparent) 0%, transparent 62%),
     var(--c-bg);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -18% -12%;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(32rem 32rem at 14% 24%, color-mix(in srgb, var(--c-accent) 26%, transparent) 0%, transparent 66%),
+    radial-gradient(26rem 26rem at 86% 18%, color-mix(in srgb, var(--c-accent-2) 22%, transparent) 0%, transparent 68%),
+    radial-gradient(36rem 36rem at 52% 86%, color-mix(in srgb, var(--c-accent-3) 18%, transparent) 0%, transparent 72%);
+  filter: blur(18px) saturate(118%);
+  animation: auroraFloat 20s ease-in-out infinite alternate;
 }
 
 /* Custom Desktop Scrollbars */
@@ -102,6 +117,18 @@ body {
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
+}
+
+@keyframes auroraFloat {
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, 1%, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(-1%, 2%, 0) scale(1.02);
+  }
 }
 
 .no-drag {

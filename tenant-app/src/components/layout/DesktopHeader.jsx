@@ -41,6 +41,8 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
   const ThemeIcon = theme === 'system' ? Monitor : appliedTheme === 'dark' ? MoonStar : SunMedium;
   const themeLabel = theme === 'system' ? `System (${resolvedTheme})` : appliedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
   const displayName = toDisplayName(user);
+  const tenantLogoUrl = tenant?.logoUrl || '/logo.png';
+  const tenantLabel = tenant?.name || 'Tenant';
 
   const goTo = (path) => navigate(`/t/${tenantId}/${path}`);
 
@@ -76,8 +78,8 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
           >
             {!hasNativeTitleBar ? (
               <img
-                src="/logo.png"
-                alt="ACIS Ajman"
+                src={tenantLogoUrl}
+                alt={tenantLabel}
                 className="h-11 w-11 rounded-xl border border-white/70 bg-white object-cover shadow-sm"
               />
             ) : null}

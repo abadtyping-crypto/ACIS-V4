@@ -1,4 +1,4 @@
-import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import {
   BellIcon,
   CalendarIcon,
@@ -8,9 +8,10 @@ import {
   PortalIcon,
   QuotationIcon,
   ReceiptIcon,
-  SearchIcon,
   StarIcon,
-  TasksIcon
+  TasksIcon,
+  UserIcon,
+  UserPlusIcon,
 } from '../icons/AppIcons';
 import { isVisibleOnPlatform, NAV_ITEMS } from '../../config/appNavigation';
 import { useAuth } from '../../context/AuthContext';
@@ -19,6 +20,13 @@ import { getRuntimePlatform } from '../../lib/runtimePlatform';
 const MOBILE_ITEMS_KEY = 'acis_mobile_items_v1';
 const allMobileItemKeys = ['dashboard', 'clientOnboarding', 'dailyTransactions', 'portalManagement', 'documentCalendar'];
 const defaultItems = ['dashboard', 'clientOnboarding', 'dailyTransactions', 'portalManagement'];
+const compactLabelMap = {
+  dashboard: 'Home',
+  clientOnboarding: 'Clients',
+  dailyTransactions: 'Tx',
+  portalManagement: 'Portals',
+  documentCalendar: 'Calendar',
+};
 
 const readMobileItems = () => {
   if (typeof window === 'undefined') return defaultItems;
@@ -44,6 +52,7 @@ const renderNavIcon = (iconKey, user) => {
   if (iconKey === 'quotation') return <QuotationIcon className="h-5 w-5" />;
   if (iconKey === 'expense') return <ExpenseIcon className="h-5 w-5" />;
   if (iconKey === 'calendar') return <CalendarIcon className="h-5 w-5" />;
+  if (iconKey === 'user-plus') return <UserPlusIcon className="h-5 w-5" />;
   if (iconKey === 'user') {
     return (
       <img
@@ -60,66 +69,53 @@ const renderNavIcon = (iconKey, user) => {
 const MobileBottomBar = () => {
   const { tenantId } = useParams();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const mobileItems = readMobileItems();
   const runtimePlatform = getRuntimePlatform();
   const visibleNavItems = NAV_ITEMS.filter((item) => isVisibleOnPlatform(item, runtimePlatform));
   const itemMap = Object.fromEntries(visibleNavItems.map((item) => [item.key, item]));
-
-  const leftKeys = mobileItems.slice(0, 2);
-  const rightKeys = mobileItems.slice(2, 4);
+  const dockKeys = mobileItems.slice(0, 4);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.55rem+env(safe-area-inset-bottom))] pt-2.5 lg:hidden">
-      <div className="mobile-glass-panel mx-auto flex max-w-md items-center justify-between gap-1 rounded-2xl border border-[var(--c-border)] px-2.5 py-2">
-        {leftKeys.map((key) => {
-          const item = itemMap[key];
-          if (!item) return null;
-          return (
-            <NavLink
-              key={key}
-              to={`/t/${tenantId}/${item.path}`}
-              className={({ isActive }) =>
-                `flex min-h-12 min-w-14 flex-1 items-center justify-center rounded-xl text-lg transition ${
-                  isActive ? 'text-[var(--c-accent)]' : 'text-[var(--c-muted)]'
-                }`
-              }
-              aria-label={item.label}
-              title={item.label}
-            >
-              <span>{renderNavIcon(item.icon, user)}</span>
-            </NavLink>
-          );
-        })}
+    <nav className="mobile-dock-wrap fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.95rem+env(safe-area-inset-bottom))] pt-2.5 lg:hidden">
+      <div className="mx-auto flex max-w-md items-end justify-center gap-2">
+        <div className="mobile-dock mobile-glass-panel flex flex-1 items-center gap-1 rounded-[1.45rem] border border-[var(--c-border)] px-2 py-2.5">
+          {dockKeys.map((key) => {
+            const item = itemMap[key];
+            if (!item) return null;
+            const compactLabel = compactLabelMap[key] || item.label;
+            return (
+              <NavLink
+                key={key}
+                to={`/t/${tenantId}/${item.path}`}
+                className={({ isActive }) =>
+                  `mobile-dock-item mobile-icon-control flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-2 transition ${
+                    isActive ? 'mobile-dock-item-active text-[var(--c-text)]' : 'text-[var(--c-muted)]'
+                  }`
+                }
+                aria-label={item.label}
+                title={item.label}
+              >
+                <span className="mobile-dock-glyph">{renderNavIcon(item.icon, user)}</span>
+                <span className="mt-0.5 truncate text-[11px] font-semibold leading-tight">{compactLabel}</span>
+              </NavLink>
+            );
+          })}
+        </div>
 
-        <button
-          type="button"
-          onClick={() => navigate(`/t/${tenantId}/search`)}
-          className="relative inline-flex h-13 w-13 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] text-xl shadow-sm"
-          aria-label="Universal search"
+        <NavLink
+          to={`/t/${tenantId}/profile`}
+          className={({ isActive }) =>
+            `mobile-dock-orb mobile-glass-panel mobile-icon-control inline-flex h-16 w-16 items-center justify-center rounded-full border border-[var(--c-border)] transition ${
+              isActive ? 'mobile-dock-orb-active' : ''
+            }`
+          }
+          aria-label="Profile"
+          title="Profile"
         >
-          <SearchIcon className="h-5.5 w-5.5" />
-        </button>
-
-        {rightKeys.map((key) => {
-          const item = itemMap[key];
-          if (!item) return null;
-          return (
-            <NavLink
-              key={key}
-              to={`/t/${tenantId}/${item.path}`}
-              className={({ isActive }) =>
-                `flex min-h-12 min-w-14 flex-1 items-center justify-center rounded-xl text-lg transition ${
-                  isActive ? 'text-[var(--c-accent)]' : 'text-[var(--c-muted)]'
-                }`
-              }
-              aria-label={item.label}
-              title={item.label}
-            >
-              <span>{renderNavIcon(item.icon, user)}</span>
-            </NavLink>
-          );
-        })}
+          <span className="mobile-dock-glyph">
+            <UserIcon className="h-6 w-6" />
+          </span>
+        </NavLink>
       </div>
     </nav>
   );

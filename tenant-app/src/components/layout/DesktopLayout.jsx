@@ -40,7 +40,7 @@ const DesktopLayout = ({ tenant, user, onLogout }) => {
           <main className="desktop-main flex-1 px-3 py-4 sm:px-5 lg:px-7 lg:py-6">
             <Outlet />
           </main>
-          <AppFooter tenantName={tenant.name} />
+          <AppFooter tenantName={tenant.name} tenantLogoUrl={tenant.logoUrl} />
         </div>
       </div>
     </div>

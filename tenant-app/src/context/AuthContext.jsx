@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, useState } from 'react';
 import { fetchTenantUsersMap } from '../lib/backendStore';
+import { auth } from '../lib/firebaseConfig';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
 const AUTH_STORAGE_KEY = 'acis_auth_session_v1';
 const AuthContext = createContext(null);
@@ -33,6 +35,41 @@ const writeSession = (session) => {
 export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(readSession);
 
+  const toValidatedUser = (rawUser) => {
+    const displayName = String(rawUser?.displayName || '').trim();
+    const email = String(rawUser?.email || '').trim().toLowerCase();
+    const role = String(rawUser?.role || '').trim();
+    const status = String(rawUser?.status || '').trim();
+
+    if (!displayName) {
+      return { ok: false, error: 'Invalid user profile: displayName is required.' };
+    }
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return { ok: false, error: 'Invalid user profile: valid email is required.' };
+    }
+    if (!role || !ALLOWED_ROLES.has(role)) {
+      return { ok: false, error: 'Invalid user profile: role is missing or not allowed.' };
+    }
+    if (!status || !ALLOWED_STATUS.has(status)) {
+      return { ok: false, error: 'Invalid user profile: status is missing or not allowed.' };
+    }
+    if (status === 'Frozen') {
+      return { ok: false, error: 'This user is frozen. Contact admin.' };
+    }
+
+    return {
+      ok: true,
+      user: {
+        uid: String(rawUser?.uid || '').trim(),
+        displayName,
+        email,
+        role,
+        status,
+        photoURL: rawUser?.photoURL || '/avatar.png',
+      },
+    };
+  };
+
   const loginWithUid = async (tenantId, inputId, password) => {
     // We fetch all users first to ensure case-insensitive matching for legacy users who might have mixed case
     const usersRes = await fetchTenantUsersMap(tenantId);
@@ -63,41 +100,83 @@ export const AuthProvider = ({ children }) => {
       photoURL: result.data.photoURL || '/avatar.png',
       status: result.data.status || 'Active',
     };
-
-    const displayName = String(rawUser.displayName || '').trim();
-    const email = String(rawUser.email || '').trim().toLowerCase();
-    const role = String(rawUser.role || '').trim();
-    const status = String(rawUser.status || '').trim();
-
-    if (!displayName) {
-      return { ok: false, error: 'Invalid user profile: displayName is required.' };
-    }
-    if (!email || !EMAIL_REGEX.test(email)) {
-      return { ok: false, error: 'Invalid user profile: valid email is required.' };
-    }
-    if (!role || !ALLOWED_ROLES.has(role)) {
-      return { ok: false, error: 'Invalid user profile: role is missing or not allowed.' };
-    }
-    if (!status || !ALLOWED_STATUS.has(status)) {
-      return { ok: false, error: 'Invalid user profile: status is missing or not allowed.' };
-    }
-    if (status === 'Frozen') {
-      return { ok: false, error: 'This user is frozen. Contact admin.' };
-    }
-
-    const user = {
-      uid: rawUser.uid,
-      displayName,
-      email,
-      role,
-      status,
-      photoURL: rawUser.photoURL,
-    };
+    const validated = toValidatedUser(rawUser);
+    if (!validated.ok) return validated;
+    const user = validated.user;
 
     const nextSession = { tenantId, user };
     setSession(nextSession);
     writeSession(nextSession);
     return { ok: true, user };
+  };
+
+  const loginWithGoogle = async (tenantId) => {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const googleResult = await signInWithPopup(auth, provider);
+      const googleUser = googleResult?.user;
+      const googleEmail = String(googleUser?.email || '').trim().toLowerCase();
+      const googleUid = String(googleUser?.uid || '').trim();
+
+      if (!googleEmail) {
+        await signOut(auth).catch(() => null);
+        return { ok: false, error: 'Google account email is required.' };
+      }
+
+      const usersRes = await fetchTenantUsersMap(tenantId);
+      if (!usersRes.ok) {
+        await signOut(auth).catch(() => null);
+        return { ok: false, error: 'Failed to access tenant users.' };
+      }
+
+      const matchedUser = usersRes.rows.find((u) =>
+        String(u.email || '').trim().toLowerCase() === googleEmail ||
+        (googleUid && String(u.uid || '').trim() === googleUid),
+      );
+
+      if (!matchedUser) {
+        await signOut(auth).catch(() => null);
+        return { ok: false, error: 'This Google account is not authorized for this tenant workspace.' };
+      }
+
+      const rawUser = {
+        uid: matchedUser.uid,
+        displayName: matchedUser.displayName || googleUser?.displayName || 'User',
+        role: matchedUser.role || 'Staff',
+        email: matchedUser.email || googleEmail,
+        photoURL: matchedUser.photoURL || googleUser?.photoURL || '/avatar.png',
+        status: matchedUser.status || 'Active',
+      };
+
+      const validated = toValidatedUser(rawUser);
+      if (!validated.ok) {
+        await signOut(auth).catch(() => null);
+        return validated;
+      }
+
+      const nextSession = { tenantId, user: validated.user };
+      setSession(nextSession);
+      writeSession(nextSession);
+      return { ok: true, user: validated.user };
+    } catch (error) {
+      const code = String(error?.code || '');
+      const message = String(error?.message || '');
+      if (code === 'auth/popup-closed-by-user') {
+        return { ok: false, error: 'Google sign-in was canceled.' };
+      }
+      if (code === 'auth/popup-blocked') {
+        return { ok: false, error: 'Popup blocked. Please allow popups and try again.' };
+      }
+      if (message.toLowerCase().includes('redirect_uri_mismatch')) {
+        return {
+          ok: false,
+          error:
+            'Google OAuth redirect mismatch. Add your domain auth handler to OAuth redirect URIs (for example: https://typingapp.abadtyping.com/__/auth/handler).',
+        };
+      }
+      return { ok: false, error: message || 'Google sign-in failed.' };
+    }
   };
 
   const logout = () => {
@@ -127,6 +206,7 @@ export const AuthProvider = ({ children }) => {
       tenantId: session?.tenantId || null,
       isAuthenticated: Boolean(session?.user && session?.tenantId),
       loginWithUid,
+      loginWithGoogle,
       logout,
       patchSessionUser,
     }),

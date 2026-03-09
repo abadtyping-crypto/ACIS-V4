@@ -7,7 +7,7 @@ import DesktopLayout from './DesktopLayout';
 import MobileLayout from './MobileLayout';
 import RecycleBinSidebar from '../portal/RecycleBinSidebar';
 import { RecycleBinProvider } from '../../context/RecycleBinContext';
-import { getTenantSettingDoc } from '../../lib/backendStore';
+import { getRuntimePlatform, PLATFORM_ELECTRON } from '../../lib/runtimePlatform';
 
 const isHexColor = (value) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(value || '').trim());
 
@@ -44,10 +44,12 @@ const applyBrandTheme = (themeConfig) => {
 };
 
 const AppLayout = () => {
-  const { tenant, tenantId } = useTenant();
+  const { tenant } = useTenant();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isDesktop = useIsDesktopLayout();
+  const runtimePlatform = getRuntimePlatform();
+  const useDesktopLayout = runtimePlatform === PLATFORM_ELECTRON ? true : isDesktop;
 
   useEffect(() => {
     const defaults = {
@@ -59,24 +61,7 @@ const AppLayout = () => {
     };
 
     applyBrandTheme(defaults);
-
-    let active = true;
-    getTenantSettingDoc(tenantId, 'branding').then((res) => {
-      if (!active || !res?.ok || !res?.data) return;
-      const data = res.data;
-      applyBrandTheme({
-        primary: toHex6(data.uiPrimaryColor, defaults.primary),
-        secondary: toHex6(data.uiSecondaryColor, defaults.secondary),
-        tertiary: toHex6(data.uiTertiaryColor, defaults.tertiary),
-        textOnAccent: toHex6(data.uiTextOnAccent, defaults.textOnAccent),
-        gradientEnabled: data.uiGradientEnabled !== false,
-      });
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [tenant?.brandColor, tenantId]);
+  }, [tenant?.brandColor]);
 
   const onLogout = () => {
     logout();
@@ -87,7 +72,7 @@ const AppLayout = () => {
 
   return (
     <RecycleBinProvider>
-      {isDesktop ? (
+      {useDesktopLayout ? (
         <DesktopLayout tenant={tenant} user={user} onLogout={onLogout} />
       ) : (
         <MobileLayout tenant={tenant} user={user} onLogout={onLogout} />

@@ -1,26 +1,18 @@
 import { useEffect, useState } from 'react';
-import { getRuntimePlatform, PLATFORM_ELECTRON } from '../lib/runtimePlatform';
-
-const DESKTOP_MIN_WIDTH = 1024;
+import { SHELL_MODE_DESKTOP, getUiShellMode } from '../lib/uiShellMode';
 
 const readDesktopMode = () => {
-  if (typeof window === 'undefined') return true;
-  if (getRuntimePlatform() === PLATFORM_ELECTRON) return true;
-  return window.innerWidth >= DESKTOP_MIN_WIDTH;
+  return getUiShellMode() === SHELL_MODE_DESKTOP;
 };
 
 const useIsDesktopLayout = () => {
   const [isDesktop, setIsDesktop] = useState(() => readDesktopMode());
 
   useEffect(() => {
-    if (getRuntimePlatform() === PLATFORM_ELECTRON) {
-      return;
-    }
-    const mediaQuery = window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`);
-    const onChange = () => setIsDesktop(mediaQuery.matches);
-    onChange();
-    mediaQuery.addEventListener('change', onChange);
-    return () => mediaQuery.removeEventListener('change', onChange);
+    setIsDesktop(readDesktopMode());
+    const onPopState = () => setIsDesktop(readDesktopMode());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   return isDesktop;

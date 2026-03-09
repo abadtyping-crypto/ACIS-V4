@@ -74,15 +74,6 @@ const logoFilterMap = {
 const LOGO_OUTPUT_SIZE = 512;
 const LOGO_MAX_BYTES = 240 * 1024;
 
-const normalizeHexColor = (value, fallback) => {
-  const raw = String(value || '').trim();
-  const match = raw.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
-  if (!match) return fallback;
-  if (raw.length === 7) return raw.toUpperCase();
-  const chars = raw.slice(1).split('');
-  return `#${chars.map((char) => `${char}${char}`).join('')}`.toUpperCase();
-};
-
 const validateNineDigitUae = (digits) => {
   if (!digits) return '';
   if (digits.startsWith('0')) return 'Leading 0 is not allowed.';
@@ -116,11 +107,6 @@ const BrandDetailsSection = () => {
     bankIban: '',
     bankSwift: '',
     bankBranch: '',
-    uiPrimaryColor: '#1778F2',
-    uiSecondaryColor: '#45B6FF',
-    uiTertiaryColor: '#6DE3D7',
-    uiTextOnAccent: '#FFFFFF',
-    uiGradientEnabled: true,
     locationPin: '',
   });
 
@@ -178,11 +164,6 @@ const BrandDetailsSection = () => {
         bankIban: String(data.bankIban || ''),
         bankSwift: String(data.bankSwift || ''),
         bankBranch: String(data.bankBranch || ''),
-        uiPrimaryColor: normalizeHexColor(data.uiPrimaryColor, '#1778F2'),
-        uiSecondaryColor: normalizeHexColor(data.uiSecondaryColor, '#45B6FF'),
-        uiTertiaryColor: normalizeHexColor(data.uiTertiaryColor, '#6DE3D7'),
-        uiTextOnAccent: normalizeHexColor(data.uiTextOnAccent, '#FFFFFF'),
-        uiGradientEnabled: data.uiGradientEnabled !== false,
         locationPin: String(data.locationPin || ''),
       }));
       const incomingLibrary = Array.isArray(data.logoLibrary) ? data.logoLibrary : [];
@@ -372,11 +353,6 @@ const BrandDetailsSection = () => {
       bankIban: String(form.bankIban || '').trim().toUpperCase(),
       bankSwift: String(form.bankSwift || '').trim().toUpperCase(),
       bankBranch: String(form.bankBranch || '').trim(),
-      uiPrimaryColor: normalizeHexColor(form.uiPrimaryColor, '#1778F2'),
-      uiSecondaryColor: normalizeHexColor(form.uiSecondaryColor, '#45B6FF'),
-      uiTertiaryColor: normalizeHexColor(form.uiTertiaryColor, '#6DE3D7'),
-      uiTextOnAccent: normalizeHexColor(form.uiTextOnAccent, '#FFFFFF'),
-      uiGradientEnabled: Boolean(form.uiGradientEnabled),
       locationPin: String(form.locationPin || '').trim(),
       logoLibrary: defaultLogoLibrary.map((baseSlot) => {
         const slot = logoLibrary.find((item) => item.slotId === baseSlot.slotId) || baseSlot;
@@ -433,11 +409,6 @@ const BrandDetailsSection = () => {
     if (payload.bankSwift && payload.bankSwift.length < 6) {
       nextErrors.bankSwift = 'SWIFT code looks too short.';
     }
-    if (!/^#[0-9A-F]{6}$/i.test(payload.uiPrimaryColor)) nextErrors.uiPrimaryColor = 'Use valid HEX color.';
-    if (!/^#[0-9A-F]{6}$/i.test(payload.uiSecondaryColor)) nextErrors.uiSecondaryColor = 'Use valid HEX color.';
-    if (!/^#[0-9A-F]{6}$/i.test(payload.uiTertiaryColor)) nextErrors.uiTertiaryColor = 'Use valid HEX color.';
-    if (!/^#[0-9A-F]{6}$/i.test(payload.uiTextOnAccent)) nextErrors.uiTextOnAccent = 'Use valid HEX color.';
-
     const invalidLogo =
       payload.logoLibrary.length !== MAX_LOGO_SLOTS ||
       payload.logoLibrary.some((slot) => !slot.slotId || !slot.name);
@@ -462,11 +433,6 @@ const BrandDetailsSection = () => {
       webAddress: payload.webAddress,
       taxRegistrationNumber: payload.taxRegistrationNumber,
       taxPercentage: String(payload.taxPercentage),
-      uiPrimaryColor: payload.uiPrimaryColor,
-      uiSecondaryColor: payload.uiSecondaryColor,
-      uiTertiaryColor: payload.uiTertiaryColor,
-      uiTextOnAccent: payload.uiTextOnAccent,
-      uiGradientEnabled: payload.uiGradientEnabled,
       locationPin: payload.locationPin,
     }));
 
@@ -816,79 +782,6 @@ const BrandDetailsSection = () => {
               placeholder="Branch name"
             />
           </label>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4">
-        <div className="mb-3">
-          <p className="text-sm font-semibold text-[var(--c-text)]">Brand UI Theme (3 Colors)</p>
-          <p className="text-xs text-[var(--c-muted)]">Customize gradient colors and text color for a tenant-specific premium look.</p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className={labelClass}>
-            Primary Color
-            <input
-              type="color"
-              className={`${inputClass} h-11 p-1`}
-              value={form.uiPrimaryColor}
-              onChange={(event) => updateField('uiPrimaryColor', event.target.value.toUpperCase())}
-            />
-            {errors.uiPrimaryColor ? <p className="mt-1 text-xs text-rose-600">{errors.uiPrimaryColor}</p> : null}
-          </label>
-          <label className={labelClass}>
-            Secondary Color
-            <input
-              type="color"
-              className={`${inputClass} h-11 p-1`}
-              value={form.uiSecondaryColor}
-              onChange={(event) => updateField('uiSecondaryColor', event.target.value.toUpperCase())}
-            />
-            {errors.uiSecondaryColor ? <p className="mt-1 text-xs text-rose-600">{errors.uiSecondaryColor}</p> : null}
-          </label>
-          <label className={labelClass}>
-            Tertiary Color
-            <input
-              type="color"
-              className={`${inputClass} h-11 p-1`}
-              value={form.uiTertiaryColor}
-              onChange={(event) => updateField('uiTertiaryColor', event.target.value.toUpperCase())}
-            />
-            {errors.uiTertiaryColor ? <p className="mt-1 text-xs text-rose-600">{errors.uiTertiaryColor}</p> : null}
-          </label>
-          <label className={labelClass}>
-            Font Color On Accent
-            <input
-              type="color"
-              className={`${inputClass} h-11 p-1`}
-              value={form.uiTextOnAccent}
-              onChange={(event) => updateField('uiTextOnAccent', event.target.value.toUpperCase())}
-            />
-            {errors.uiTextOnAccent ? <p className="mt-1 text-xs text-rose-600">{errors.uiTextOnAccent}</p> : null}
-          </label>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2">
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-[var(--c-text)]">
-            <input
-              type="checkbox"
-              checked={form.uiGradientEnabled}
-              onChange={(event) => updateField('uiGradientEnabled', event.target.checked)}
-              className="h-4 w-4 accent-[var(--c-accent)]"
-            />
-            Enable Gradient Effect
-          </label>
-          <div
-            className="rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm"
-            style={{
-              background: form.uiGradientEnabled
-                ? `linear-gradient(125deg, ${form.uiPrimaryColor} 0%, ${form.uiSecondaryColor} 54%, ${form.uiTertiaryColor} 100%)`
-                : form.uiPrimaryColor,
-              color: form.uiTextOnAccent,
-            }}
-          >
-            Preview Sample
-          </div>
         </div>
       </div>
 
