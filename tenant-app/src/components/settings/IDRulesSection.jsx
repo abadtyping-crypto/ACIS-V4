@@ -178,10 +178,6 @@ const IDRulesSection = () => {
         { type: 'doc', key: 'clientPayment', label: 'Client Payment' },
         { type: 'doc', key: 'invoice', label: 'Invoice' },
         { type: 'doc', key: 'taskAssignment', label: 'Task Assignment' },
-
-        { type: 'doc', key: 'developerPortal', label: 'Developer Portal' },
-        { type: 'doc', key: 'tenantPortal', label: 'Tenant Portal' },
-        { type: 'doc', key: 'partnerPortal', label: 'Partner Portal' },
     ];
 
     return (
