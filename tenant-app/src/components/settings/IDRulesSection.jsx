@@ -146,7 +146,7 @@ const IDRulesSection = () => {
         if (key === 'LOAN') return counters.transactions?.lastLOANSeq || 0;
         if (key === 'TRF') return counters.transactions?.lastTRFSeq || 0;
         if (key === 'DTID') return counters.transactions?.lastDTIDSeq || 0;
-        return 0;
+        return 0; // Doc Refs don't have dedicated sequence settings here right now
     };
 
     const getCounterMeta = (key) => {
@@ -162,21 +162,43 @@ const IDRulesSection = () => {
         return null;
     };
 
+    const ENTITIES = [
+        { type: 'rule', key: 'CLID', label: 'Clients (Co/Ind)' },
+        { type: 'rule', key: 'DPID', label: 'Dependents' },
+        { type: 'rule', key: 'POR', label: 'Portal Trans.' },
+        { type: 'rule', key: 'EXP', label: 'Expenses' },
+        { type: 'rule', key: 'LON', label: 'Loans (Transactions)' },
+        { type: 'rule', key: 'LOAN', label: 'Loan Persons' },
+        { type: 'rule', key: 'TRF', label: 'Transfers' },
+        { type: 'rule', key: 'TRK', label: 'Tracking IDs' },
+        { type: 'rule', key: 'DTID', label: 'Daily Trans (APP)' },
+
+        { type: 'doc', separator: true, key: 'proformaInvoice', label: 'Proforma Invoice' },
+        { type: 'doc', key: 'quotation', label: 'Quotation' },
+        { type: 'doc', key: 'clientPayment', label: 'Client Payment' },
+        { type: 'doc', key: 'invoice', label: 'Invoice' },
+        { type: 'doc', key: 'taskAssignment', label: 'Task Assignment' },
+
+        { type: 'doc', key: 'developerPortal', label: 'Developer Portal' },
+        { type: 'doc', key: 'tenantPortal', label: 'Tenant Portal' },
+        { type: 'doc', key: 'partnerPortal', label: 'Partner Portal' },
+    ];
+
     return (
         <div className="space-y-6">
             <SettingCard
-                title="ID Prefixing & Sequence Control"
-                description="Consolidated view of how IDs are generated and their current counters."
+                title="Consolidated ID Prefixing & Control"
+                description="Manage all numbering, prefixes, and formats for system IDs, documents, and portals across the platform."
             >
                 <div className="grid gap-4">
                     <div className="rounded-2xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-panel)_42%,transparent)] p-2">
                         <div className="overflow-x-auto rounded-xl">
-                            <table className="min-w-[1040px] w-full text-left text-sm">
+                            <table className="min-w-[1100px] w-full text-left text-sm">
                                 <thead className="bg-[var(--c-surface)]">
                                     <tr className="border-b border-[var(--c-border)] text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
                                         <th className="pb-3 pl-2">Entity Type</th>
                                         <th className="pb-3">Prefix</th>
-                                        <th className="pb-3">Skip Date</th>
+                                        <th className="pb-3">Date Format</th>
                                         <th className="pb-3">Seq Start</th>
                                         <th className="pb-3">Padding</th>
                                         <th className="pb-3">Current Seq</th>
@@ -184,47 +206,76 @@ const IDRulesSection = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[var(--c-border)] bg-[var(--c-surface)]">
-                                    {[
-                                        { key: 'CLID', label: 'Clients (Co/Ind)' },
-                                        { key: 'DPID', label: 'Dependents' },
-                                        { key: 'POR', label: 'Portal Trans.' },
-                                        { key: 'EXP', label: 'Expenses' },
-                                        { key: 'LON', label: 'Loans (Transactions)' },
-                                        { key: 'LOAN', label: 'Loan Persons' },
-                                        { key: 'TRF', label: 'Transfers' },
-                                        { key: 'TRK', label: 'Tracking IDs' },
-                                        { key: 'DTID', label: 'Daily Trans (APP)' },
-                                    ].map(item => {
+                                    {ENTITIES.map(item => {
+                                        const isRule = item.type === 'rule';
+                                        const config = isRule ? rules[item.key] || {} : docRefs[item.key] || {};
+
+                                        const prefix = config.prefix || '';
+                                        const sequenceStart = Number(config.sequenceStart) || 1;
+                                        const padding = Number(config.padding) || 4;
+
+                                        let currentFormat = isRule
+                                            ? (config.skipDate ? 'NONE' : (config.dateFormat || 'YYYYMMDD'))
+                                            : (config.dateFormat || 'YYYYMMDD');
+
                                         const currentSeq = getCounterVal(item.key);
                                         const meta = getCounterMeta(item.key);
-                                        const prefix = rules[item.key]?.prefix || item.key;
-                                        const skipDate = rules[item.key]?.skipDate === true;
-                                        const sequenceStart = Number(rules[item.key]?.sequenceStart) || 1;
-                                        const padding = Number(rules[item.key]?.padding) || 4;
+
+                                        const handleChangeFormat = (val) => {
+                                            if (isRule) {
+                                                handleRuleChange(item.key, 'skipDate', val === 'NONE');
+                                                handleRuleChange(item.key, 'dateFormat', val === 'NONE' ? '' : val);
+                                            } else {
+                                                handleDocRefChange(item.key, 'dateFormat', val);
+                                            }
+                                        };
+
+                                        const d = new Date();
+                                        const yyyy = String(d.getFullYear());
+                                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                        const dd = String(d.getDate()).padStart(2, '0');
+
+                                        let dateStr = '';
+                                        if (currentFormat === 'YYYYMMDD') dateStr = `${yyyy}${mm}${dd}`;
+                                        if (currentFormat === 'DDMMYYYY') dateStr = `${dd}${mm}${yyyy}`;
+
+                                        let preview = '';
+                                        const seqStr = String(Math.max(currentSeq + (isRule ? 1 : 0), sequenceStart)).padStart(padding, '0');
+
+                                        if (isRule) {
+                                            preview = `${prefix}${dateStr}${seqStr}`;
+                                        } else {
+                                            preview = dateStr ? `${prefix}-${dateStr}-${seqStr}` : `${prefix}-${seqStr}`;
+                                        }
 
                                         return (
-                                            <tr key={item.key} className="group hover:bg-[var(--c-panel)]/50 transition">
+                                            <tr key={item.key} className={`group hover:bg-[var(--c-panel)]/50 transition ${item.separator ? 'border-t-4 border-t-[var(--c-border)] bg-[var(--c-panel)]/30' : ''}`}>
                                                 <td className="py-4 pl-2 whitespace-nowrap">
                                                     <p className="font-bold text-[var(--c-text)]">{item.label}</p>
-                                                    <p className="text-[10px] font-medium text-[var(--c-muted)]">{item.key}</p>
+                                                    <p className="text-[10px] font-medium text-[var(--c-muted)] uppercase">{item.key}</p>
                                                 </td>
                                                 <td className="py-4">
                                                     <input
                                                         type="text"
-                                                        maxLength={5}
+                                                        maxLength={8}
                                                         value={prefix}
-                                                        onChange={(e) => handleRuleChange(item.key, 'prefix', e.target.value.toUpperCase())}
+                                                        onChange={(e) => isRule
+                                                            ? handleRuleChange(item.key, 'prefix', e.target.value.toUpperCase())
+                                                            : handleDocRefChange(item.key, 'prefix', e.target.value.toUpperCase())
+                                                        }
                                                         className="w-20 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-black text-[var(--c-accent)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
                                                     />
                                                 </td>
                                                 <td className="py-4">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRuleChange(item.key, 'skipDate', !skipDate)}
-                                                        className={`rounded-full px-3 py-1 text-[10px] font-bold ${skipDate ? 'bg-slate-700 text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
+                                                    <select
+                                                        value={currentFormat}
+                                                        onChange={(e) => handleChangeFormat(e.target.value)}
+                                                        className="w-32 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20 cursor-pointer"
                                                     >
-                                                        {skipDate ? 'Yes' : 'No'}
-                                                    </button>
+                                                        <option value="NONE">No Date</option>
+                                                        <option value="YYYYMMDD">YYYY MM DD</option>
+                                                        <option value="DDMMYYYY">DD MM YYYY</option>
+                                                    </select>
                                                 </td>
                                                 <td className="py-4">
                                                     <input
@@ -232,7 +283,10 @@ const IDRulesSection = () => {
                                                         min={1}
                                                         max={999999}
                                                         value={sequenceStart}
-                                                        onChange={(e) => handleRuleChange(item.key, 'sequenceStart', e.target.value)}
+                                                        onChange={(e) => isRule
+                                                            ? handleRuleChange(item.key, 'sequenceStart', e.target.value)
+                                                            : handleDocRefChange(item.key, 'sequenceStart', e.target.value)
+                                                        }
                                                         className="w-20 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
                                                     />
                                                 </td>
@@ -242,29 +296,34 @@ const IDRulesSection = () => {
                                                         min={2}
                                                         max={8}
                                                         value={padding}
-                                                        onChange={(e) => handleRuleChange(item.key, 'padding', e.target.value)}
+                                                        onChange={(e) => isRule
+                                                            ? handleRuleChange(item.key, 'padding', e.target.value)
+                                                            : handleDocRefChange(item.key, 'padding', e.target.value)
+                                                        }
                                                         className="w-16 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
                                                     />
                                                 </td>
                                                 <td className="py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-mono text-sm font-bold text-[var(--c-text)]">{currentSeq}</span>
-                                                        <button
-                                                            onClick={() => {
-                                                                const next = prompt(`Update ${item.label} counter:`, currentSeq);
-                                                                if (next !== null && meta) handleUpdateCounter(meta.col, meta.field, next);
-                                                            }}
-                                                            className="text-[10px] font-bold text-[var(--c-accent)] opacity-0 group-hover:opacity-100 transition hover:underline"
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                    </div>
+                                                    {meta ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono text-sm font-bold text-[var(--c-text)]">{currentSeq}</span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const next = prompt(`Update ${item.label} counter:`, currentSeq);
+                                                                    if (next !== null && meta) handleUpdateCounter(meta.col, meta.field, next);
+                                                                }}
+                                                                className="text-[10px] font-bold text-[var(--c-accent)] opacity-0 group-hover:opacity-100 transition hover:underline"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[10px] font-black text-[var(--c-muted)] uppercase tracking-wider">Auto</span>
+                                                    )}
                                                 </td>
                                                 <td className="py-4 text-right pr-2 whitespace-nowrap">
-                                                    <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)]">
-                                                        {skipDate || item.key === 'LOAN'
-                                                            ? `${prefix}${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`
-                                                            : `${prefix}${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${String(Math.max(currentSeq + 1, sequenceStart)).padStart(padding, '0')}`}
+                                                    <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)] border border-[var(--c-accent)]/10">
+                                                        {preview}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -279,89 +338,10 @@ const IDRulesSection = () => {
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="rounded-xl bg-[var(--c-accent)] px-6 py-2.5 text-xs font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50"
+                            className="rounded-xl bg-[var(--c-accent)] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50"
                         >
-                            {isSaving ? 'Saving...' : 'Commit All ID Rules'}
+                            {isSaving ? 'Committing...' : 'Commit All Unified Rules'}
                         </button>
-                    </div>
-                </div>
-            </SettingCard>
-
-            <SettingCard
-                title="Document Reference Codes"
-                description="Configure reference codes for documents like proforma invoices, quotations, and payments."
-            >
-                <div className="grid gap-3">
-                    <div className="rounded-2xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-panel)_42%,transparent)] p-2">
-                        <div className="overflow-x-auto rounded-xl">
-                            <table className="min-w-[880px] w-full text-left text-sm">
-                                <thead className="bg-[var(--c-surface)]">
-                                    <tr className="border-b border-[var(--c-border)] text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
-                                        <th className="pb-3 pl-2">Document Type</th>
-                                        <th className="pb-3">Prefix</th>
-                                        <th className="pb-3">Date Format</th>
-                                        <th className="pb-3">Padding</th>
-                                        <th className="pb-3 text-right pr-2">Example</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[var(--c-border)] bg-[var(--c-surface)]">
-                                    {[
-                                        { key: 'proformaInvoice', label: 'Proforma Invoice' },
-                                        { key: 'quotation', label: 'Quotation' },
-                                        { key: 'clientPayment', label: 'Client Payment' },
-                                        { key: 'invoice', label: 'Invoice' },
-                                        { key: 'taskAssignment', label: 'Task Assignment' },
-                                    ].map(item => {
-                                        const prefix = docRefs[item.key]?.prefix || '';
-                                        const dateFormat = docRefs[item.key]?.dateFormat || 'YYYYMMDD';
-                                        const padding = Number(docRefs[item.key]?.padding) || 4;
-                                        const dateExample = dateFormat === 'DDMMYYYY' ? '24022026' : '20260224';
-                                        return (
-                                            <tr key={item.key} className="group hover:bg-[var(--c-panel)]/50 transition">
-                                                <td className="py-4 pl-2 whitespace-nowrap">
-                                                    <p className="font-bold text-[var(--c-text)]">{item.label}</p>
-                                                    <p className="text-[10px] font-medium text-[var(--c-muted)]">{item.key}</p>
-                                                </td>
-                                                <td className="py-4">
-                                                    <input
-                                                        type="text"
-                                                        maxLength={8}
-                                                        value={prefix}
-                                                        onChange={(e) => handleDocRefChange(item.key, 'prefix', e.target.value.toUpperCase())}
-                                                        className="w-24 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-black text-[var(--c-accent)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                    />
-                                                </td>
-                                                <td className="py-4">
-                                                    <select
-                                                        value={dateFormat}
-                                                        onChange={(e) => handleDocRefChange(item.key, 'dateFormat', e.target.value)}
-                                                        className="w-28 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                    >
-                                                        <option value="YYYYMMDD">YYYYMMDD</option>
-                                                        <option value="DDMMYYYY">DDMMYYYY</option>
-                                                    </select>
-                                                </td>
-                                                <td className="py-4">
-                                                    <input
-                                                        type="number"
-                                                        min={2}
-                                                        max={8}
-                                                        value={padding}
-                                                        onChange={(e) => handleDocRefChange(item.key, 'padding', e.target.value)}
-                                                        className="w-16 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-2 py-1.5 text-xs font-bold text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                                    />
-                                                </td>
-                                                <td className="py-4 text-right pr-2 whitespace-nowrap">
-                                                    <span className="rounded-md bg-[var(--c-accent)]/5 px-2 py-1 text-[11px] font-black tracking-wider text-[var(--c-accent)]">
-                                                        {prefix}-{dateExample}-{String(1).padStart(padding, '0')}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
                 </div>
             </SettingCard>
