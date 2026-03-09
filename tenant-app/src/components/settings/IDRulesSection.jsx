@@ -10,6 +10,7 @@ const IDRulesSection = () => {
         CLID: { prefix: 'CLID', padding: 4 },
         DPID: { prefix: 'DPID', padding: 4 },
         POR: { prefix: 'POR', padding: 4, skipDate: false, sequenceStart: 1 },
+        PID: { prefix: 'PID', padding: 4, skipDate: true, sequenceStart: 1 },
         EXP: { prefix: 'EXP', padding: 4, skipDate: false, sequenceStart: 1 },
         LON: { prefix: 'LON', padding: 4, skipDate: false, sequenceStart: 1 },
         LOAN: { prefix: 'LOAN', padding: 4, skipDate: true, sequenceStart: 1 },
@@ -42,10 +43,12 @@ const IDRulesSection = () => {
             // Fetch counters
             const clientCounterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'clients'));
             const txCounterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'transactions'));
+            const portalCounterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'portals'));
 
             setCounters({
                 clients: clientCounterSnap.exists() ? clientCounterSnap.data() : {},
                 transactions: txCounterSnap.exists() ? txCounterSnap.data() : {},
+                portals: portalCounterSnap.exists() ? portalCounterSnap.data() : {},
             });
 
             setIsLoading(false);
@@ -141,6 +144,7 @@ const IDRulesSection = () => {
         if (key === 'CLID') return counters.clients?.lastClientSeq || 0;
         if (key === 'DPID') return counters.clients?.lastDependentSeq || 0;
         if (key === 'POR') return counters.transactions?.lastPORSeq || 0;
+        if (key === 'PID') return counters.portals?.lastPortalSeq || 0;
         if (key === 'EXP') return counters.transactions?.lastEXPSeq || 0;
         if (key === 'LON') return counters.transactions?.lastLONSeq || 0;
         if (key === 'LOAN') return counters.transactions?.lastLOANSeq || 0;
@@ -153,6 +157,7 @@ const IDRulesSection = () => {
         if (key === 'CLID') return { col: 'clients', field: 'lastClientSeq' };
         if (key === 'DPID') return { col: 'clients', field: 'lastDependentSeq' };
         if (key === 'POR') return { col: 'transactions', field: 'lastPORSeq' };
+        if (key === 'PID') return { col: 'portals', field: 'lastPortalSeq' };
         if (key === 'EXP') return { col: 'transactions', field: 'lastEXPSeq' };
         if (key === 'LON') return { col: 'transactions', field: 'lastLONSeq' };
         if (key === 'LOAN') return { col: 'transactions', field: 'lastLOANSeq' };
@@ -166,6 +171,7 @@ const IDRulesSection = () => {
         { type: 'rule', key: 'CLID', label: 'Clients (Co/Ind)' },
         { type: 'rule', key: 'DPID', label: 'Dependents' },
         { type: 'rule', key: 'POR', label: 'Portal Trans.' },
+        { type: 'rule', key: 'PID', label: 'Portal Creation' },
         { type: 'rule', key: 'EXP', label: 'Expenses' },
         { type: 'rule', key: 'LON', label: 'Loans (Transactions)' },
         { type: 'rule', key: 'LOAN', label: 'Loan Persons' },
