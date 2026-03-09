@@ -220,6 +220,7 @@ const UserCustomizationSection = () => {
           <div className="space-y-2">
             {users.map((user) => {
               const isFrozen = String(user.status || '').toLowerCase() === 'frozen';
+              const isSuperAdmin = String(user.role || '').toLowerCase() === 'super admin';
               return (
                 <article
                   key={user.uid}
@@ -230,30 +231,30 @@ const UserCustomizationSection = () => {
                       <p className="truncate text-sm font-semibold text-[var(--c-text)]">{user.displayName}</p>
                       <p className="truncate text-xs text-[var(--c-muted)]">{user.email}</p>
                       <p className="mt-1 text-xs text-[var(--c-muted)]">
-                        Role: {user.role} • Status: {user.status}
+                        Role: <span className={isSuperAdmin ? 'font-bold text-[var(--c-accent)]' : ''}>{user.role}</span> • Status: {user.status}
                       </p>
-                      <p className="mt-1 text-[11px] text-[var(--c-muted)]">createdBy: {user.createdBy}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onToggleFreeze(user.uid)}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                          isFrozen
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-                        }`}
-                      >
-                        {isFrozen ? 'Unfreeze' : 'Freeze'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete(user.uid)}
-                        className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {!isSuperAdmin && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onToggleFreeze(user.uid)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:opacity-80 ${isFrozen
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                            }`}
+                        >
+                          {isFrozen ? 'Unfreeze' : 'Freeze'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete(user.uid)}
+                          className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:opacity-80 dark:bg-rose-900/40 dark:text-rose-300"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </article>
               );
