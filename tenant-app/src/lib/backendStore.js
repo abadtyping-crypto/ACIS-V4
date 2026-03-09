@@ -737,11 +737,10 @@ export const getTransactionSequence = async (tenantId, typeKey) => {
 export const incrementTransactionSequence = async (tenantId, typeKey) => {
   try {
     const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
+    // Using atomic increment to prevent race conditions during concurrent transaction creation
+    await setDoc(ref, { [typeKey]: increment(1), updatedAt: serverTimestamp() }, { merge: true });
     const snap = await getDoc(ref);
-    const current = (snap.exists() ? snap.data()[typeKey] : 0) || 0;
-    const next = current + 1;
-    await setDoc(ref, { [typeKey]: next, updatedAt: serverTimestamp() }, { merge: true });
-    return next;
+    return snap.exists() ? snap.data()[typeKey] : 1;
   } catch (error) {
     console.warn(`[backendStore] failed to increment sequence for ${typeKey}:`, error);
     return null;
