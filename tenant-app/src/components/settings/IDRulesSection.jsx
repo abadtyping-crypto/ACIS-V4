@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTenant } from '../../context/TenantContext';
 import { getTenantSettingDoc, upsertTenantSettingDoc, db } from '../../lib/backendStore';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import SettingCard from './SettingCard';
 
 const IDRulesSection = () => {
@@ -24,7 +24,7 @@ const IDRulesSection = () => {
         invoice: { prefix: 'PAY', dateFormat: 'DDMMYYYY', padding: 4 },
         taskAssignment: { prefix: 'PAY', dateFormat: 'DDMMYYYY', padding: 4 },
     });
-    const [counters, setCounters] = useState({});
+    // Removed the separate counter state variable as it's now all within rules.
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState({ type: '', message: '' });
@@ -39,17 +39,6 @@ const IDRulesSection = () => {
                     setDocRefs(prev => ({ ...prev, ...res.data.docRefCodes }));
                 }
             }
-
-            // Fetch counters
-            const clientCounterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'clients'));
-            const txCounterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'transactions'));
-            const portalCounterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'portals'));
-
-            setCounters({
-                clients: clientCounterSnap.exists() ? clientCounterSnap.data() : {},
-                transactions: txCounterSnap.exists() ? txCounterSnap.data() : {},
-                portals: portalCounterSnap.exists() ? portalCounterSnap.data() : {},
-            });
 
             setIsLoading(false);
         };
@@ -99,7 +88,7 @@ const IDRulesSection = () => {
         setIsSaving(false);
     }, [tenantId, rules, docRefs]);
 
-    const handleUpdateCounter = useCallback(async (collectionName, field, newVal) => {
+    const handleUpdateCounter = useCallback(async (field, newVal) => {
         const val = parseInt(newVal);
         if (isNaN(val)) return;
 
@@ -109,7 +98,7 @@ const IDRulesSection = () => {
         setStatus({ type: 'info', message: `Updating ${field}...` });
 
         try {
-            const ref = doc(db, 'tenants', tenantId, 'counters', collectionName);
+            const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
             await setDoc(ref, { [field]: val }, { merge: true });
 
             // Write Sync Event
@@ -126,9 +115,9 @@ const IDRulesSection = () => {
                 syncStatus: 'pending'
             });
 
-            setCounters(prev => ({
+            setRules(prev => ({
                 ...prev,
-                [collectionName]: { ...prev[collectionName], [field]: val }
+                [field]: val
             }));
             setStatus({ type: 'success', message: `${field} updated to ${val}` });
         } catch (err) {
@@ -140,31 +129,19 @@ const IDRulesSection = () => {
 
     if (isLoading) return <p className="text-xs text-[var(--c-muted)]">Loading system rules...</p>;
 
-    const getCounterVal = (key) => {
-        if (key === 'CLID') return counters.clients?.lastClientSeq || 0;
-        if (key === 'DPID') return counters.clients?.lastDependentSeq || 0;
-        if (key === 'POR') return counters.transactions?.lastPORSeq || 0;
-        if (key === 'PID') return counters.portals?.lastPortalSeq || 0;
-        if (key === 'EXP') return counters.transactions?.lastEXPSeq || 0;
-        if (key === 'LON') return counters.transactions?.lastLONSeq || 0;
-        if (key === 'LOAN') return counters.transactions?.lastLOANSeq || 0;
-        if (key === 'TRF') return counters.transactions?.lastTRFSeq || 0;
-        if (key === 'DTID') return counters.transactions?.lastDTIDSeq || 0;
-        return 0; // Doc Refs don't have dedicated sequence settings here right now
+    const getCounterField = (key) => {
+        if (key === 'CLID') return 'lastClientSeq';
+        if (key === 'DPID') return 'lastDependentSeq';
+        if (key === 'PID') return 'lastPortalSeq';
+        if (key === 'DTID') return 'lastDTIDSeq';
+        if (key === 'TRK') return 'lastTRKSeq';
+        if (['POR', 'EXP', 'LON', 'LOAN', 'TRF'].includes(key)) return `last${key}Seq`;
+        return null;
     };
 
-    const getCounterMeta = (key) => {
-        if (key === 'CLID') return { col: 'clients', field: 'lastClientSeq' };
-        if (key === 'DPID') return { col: 'clients', field: 'lastDependentSeq' };
-        if (key === 'POR') return { col: 'transactions', field: 'lastPORSeq' };
-        if (key === 'PID') return { col: 'portals', field: 'lastPortalSeq' };
-        if (key === 'EXP') return { col: 'transactions', field: 'lastEXPSeq' };
-        if (key === 'LON') return { col: 'transactions', field: 'lastLONSeq' };
-        if (key === 'LOAN') return { col: 'transactions', field: 'lastLOANSeq' };
-        if (key === 'TRF') return { col: 'transactions', field: 'lastTRFSeq' };
-        if (key === 'TRK') return { col: 'counters', field: 'lastTRKSeq' };
-        if (key === 'DTID') return { col: 'transactions', field: 'lastDTIDSeq' };
-        return null;
+    const getCounterVal = (key) => {
+        const field = getCounterField(key);
+        return field ? (rules[field] || 0) : 0;
     };
 
     const ENTITIES = [
@@ -221,7 +198,7 @@ const IDRulesSection = () => {
                                             : (config.dateFormat || 'YYYYMMDD');
 
                                         const currentSeq = getCounterVal(item.key);
-                                        const meta = getCounterMeta(item.key);
+                                        const field = getCounterField(item.key);
 
                                         const handleChangeFormat = (val) => {
                                             if (isRule) {
@@ -306,13 +283,13 @@ const IDRulesSection = () => {
                                                     />
                                                 </td>
                                                 <td className="py-4">
-                                                    {meta ? (
+                                                    {field ? (
                                                         <div className="flex items-center gap-2">
                                                             <span className="font-mono text-sm font-bold text-[var(--c-text)]">{currentSeq}</span>
                                                             <button
                                                                 onClick={() => {
                                                                     const next = prompt(`Update ${item.label} counter:`, currentSeq);
-                                                                    if (next !== null && meta) handleUpdateCounter(meta.col, meta.field, next);
+                                                                    if (next !== null && field) handleUpdateCounter(field, next);
                                                                 }}
                                                                 className="text-[10px] font-bold text-[var(--c-accent)] opacity-0 group-hover:opacity-100 transition hover:underline"
                                                             >

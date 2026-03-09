@@ -725,7 +725,7 @@ export const getTenantUserControlByUid = async (tenantId, uid) => {
 
 export const getTransactionSequence = async (tenantId, typeKey) => {
   try {
-    const snap = await getDoc(doc(db, 'tenants', tenantId, 'settings', 'sequences'));
+    const snap = await getDoc(doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules'));
     if (!snap.exists()) return 0;
     return snap.data()[typeKey] || 0;
   } catch (error) {
@@ -736,7 +736,7 @@ export const getTransactionSequence = async (tenantId, typeKey) => {
 
 export const incrementTransactionSequence = async (tenantId, typeKey) => {
   try {
-    const ref = doc(db, 'tenants', tenantId, 'settings', 'sequences');
+    const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
     const snap = await getDoc(ref);
     const current = (snap.exists() ? snap.data()[typeKey] : 0) || 0;
     const next = current + 1;
@@ -752,7 +752,7 @@ export const ensureTransactionSequenceStart = async (tenantId, typeKey, sequence
   try {
     const startValue = Number(sequenceStart);
     if (!Number.isFinite(startValue) || startValue <= 0) return;
-    const ref = doc(db, 'tenants', tenantId, 'settings', 'sequences');
+    const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
     const snap = await getDoc(ref);
     const current = (snap.exists() ? snap.data()[typeKey] : 0) || 0;
     if (current >= startValue) return;
@@ -1397,7 +1397,7 @@ export const deleteTenantClientCascade = async (tenantId, clientId, deletedBy) =
 };
 
 export const incrementClientSequence = async (tenantId, sequenceKey) => {
-  const ref = doc(db, 'tenants', tenantId, 'counters', 'clients');
+  const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
   await setDoc(ref, { [sequenceKey]: increment(1) }, { merge: true });
   const snap = await getDoc(ref);
   return snap.data()[sequenceKey];
