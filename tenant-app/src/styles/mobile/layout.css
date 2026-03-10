@@ -362,16 +362,29 @@
 .mobile-shell[data-mobile-icon-style='filled'] .mobile-dock-item,
 .mobile-shell[data-mobile-icon-style='filled'] .mobile-dock-action,
 .mobile-shell[data-mobile-icon-style='filled'] .mobile-dock-orb,
-.mobile-shell[data-mobile-icon-style='filled'] .mobile-icon-control {
+.mobile-shell[data-mobile-icon-style='filled'] .mobile-icon-control,
+.mobile-shell[data-mobile-icon-style='filled'] .mobile-icon-only,
+.mobile-shell[data-mobile-icon-style='filled'] .menu-launcher-btn,
+.mobile-shell[data-mobile-icon-style='filled'] .chat-agent-fab,
+.mobile-shell[data-mobile-icon-style='filled'] .mobile-nav-3d-btn {
   background: color-mix(in srgb, var(--c-accent) 22%, var(--c-surface) 78%) !important;
   border-color: color-mix(in srgb, var(--c-accent) 28%, var(--c-border) 72%) !important;
   color: var(--c-text) !important;
 }
 
+.mobile-shell[data-mobile-icon-style='filled'] .mobile-icon-only.icon-active {
+  background: var(--brand-gradient) !important;
+  color: var(--c-on-accent) !important;
+}
+
 .mobile-shell[data-mobile-icon-style='minimal'] .mobile-dock-item,
 .mobile-shell[data-mobile-icon-style='minimal'] .mobile-dock-action,
 .mobile-shell[data-mobile-icon-style='minimal'] .mobile-dock-orb,
-.mobile-shell[data-mobile-icon-style='minimal'] .mobile-icon-control {
+.mobile-shell[data-mobile-icon-style='minimal'] .mobile-icon-control,
+.mobile-shell[data-mobile-icon-style='minimal'] .mobile-icon-only,
+.mobile-shell[data-mobile-icon-style='minimal'] .menu-launcher-btn,
+.mobile-shell[data-mobile-icon-style='minimal'] .chat-agent-fab,
+.mobile-shell[data-mobile-icon-style='minimal'] .mobile-nav-3d-btn {
   background: transparent !important;
   box-shadow: none !important;
   border-color: color-mix(in srgb, var(--c-border) 62%, transparent) !important;
@@ -379,6 +392,10 @@
 
 .mobile-shell[data-mobile-icon-style='minimal'] .mobile-dock-item[aria-current='page'] {
   background: color-mix(in srgb, var(--c-accent) 14%, transparent) !important;
+}
+
+.mobile-shell[data-mobile-icon-style='minimal'] .mobile-icon-only.icon-active {
+  color: var(--c-accent) !important;
 }
 
 @keyframes mobileGlowDrift {
