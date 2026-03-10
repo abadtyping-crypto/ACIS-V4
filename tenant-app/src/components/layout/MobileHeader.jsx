@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { RecycleBinIcon, SearchIcon, UserPlusIcon } from '../icons/AppIcons';
-import { useRecycleBin } from '../../context/RecycleBinContext';
-import { useRecycleBinSummary } from '../../hooks/useRecycleBinSummary';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const toDisplayName = (user) => {
@@ -18,14 +15,9 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
   const { tenantId } = useParams();
   const { resolvedTheme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const { openRecycleBin } = useRecycleBin();
-  const recycleDomains = ['clients', 'portals', 'transactions', 'loanPersons', 'statements', 'paymentReceipts', 'invoices'];
-  const { total: recycleTotal } = useRecycleBinSummary(tenantId, recycleDomains);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const displayName = toDisplayName(user);
-  const tenantLogoUrl = tenant?.logoUrl || '/logo.png';
-  const tenantLabel = tenant?.name || 'Tenant';
 
   const goTo = (path) => navigate(`/t/${tenantId}/${path}`);
 
@@ -39,17 +31,17 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3">
-      <div className="mobile-glass-panel flex min-h-20 items-center justify-between gap-2 rounded-2xl border border-[var(--c-border)] px-3.5">
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => goTo('dashboard')}
-          className="inline-flex min-w-0 max-w-[74%] items-center gap-2.5 border-0 bg-transparent p-0 text-left no-underline outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-ring)]"
+          className="mobile-glass-panel mobile-header-3d inline-flex min-w-0 max-w-[calc(100%-4.75rem)] items-center gap-2.5 rounded-2xl border border-[var(--c-border)] px-3 py-2 text-left no-underline outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-ring)]"
           style={{ textDecoration: 'none' }}
         >
           <img
-            src={tenantLogoUrl}
-            alt={tenantLabel}
-            className="h-10 w-10 rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] object-cover"
+            src="/logo.png"
+            alt="ACIS Ajman"
+            className="h-9 w-9 rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] object-cover"
           />
           <div className="min-w-0">
             <p className="truncate text-[15px] font-extrabold text-[var(--c-text)]">{tenant.name}</p>
@@ -57,44 +49,12 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
           </div>
         </button>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => goTo('client-onboarding')}
-            className="mobile-icon-control relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]/70 text-[var(--c-muted)]"
-            aria-label="Quick add"
-            title="Quick add"
-          >
-            <UserPlusIcon className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => goTo('search')}
-            className="mobile-icon-control relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]/70 text-[var(--c-muted)]"
-            aria-label="Search"
-            title="Search"
-          >
-            <SearchIcon className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={openRecycleBin}
-            className="mobile-icon-control relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]/70 text-[var(--c-muted)]"
-            aria-label="Open recycle bin"
-            title="Open recycle bin"
-          >
-            <RecycleBinIcon className="h-5 w-5" />
-            {recycleTotal > 0 ? (
-              <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--c-accent)] px-1 text-[9px] font-bold text-white">
-                {recycleTotal}
-              </span>
-            ) : null}
-          </button>
+        <div className="mobile-glass-panel mobile-header-3d flex items-center gap-2 rounded-2xl border border-[var(--c-border)] px-2 py-1.5">
           <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => setMenuOpen((prev) => !prev)}
-            className="mobile-icon-control inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]"
+            className="mobile-nav-3d-btn inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
           >

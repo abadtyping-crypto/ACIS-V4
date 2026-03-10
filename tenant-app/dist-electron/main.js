@@ -1,36 +1,30 @@
-import { createRequire } from "module";
-import require$$0$4, { dirname, join } from "path";
-import require$$0$1, { fileURLToPath } from "url";
-import require$$2, { existsSync, readFileSync, writeFileSync } from "fs";
-import require$$0$5 from "events";
-import require$$1$1 from "util";
-import require$$0$3 from "http";
-import require$$1 from "https";
-import require$$3 from "zlib";
-import require$$0$2 from "stream";
-import require$$7 from "net";
-import require$$4 from "dns";
-import require$$6 from "os";
-import require$$2$1 from "crypto";
-import require$$1$2 from "tls";
-import require$$0$6 from "child_process";
-function getDefaultExportFromCjs(x) {
-  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
+import { createRequire as Ut } from "module";
+import At, { dirname as Bt, join as ae } from "path";
+import ee, { fileURLToPath as Dt } from "url";
+import De, { existsSync as Ft, readFileSync as $t, writeFileSync as Gt } from "fs";
+import V from "events";
+import Ct from "util";
+import Qt from "http";
+import Wt from "https";
+import Kt from "zlib";
+import P from "stream";
+import te from "net";
+import It from "dns";
+import jt from "os";
+import K from "crypto";
+import Mt from "tls";
+import Vt from "child_process";
+function Xt(b) {
+  return b && b.__esModule && Object.prototype.hasOwnProperty.call(b, "default") ? b.default : b;
 }
-var nodemailer$1 = {};
-var shared = { exports: {} };
-var fetch = { exports: {} };
-var cookies;
-var hasRequiredCookies;
-function requireCookies() {
-  if (hasRequiredCookies) return cookies;
-  hasRequiredCookies = 1;
-  const urllib = require$$0$1;
-  const SESSION_TIMEOUT = 1800;
-  class Cookies {
-    constructor(options) {
-      this.options = options || {};
-      this.cookies = [];
+var J = {}, re = { exports: {} }, ie = { exports: {} }, pe, Qe;
+function Jt() {
+  if (Qe) return pe;
+  Qe = 1;
+  const b = ee, y = 1800;
+  class k {
+    constructor(p) {
+      this.options = p || {}, this.cookies = [];
     }
     /**
      * Stores a cookie string to the cookie storage
@@ -38,29 +32,11 @@ function requireCookies() {
      * @param {String} cookieStr Value from the 'Set-Cookie:' header
      * @param {String} url Current URL
      */
-    set(cookieStr, url) {
-      let urlparts = urllib.parse(url || "");
-      let cookie = this.parse(cookieStr);
-      let domain;
-      if (cookie.domain) {
-        domain = cookie.domain.replace(/^\./, "");
-        if (
-          // can't be valid if the requested domain is shorter than current hostname
-          urlparts.hostname.length < domain.length || // prefix domains with dot to be sure that partial matches are not used
-          ("." + urlparts.hostname).substr(-domain.length + 1) !== "." + domain
-        ) {
-          cookie.domain = urlparts.hostname;
-        }
-      } else {
-        cookie.domain = urlparts.hostname;
-      }
-      if (!cookie.path) {
-        cookie.path = this.getPath(urlparts.pathname);
-      }
-      if (!cookie.expires) {
-        cookie.expires = new Date(Date.now() + (Number(this.options.sessionTimeout || SESSION_TIMEOUT) || SESSION_TIMEOUT) * 1e3);
-      }
-      return this.add(cookie);
+    set(p, n) {
+      let r = b.parse(n || ""), o = this.parse(p), m;
+      return o.domain ? (m = o.domain.replace(/^\./, ""), // can't be valid if the requested domain is shorter than current hostname
+      (r.hostname.length < m.length || // prefix domains with dot to be sure that partial matches are not used
+      ("." + r.hostname).substr(-m.length + 1) !== "." + m) && (o.domain = r.hostname)) : o.domain = r.hostname, o.path || (o.path = this.getPath(r.pathname)), o.expires || (o.expires = new Date(Date.now() + (Number(this.options.sessionTimeout || y) || y) * 1e3)), this.add(o);
     }
     /**
      * Returns cookie string for the 'Cookie:' header.
@@ -68,8 +44,8 @@ function requireCookies() {
      * @param {String} url URL to check for
      * @returns {String} Cookie header or empty string if no matches were found
      */
-    get(url) {
-      return this.list(url).map((cookie) => cookie.name + "=" + cookie.value).join("; ");
+    get(p) {
+      return this.list(p).map((n) => n.name + "=" + n.value).join("; ");
     }
     /**
      * Lists all valied cookie objects for the specified URL
@@ -77,21 +53,16 @@ function requireCookies() {
      * @param {String} url URL to check for
      * @returns {Array} An array of cookie objects
      */
-    list(url) {
-      let result = [];
-      let i;
-      let cookie;
-      for (i = this.cookies.length - 1; i >= 0; i--) {
-        cookie = this.cookies[i];
-        if (this.isExpired(cookie)) {
-          this.cookies.splice(i, i);
+    list(p) {
+      let n = [], r, o;
+      for (r = this.cookies.length - 1; r >= 0; r--) {
+        if (o = this.cookies[r], this.isExpired(o)) {
+          this.cookies.splice(r, r);
           continue;
         }
-        if (this.match(cookie, url)) {
-          result.unshift(cookie);
-        }
+        this.match(o, p) && n.unshift(o);
       }
-      return result;
+      return n;
     }
     /**
      * Parses cookie string from the 'Set-Cookie:' header
@@ -99,50 +70,34 @@ function requireCookies() {
      * @param {String} cookieStr String from the 'Set-Cookie:' header
      * @returns {Object} Cookie object
      */
-    parse(cookieStr) {
-      let cookie = {};
-      (cookieStr || "").toString().split(";").forEach((cookiePart) => {
-        let valueParts = cookiePart.split("=");
-        let key = valueParts.shift().trim().toLowerCase();
-        let value = valueParts.join("=").trim();
-        let domain;
-        if (!key) {
-          return;
-        }
-        switch (key) {
-          case "expires":
-            value = new Date(value);
-            if (value.toString() !== "Invalid Date") {
-              cookie.expires = value;
-            }
-            break;
-          case "path":
-            cookie.path = value;
-            break;
-          case "domain":
-            domain = value.toLowerCase();
-            if (domain.length && domain.charAt(0) !== ".") {
-              domain = "." + domain;
-            }
-            cookie.domain = domain;
-            break;
-          case "max-age":
-            cookie.expires = new Date(Date.now() + (Number(value) || 0) * 1e3);
-            break;
-          case "secure":
-            cookie.secure = true;
-            break;
-          case "httponly":
-            cookie.httponly = true;
-            break;
-          default:
-            if (!cookie.name) {
-              cookie.name = key;
-              cookie.value = value;
-            }
-        }
-      });
-      return cookie;
+    parse(p) {
+      let n = {};
+      return (p || "").toString().split(";").forEach((r) => {
+        let o = r.split("="), m = o.shift().trim().toLowerCase(), e = o.join("=").trim(), l;
+        if (m)
+          switch (m) {
+            case "expires":
+              e = new Date(e), e.toString() !== "Invalid Date" && (n.expires = e);
+              break;
+            case "path":
+              n.path = e;
+              break;
+            case "domain":
+              l = e.toLowerCase(), l.length && l.charAt(0) !== "." && (l = "." + l), n.domain = l;
+              break;
+            case "max-age":
+              n.expires = new Date(Date.now() + (Number(e) || 0) * 1e3);
+              break;
+            case "secure":
+              n.secure = !0;
+              break;
+            case "httponly":
+              n.httponly = !0;
+              break;
+            default:
+              n.name || (n.name = m, n.value = e);
+          }
+      }), n;
     }
     /**
      * Checks if a cookie object is valid for a specified URL
@@ -151,45 +106,23 @@ function requireCookies() {
      * @param {String} url URL to check for
      * @returns {Boolean} true if cookie is valid for specifiec URL
      */
-    match(cookie, url) {
-      let urlparts = urllib.parse(url || "");
-      if (urlparts.hostname !== cookie.domain && (cookie.domain.charAt(0) !== "." || ("." + urlparts.hostname).substr(-cookie.domain.length) !== cookie.domain)) {
-        return false;
-      }
-      let path = this.getPath(urlparts.pathname);
-      if (path.substr(0, cookie.path.length) !== cookie.path) {
-        return false;
-      }
-      if (cookie.secure && urlparts.protocol !== "https:") {
-        return false;
-      }
-      return true;
+    match(p, n) {
+      let r = b.parse(n || "");
+      return !(r.hostname !== p.domain && (p.domain.charAt(0) !== "." || ("." + r.hostname).substr(-p.domain.length) !== p.domain) || this.getPath(r.pathname).substr(0, p.path.length) !== p.path || p.secure && r.protocol !== "https:");
     }
     /**
      * Adds (or updates/removes if needed) a cookie object to the cookie storage
      *
      * @param {Object} cookie Cookie value to be stored
      */
-    add(cookie) {
-      let i;
-      let len;
-      if (!cookie || !cookie.name) {
-        return false;
-      }
-      for (i = 0, len = this.cookies.length; i < len; i++) {
-        if (this.compare(this.cookies[i], cookie)) {
-          if (this.isExpired(cookie)) {
-            this.cookies.splice(i, 1);
-            return false;
-          }
-          this.cookies[i] = cookie;
-          return true;
-        }
-      }
-      if (!this.isExpired(cookie)) {
-        this.cookies.push(cookie);
-      }
-      return true;
+    add(p) {
+      let n, r;
+      if (!p || !p.name)
+        return !1;
+      for (n = 0, r = this.cookies.length; n < r; n++)
+        if (this.compare(this.cookies[n], p))
+          return this.isExpired(p) ? (this.cookies.splice(n, 1), !1) : (this.cookies[n] = p, !0);
+      return this.isExpired(p) || this.cookies.push(p), !0;
     }
     /**
      * Checks if two cookie objects are the same
@@ -198,8 +131,8 @@ function requireCookies() {
      * @param {Object} b Cookie to check against
      * @returns {Boolean} True, if the cookies are the same
      */
-    compare(a, b) {
-      return a.name === b.name && a.path === b.path && a.domain === b.domain && a.secure === b.secure && a.httponly === a.httponly;
+    compare(p, n) {
+      return p.name === n.name && p.path === n.path && p.domain === n.domain && p.secure === n.secure && p.httponly === p.httponly;
     }
     /**
      * Checks if a cookie is expired
@@ -207,8 +140,8 @@ function requireCookies() {
      * @param {Object} cookie Cookie object to check against
      * @returns {Boolean} True, if the cookie is expired
      */
-    isExpired(cookie) {
-      return cookie.expires && cookie.expires < /* @__PURE__ */ new Date() || !cookie.value;
+    isExpired(p) {
+      return p.expires && p.expires < /* @__PURE__ */ new Date() || !p.value;
     }
     /**
      * Returns normalized cookie path for an URL path argument
@@ -216,36 +149,23 @@ function requireCookies() {
      * @param {String} pathname
      * @returns {String} Normalized path
      */
-    getPath(pathname) {
-      let path = (pathname || "/").split("/");
-      path.pop();
-      path = path.join("/").trim();
-      if (path.charAt(0) !== "/") {
-        path = "/" + path;
-      }
-      if (path.substr(-1) !== "/") {
-        path += "/";
-      }
-      return path;
+    getPath(p) {
+      let n = (p || "/").split("/");
+      return n.pop(), n = n.join("/").trim(), n.charAt(0) !== "/" && (n = "/" + n), n.substr(-1) !== "/" && (n += "/"), n;
     }
   }
-  cookies = Cookies;
-  return cookies;
+  return pe = k, pe;
 }
-const name = "nodemailer";
-const version = "8.0.1";
-const homepage = "https://nodemailer.com/";
-const require$$10 = {
-  name,
-  version,
-  homepage
+const Yt = "nodemailer", Zt = "8.0.1", ei = "https://nodemailer.com/", D = {
+  name: Yt,
+  version: Zt,
+  homepage: ei
 };
-var errors;
-var hasRequiredErrors;
-function requireErrors() {
-  if (hasRequiredErrors) return errors;
-  hasRequiredErrors = 1;
-  const ERROR_CODES = {
+var le, We;
+function F() {
+  if (We) return le;
+  We = 1;
+  const b = {
     // Connection errors
     ECONNECTION: "Connection closed unexpectedly",
     ETIMEDOUT: "Connection or operation timed out",
@@ -275,818 +195,483 @@ function requireErrors() {
     EURLACCESS: "URL access rejected (disableUrlAccess is set)",
     EFETCH: "HTTP fetch error"
   };
-  errors = Object.keys(ERROR_CODES).reduce(
-    (exports$1, code) => {
-      exports$1[code] = code;
-      return exports$1;
-    },
-    { ERROR_CODES }
-  );
-  return errors;
+  return le = Object.keys(b).reduce(
+    (y, k) => (y[k] = k, y),
+    { ERROR_CODES: b }
+  ), le;
 }
-var hasRequiredFetch;
-function requireFetch() {
-  if (hasRequiredFetch) return fetch.exports;
-  hasRequiredFetch = 1;
-  const http = require$$0$3;
-  const https = require$$1;
-  const urllib = require$$0$1;
-  const zlib = require$$3;
-  const PassThrough = require$$0$2.PassThrough;
-  const Cookies = requireCookies();
-  const packageData = require$$10;
-  const net = require$$7;
-  const errors2 = requireErrors();
-  const MAX_REDIRECTS = 5;
-  fetch.exports = function(url, options) {
-    return nmfetch(url, options);
-  };
-  fetch.exports.Cookies = Cookies;
-  function nmfetch(url, options) {
-    options = options || {};
-    options.fetchRes = options.fetchRes || new PassThrough();
-    options.cookies = options.cookies || new Cookies();
-    options.redirects = options.redirects || 0;
-    options.maxRedirects = isNaN(options.maxRedirects) ? MAX_REDIRECTS : options.maxRedirects;
-    if (options.cookie) {
-      [].concat(options.cookie || []).forEach((cookie) => {
-        options.cookies.set(cookie, url);
-      });
-      options.cookie = false;
-    }
-    let fetchRes = options.fetchRes;
-    let parsed = urllib.parse(url);
-    let method = (options.method || "").toString().trim().toUpperCase() || "GET";
-    let finished = false;
-    let cookies2;
-    let body;
-    let handler = parsed.protocol === "https:" ? https : http;
-    let headers = {
+var Ke;
+function ne() {
+  if (Ke) return ie.exports;
+  Ke = 1;
+  const b = Qt, y = Wt, k = ee, f = Kt, p = P.PassThrough, n = Jt(), r = D, o = te, m = F(), e = 5;
+  ie.exports = function(c, s) {
+    return l(c, s);
+  }, ie.exports.Cookies = n;
+  function l(c, s) {
+    s = s || {}, s.fetchRes = s.fetchRes || new p(), s.cookies = s.cookies || new n(), s.redirects = s.redirects || 0, s.maxRedirects = isNaN(s.maxRedirects) ? e : s.maxRedirects, s.cookie && ([].concat(s.cookie || []).forEach((w) => {
+      s.cookies.set(w, c);
+    }), s.cookie = !1);
+    let x = s.fetchRes, g = k.parse(c), v = (s.method || "").toString().trim().toUpperCase() || "GET", t = !1, i, d, a = g.protocol === "https:" ? y : b, h = {
       "accept-encoding": "gzip,deflate",
-      "user-agent": "nodemailer/" + packageData.version
+      "user-agent": "nodemailer/" + r.version
     };
-    Object.keys(options.headers || {}).forEach((key) => {
-      headers[key.toLowerCase().trim()] = options.headers[key];
-    });
-    if (options.userAgent) {
-      headers["user-agent"] = options.userAgent;
-    }
-    if (parsed.auth) {
-      headers.Authorization = "Basic " + Buffer.from(parsed.auth).toString("base64");
-    }
-    if (cookies2 = options.cookies.get(url)) {
-      headers.cookie = cookies2;
-    }
-    if (options.body) {
-      if (options.contentType !== false) {
-        headers["Content-Type"] = options.contentType || "application/x-www-form-urlencoded";
-      }
-      if (typeof options.body.pipe === "function") {
-        headers["Transfer-Encoding"] = "chunked";
-        body = options.body;
-        body.on("error", (err) => {
-          if (finished) {
-            return;
-          }
-          finished = true;
-          err.code = errors2.EFETCH;
-          err.sourceUrl = url;
-          fetchRes.emit("error", err);
+    if (Object.keys(s.headers || {}).forEach((w) => {
+      h[w.toLowerCase().trim()] = s.headers[w];
+    }), s.userAgent && (h["user-agent"] = s.userAgent), g.auth && (h.Authorization = "Basic " + Buffer.from(g.auth).toString("base64")), (i = s.cookies.get(c)) && (h.cookie = i), s.body) {
+      if (s.contentType !== !1 && (h["Content-Type"] = s.contentType || "application/x-www-form-urlencoded"), typeof s.body.pipe == "function")
+        h["Transfer-Encoding"] = "chunked", d = s.body, d.on("error", (w) => {
+          t || (t = !0, w.code = m.EFETCH, w.sourceUrl = c, x.emit("error", w));
         });
-      } else {
-        if (options.body instanceof Buffer) {
-          body = options.body;
-        } else if (typeof options.body === "object") {
+      else {
+        if (s.body instanceof Buffer)
+          d = s.body;
+        else if (typeof s.body == "object")
           try {
-            body = Buffer.from(
-              Object.keys(options.body).map((key) => {
-                let value = options.body[key].toString().trim();
-                return encodeURIComponent(key) + "=" + encodeURIComponent(value);
+            d = Buffer.from(
+              Object.keys(s.body).map((w) => {
+                let E = s.body[w].toString().trim();
+                return encodeURIComponent(w) + "=" + encodeURIComponent(E);
               }).join("&")
             );
-          } catch (E) {
-            if (finished) {
+          } catch (w) {
+            if (t)
               return;
-            }
-            finished = true;
-            E.code = errors2.EFETCH;
-            E.sourceUrl = url;
-            fetchRes.emit("error", E);
+            t = !0, w.code = m.EFETCH, w.sourceUrl = c, x.emit("error", w);
             return;
           }
-        } else {
-          body = Buffer.from(options.body.toString().trim());
-        }
-        headers["Content-Type"] = options.contentType || "application/x-www-form-urlencoded";
-        headers["Content-Length"] = body.length;
+        else
+          d = Buffer.from(s.body.toString().trim());
+        h["Content-Type"] = s.contentType || "application/x-www-form-urlencoded", h["Content-Length"] = d.length;
       }
-      method = (options.method || "").toString().trim().toUpperCase() || "POST";
+      v = (s.method || "").toString().trim().toUpperCase() || "POST";
     }
-    let req;
-    let reqOptions = {
-      method,
-      host: parsed.hostname,
-      path: parsed.path,
-      port: parsed.port ? parsed.port : parsed.protocol === "https:" ? 443 : 80,
-      headers,
-      rejectUnauthorized: false,
-      agent: false
+    let u, _ = {
+      method: v,
+      host: g.hostname,
+      path: g.path,
+      port: g.port ? g.port : g.protocol === "https:" ? 443 : 80,
+      headers: h,
+      rejectUnauthorized: !1,
+      agent: !1
     };
-    if (options.tls) {
-      Object.keys(options.tls).forEach((key) => {
-        reqOptions[key] = options.tls[key];
-      });
-    }
-    if (parsed.protocol === "https:" && parsed.hostname && parsed.hostname !== reqOptions.host && !net.isIP(parsed.hostname) && !reqOptions.servername) {
-      reqOptions.servername = parsed.hostname;
-    }
+    s.tls && Object.keys(s.tls).forEach((w) => {
+      _[w] = s.tls[w];
+    }), g.protocol === "https:" && g.hostname && g.hostname !== _.host && !o.isIP(g.hostname) && !_.servername && (_.servername = g.hostname);
     try {
-      req = handler.request(reqOptions);
-    } catch (E) {
-      finished = true;
-      setImmediate(() => {
-        E.code = errors2.EFETCH;
-        E.sourceUrl = url;
-        fetchRes.emit("error", E);
-      });
-      return fetchRes;
+      u = a.request(_);
+    } catch (w) {
+      return t = !0, setImmediate(() => {
+        w.code = m.EFETCH, w.sourceUrl = c, x.emit("error", w);
+      }), x;
     }
-    if (options.timeout) {
-      req.setTimeout(options.timeout, () => {
-        if (finished) {
-          return;
-        }
-        finished = true;
-        req.abort();
-        let err = new Error("Request Timeout");
-        err.code = errors2.EFETCH;
-        err.sourceUrl = url;
-        fetchRes.emit("error", err);
-      });
-    }
-    req.on("error", (err) => {
-      if (finished) {
+    return s.timeout && u.setTimeout(s.timeout, () => {
+      if (t)
         return;
-      }
-      finished = true;
-      err.code = errors2.EFETCH;
-      err.sourceUrl = url;
-      fetchRes.emit("error", err);
-    });
-    req.on("response", (res) => {
-      let inflate;
-      if (finished) {
-        return;
-      }
-      switch (res.headers["content-encoding"]) {
-        case "gzip":
-        case "deflate":
-          inflate = zlib.createUnzip();
-          break;
-      }
-      if (res.headers["set-cookie"]) {
-        [].concat(res.headers["set-cookie"] || []).forEach((cookie) => {
-          options.cookies.set(cookie, url);
-        });
-      }
-      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
-        options.redirects++;
-        if (options.redirects > options.maxRedirects) {
-          finished = true;
-          let err = new Error("Maximum redirect count exceeded");
-          err.code = errors2.EFETCH;
-          err.sourceUrl = url;
-          fetchRes.emit("error", err);
-          req.abort();
-          return;
+      t = !0, u.abort();
+      let w = new Error("Request Timeout");
+      w.code = m.EFETCH, w.sourceUrl = c, x.emit("error", w);
+    }), u.on("error", (w) => {
+      t || (t = !0, w.code = m.EFETCH, w.sourceUrl = c, x.emit("error", w));
+    }), u.on("response", (w) => {
+      let E;
+      if (!t) {
+        switch (w.headers["content-encoding"]) {
+          case "gzip":
+          case "deflate":
+            E = f.createUnzip();
+            break;
         }
-        options.method = "GET";
-        options.body = false;
-        return nmfetch(urllib.resolve(url, res.headers.location), options);
-      }
-      fetchRes.statusCode = res.statusCode;
-      fetchRes.headers = res.headers;
-      if (res.statusCode >= 300 && !options.allowErrorResponse) {
-        finished = true;
-        let err = new Error("Invalid status code " + res.statusCode);
-        err.code = errors2.EFETCH;
-        err.sourceUrl = url;
-        fetchRes.emit("error", err);
-        req.abort();
-        return;
-      }
-      res.on("error", (err) => {
-        if (finished) {
-          return;
-        }
-        finished = true;
-        err.code = errors2.EFETCH;
-        err.sourceUrl = url;
-        fetchRes.emit("error", err);
-        req.abort();
-      });
-      if (inflate) {
-        res.pipe(inflate).pipe(fetchRes);
-        inflate.on("error", (err) => {
-          if (finished) {
+        if (w.headers["set-cookie"] && [].concat(w.headers["set-cookie"] || []).forEach((S) => {
+          s.cookies.set(S, c);
+        }), [301, 302, 303, 307, 308].includes(w.statusCode) && w.headers.location) {
+          if (s.redirects++, s.redirects > s.maxRedirects) {
+            t = !0;
+            let S = new Error("Maximum redirect count exceeded");
+            S.code = m.EFETCH, S.sourceUrl = c, x.emit("error", S), u.abort();
             return;
           }
-          finished = true;
-          err.code = errors2.EFETCH;
-          err.sourceUrl = url;
-          fetchRes.emit("error", err);
-          req.abort();
-        });
-      } else {
-        res.pipe(fetchRes);
+          return s.method = "GET", s.body = !1, l(k.resolve(c, w.headers.location), s);
+        }
+        if (x.statusCode = w.statusCode, x.headers = w.headers, w.statusCode >= 300 && !s.allowErrorResponse) {
+          t = !0;
+          let S = new Error("Invalid status code " + w.statusCode);
+          S.code = m.EFETCH, S.sourceUrl = c, x.emit("error", S), u.abort();
+          return;
+        }
+        w.on("error", (S) => {
+          t || (t = !0, S.code = m.EFETCH, S.sourceUrl = c, x.emit("error", S), u.abort());
+        }), E ? (w.pipe(E).pipe(x), E.on("error", (S) => {
+          t || (t = !0, S.code = m.EFETCH, S.sourceUrl = c, x.emit("error", S), u.abort());
+        })) : w.pipe(x);
       }
-    });
-    setImmediate(() => {
-      if (body) {
+    }), setImmediate(() => {
+      if (d)
         try {
-          if (typeof body.pipe === "function") {
-            return body.pipe(req);
-          } else {
-            req.write(body);
-          }
-        } catch (err) {
-          finished = true;
-          err.code = errors2.EFETCH;
-          err.sourceUrl = url;
-          fetchRes.emit("error", err);
+          if (typeof d.pipe == "function")
+            return d.pipe(u);
+          u.write(d);
+        } catch (w) {
+          t = !0, w.code = m.EFETCH, w.sourceUrl = c, x.emit("error", w);
           return;
         }
-      }
-      req.end();
-    });
-    return fetchRes;
+      u.end();
+    }), x;
   }
-  return fetch.exports;
+  return ie.exports;
 }
-var hasRequiredShared;
-function requireShared() {
-  if (hasRequiredShared) return shared.exports;
-  hasRequiredShared = 1;
-  (function(module) {
-    const urllib = require$$0$1;
-    const util = require$$1$1;
-    const fs = require$$2;
-    const nmfetch = requireFetch();
-    const dns = require$$4;
-    const net = require$$7;
-    const os = require$$6;
-    const DNS_TTL = 5 * 60 * 1e3;
-    const CACHE_CLEANUP_INTERVAL = 30 * 1e3;
-    const MAX_CACHE_SIZE = 1e3;
-    let lastCacheCleanup = 0;
-    module.exports._lastCacheCleanup = () => lastCacheCleanup;
-    module.exports._resetCacheCleanup = () => {
-      lastCacheCleanup = 0;
+var Ve;
+function q() {
+  return Ve || (Ve = 1, (function(b) {
+    const y = ee, k = Ct, f = De, p = ne(), n = It, r = te, o = jt, m = 300 * 1e3, e = 30 * 1e3, l = 1e3;
+    let c = 0;
+    b.exports._lastCacheCleanup = () => c, b.exports._resetCacheCleanup = () => {
+      c = 0;
     };
-    let networkInterfaces;
+    let s;
     try {
-      networkInterfaces = os.networkInterfaces();
-    } catch (_err) {
+      s = o.networkInterfaces();
+    } catch {
     }
-    module.exports.networkInterfaces = networkInterfaces;
-    const isFamilySupported = (family, allowInternal) => {
-      let networkInterfaces2 = module.exports.networkInterfaces;
-      if (!networkInterfaces2) {
-        return true;
-      }
-      const familySupported = (
+    b.exports.networkInterfaces = s;
+    const x = (a, h) => {
+      let u = b.exports.networkInterfaces;
+      return u ? (
         // crux that replaces Object.values(networkInterfaces) as Object.values is not supported in nodejs v6
-        Object.keys(networkInterfaces2).map((key) => networkInterfaces2[key]).reduce((acc, val) => acc.concat(val), []).filter((i) => !i.internal || allowInternal).filter((i) => i.family === "IPv" + family || i.family === family).length > 0
-      );
-      return familySupported;
-    };
-    const resolver = (family, hostname, options, callback) => {
-      options = options || {};
-      const familySupported = isFamilySupported(family, options.allowInternalNetworkInterfaces);
-      if (!familySupported) {
-        return callback(null, []);
-      }
-      const resolver2 = dns.Resolver ? new dns.Resolver(options) : dns;
-      resolver2["resolve" + family](hostname, (err, addresses) => {
-        if (err) {
-          switch (err.code) {
-            case dns.NODATA:
-            case dns.NOTFOUND:
-            case dns.NOTIMP:
-            case dns.SERVFAIL:
-            case dns.CONNREFUSED:
-            case dns.REFUSED:
+        Object.keys(u).map((w) => u[w]).reduce((w, E) => w.concat(E), []).filter((w) => !w.internal || h).filter((w) => w.family === "IPv" + a || w.family === a).length > 0
+      ) : !0;
+    }, g = (a, h, u, _) => {
+      if (u = u || {}, !x(a, u.allowInternalNetworkInterfaces))
+        return _(null, []);
+      (n.Resolver ? new n.Resolver(u) : n)["resolve" + a](h, (S, A) => {
+        if (S) {
+          switch (S.code) {
+            case n.NODATA:
+            case n.NOTFOUND:
+            case n.NOTIMP:
+            case n.SERVFAIL:
+            case n.CONNREFUSED:
+            case n.REFUSED:
             case "EAI_AGAIN":
-              return callback(null, []);
+              return _(null, []);
           }
-          return callback(err);
+          return _(S);
         }
-        return callback(null, Array.isArray(addresses) ? addresses : [].concat(addresses || []));
+        return _(null, Array.isArray(A) ? A : [].concat(A || []));
       });
-    };
-    const dnsCache = module.exports.dnsCache = /* @__PURE__ */ new Map();
-    const formatDNSValue = (value, extra) => {
-      if (!value) {
-        return Object.assign({}, extra || {});
-      }
-      let addresses = value.addresses || [];
-      let host = null;
-      if (addresses.length === 1) {
-        host = addresses[0];
-      } else if (addresses.length > 1) {
-        host = addresses[Math.floor(Math.random() * addresses.length)];
-      }
-      return Object.assign(
+    }, v = b.exports.dnsCache = /* @__PURE__ */ new Map(), t = (a, h) => {
+      if (!a)
+        return Object.assign({}, h || {});
+      let u = a.addresses || [], _ = null;
+      return u.length === 1 ? _ = u[0] : u.length > 1 && (_ = u[Math.floor(Math.random() * u.length)]), Object.assign(
         {
-          servername: value.servername,
-          host,
+          servername: a.servername,
+          host: _,
           // Include all addresses for connection fallback support
-          _addresses: addresses
+          _addresses: u
         },
-        extra || {}
+        h || {}
       );
     };
-    module.exports.resolveHostname = (options, callback) => {
-      options = options || {};
-      if (!options.host && options.servername) {
-        options.host = options.servername;
-      }
-      if (!options.host || net.isIP(options.host)) {
-        let value = {
-          addresses: [options.host],
-          servername: options.servername || false
+    b.exports.resolveHostname = (a, h) => {
+      if (a = a || {}, !a.host && a.servername && (a.host = a.servername), !a.host || r.isIP(a.host)) {
+        let A = {
+          addresses: [a.host],
+          servername: a.servername || !1
         };
-        return callback(
+        return h(
           null,
-          formatDNSValue(value, {
-            cached: false
+          t(A, {
+            cached: !1
           })
         );
       }
-      let cached;
-      if (dnsCache.has(options.host)) {
-        cached = dnsCache.get(options.host);
-        const now = Date.now();
-        if (now - lastCacheCleanup > CACHE_CLEANUP_INTERVAL) {
-          lastCacheCleanup = now;
-          for (const [host, entry] of dnsCache.entries()) {
-            if (entry.expires && entry.expires < now) {
-              dnsCache.delete(host);
-            }
-          }
-          if (dnsCache.size > MAX_CACHE_SIZE) {
-            const toDelete = Math.floor(MAX_CACHE_SIZE * 0.1);
-            const keys = Array.from(dnsCache.keys()).slice(0, toDelete);
-            keys.forEach((key) => dnsCache.delete(key));
+      let u;
+      if (v.has(a.host)) {
+        u = v.get(a.host);
+        const A = Date.now();
+        if (A - c > e) {
+          c = A;
+          for (const [C, j] of v.entries())
+            j.expires && j.expires < A && v.delete(C);
+          if (v.size > l) {
+            const C = Math.floor(l * 0.1);
+            Array.from(v.keys()).slice(0, C).forEach((T) => v.delete(T));
           }
         }
-        if (!cached.expires || cached.expires >= now) {
-          return callback(
+        if (!u.expires || u.expires >= A)
+          return h(
             null,
-            formatDNSValue(cached.value, {
-              cached: true
+            t(u.value, {
+              cached: !0
             })
           );
-        }
       }
-      let ipv4Addresses = [];
-      let ipv6Addresses = [];
-      let ipv4Error = null;
-      let ipv6Error = null;
-      resolver(4, options.host, options, (err, addresses) => {
-        if (err) {
-          ipv4Error = err;
-        } else {
-          ipv4Addresses = addresses || [];
-        }
-        resolver(6, options.host, options, (err2, addresses2) => {
-          if (err2) {
-            ipv6Error = err2;
-          } else {
-            ipv6Addresses = addresses2 || [];
-          }
-          let allAddresses = ipv4Addresses.concat(ipv6Addresses);
-          if (allAddresses.length) {
-            let value = {
-              addresses: allAddresses,
-              servername: options.servername || options.host
+      let _ = [], w = [], E = null, S = null;
+      g(4, a.host, a, (A, C) => {
+        A ? E = A : _ = C || [], g(6, a.host, a, (j, T) => {
+          j ? S = j : w = T || [];
+          let I = _.concat(w);
+          if (I.length) {
+            let M = {
+              addresses: I,
+              servername: a.servername || a.host
             };
-            dnsCache.set(options.host, {
-              value,
-              expires: Date.now() + (options.dnsTtl || DNS_TTL)
-            });
-            return callback(
+            return v.set(a.host, {
+              value: M,
+              expires: Date.now() + (a.dnsTtl || m)
+            }), h(
               null,
-              formatDNSValue(value, {
-                cached: false
+              t(M, {
+                cached: !1
               })
             );
           }
-          if (ipv4Error && ipv6Error) {
-            if (cached) {
-              dnsCache.set(options.host, {
-                value: cached.value,
-                expires: Date.now() + (options.dnsTtl || DNS_TTL)
-              });
-              return callback(
-                null,
-                formatDNSValue(cached.value, {
-                  cached: true,
-                  error: ipv4Error
-                })
-              );
-            }
-          }
+          if (E && S && u)
+            return v.set(a.host, {
+              value: u.value,
+              expires: Date.now() + (a.dnsTtl || m)
+            }), h(
+              null,
+              t(u.value, {
+                cached: !0,
+                error: E
+              })
+            );
           try {
-            dns.lookup(options.host, { all: true }, (err3, addresses3) => {
-              if (err3) {
-                if (cached) {
-                  dnsCache.set(options.host, {
-                    value: cached.value,
-                    expires: Date.now() + (options.dnsTtl || DNS_TTL)
-                  });
-                  return callback(
-                    null,
-                    formatDNSValue(cached.value, {
-                      cached: true,
-                      error: err3
-                    })
-                  );
-                }
-                return callback(err3);
-              }
-              let supportedAddresses = addresses3 ? addresses3.filter((addr) => isFamilySupported(addr.family)).map((addr) => addr.address) : [];
-              if (addresses3 && addresses3.length && !supportedAddresses.length) {
-                console.warn(`Failed to resolve IPv${addresses3[0].family} addresses with current network`);
-              }
-              if (!supportedAddresses.length && cached) {
-                return callback(
+            n.lookup(a.host, { all: !0 }, (M, L) => {
+              if (M)
+                return u ? (v.set(a.host, {
+                  value: u.value,
+                  expires: Date.now() + (a.dnsTtl || m)
+                }), h(
                   null,
-                  formatDNSValue(cached.value, {
-                    cached: true
+                  t(u.value, {
+                    cached: !0,
+                    error: M
+                  })
+                )) : h(M);
+              let O = L ? L.filter((R) => x(R.family)).map((R) => R.address) : [];
+              if (L && L.length && !O.length && console.warn(`Failed to resolve IPv${L[0].family} addresses with current network`), !O.length && u)
+                return h(
+                  null,
+                  t(u.value, {
+                    cached: !0
                   })
                 );
-              }
-              let value = {
-                addresses: supportedAddresses.length ? supportedAddresses : [options.host],
-                servername: options.servername || options.host
+              let N = {
+                addresses: O.length ? O : [a.host],
+                servername: a.servername || a.host
               };
-              dnsCache.set(options.host, {
-                value,
-                expires: Date.now() + (options.dnsTtl || DNS_TTL)
-              });
-              return callback(
+              return v.set(a.host, {
+                value: N,
+                expires: Date.now() + (a.dnsTtl || m)
+              }), h(
                 null,
-                formatDNSValue(value, {
-                  cached: false
+                t(N, {
+                  cached: !1
                 })
               );
             });
-          } catch (lookupErr) {
-            if (cached) {
-              dnsCache.set(options.host, {
-                value: cached.value,
-                expires: Date.now() + (options.dnsTtl || DNS_TTL)
-              });
-              return callback(
-                null,
-                formatDNSValue(cached.value, {
-                  cached: true,
-                  error: lookupErr
-                })
-              );
-            }
-            return callback(ipv4Error || ipv6Error || lookupErr);
+          } catch (M) {
+            return u ? (v.set(a.host, {
+              value: u.value,
+              expires: Date.now() + (a.dnsTtl || m)
+            }), h(
+              null,
+              t(u.value, {
+                cached: !0,
+                error: M
+              })
+            )) : h(E || S || M);
           }
         });
       });
-    };
-    module.exports.parseConnectionUrl = (str) => {
-      str = str || "";
-      let options = {};
-      [urllib.parse(str, true)].forEach((url) => {
-        let auth;
-        switch (url.protocol) {
+    }, b.exports.parseConnectionUrl = (a) => {
+      a = a || "";
+      let h = {};
+      return [y.parse(a, !0)].forEach((u) => {
+        let _;
+        switch (u.protocol) {
           case "smtp:":
-            options.secure = false;
+            h.secure = !1;
             break;
           case "smtps:":
-            options.secure = true;
+            h.secure = !0;
             break;
           case "direct:":
-            options.direct = true;
+            h.direct = !0;
             break;
         }
-        if (!isNaN(url.port) && Number(url.port)) {
-          options.port = Number(url.port);
-        }
-        if (url.hostname) {
-          options.host = url.hostname;
-        }
-        if (url.auth) {
-          auth = url.auth.split(":");
-          if (!options.auth) {
-            options.auth = {};
-          }
-          options.auth.user = auth.shift();
-          options.auth.pass = auth.join(":");
-        }
-        Object.keys(url.query || {}).forEach((key) => {
-          let obj = options;
-          let lKey = key;
-          let value = url.query[key];
-          if (!isNaN(value)) {
-            value = Number(value);
-          }
-          switch (value) {
+        !isNaN(u.port) && Number(u.port) && (h.port = Number(u.port)), u.hostname && (h.host = u.hostname), u.auth && (_ = u.auth.split(":"), h.auth || (h.auth = {}), h.auth.user = _.shift(), h.auth.pass = _.join(":")), Object.keys(u.query || {}).forEach((w) => {
+          let E = h, S = w, A = u.query[w];
+          switch (isNaN(A) || (A = Number(A)), A) {
             case "true":
-              value = true;
+              A = !0;
               break;
             case "false":
-              value = false;
+              A = !1;
               break;
           }
-          if (key.indexOf("tls.") === 0) {
-            lKey = key.substr(4);
-            if (!options.tls) {
-              options.tls = {};
-            }
-            obj = options.tls;
-          } else if (key.indexOf(".") >= 0) {
+          if (w.indexOf("tls.") === 0)
+            S = w.substr(4), h.tls || (h.tls = {}), E = h.tls;
+          else if (w.indexOf(".") >= 0)
             return;
-          }
-          if (!(lKey in obj)) {
-            obj[lKey] = value;
-          }
+          S in E || (E[S] = A);
         });
-      });
-      return options;
-    };
-    module.exports._logFunc = (logger, level, defaults, data, message, ...args) => {
-      let entry = {};
-      Object.keys(defaults || {}).forEach((key) => {
-        if (key !== "level") {
-          entry[key] = defaults[key];
-        }
-      });
-      Object.keys(data || {}).forEach((key) => {
-        if (key !== "level") {
-          entry[key] = data[key];
-        }
-      });
-      logger[level](entry, message, ...args);
-    };
-    module.exports.getLogger = (options, defaults) => {
-      options = options || {};
-      let response = {};
-      let levels = ["trace", "debug", "info", "warn", "error", "fatal"];
-      if (!options.logger) {
-        levels.forEach((level) => {
-          response[level] = () => false;
-        });
-        return response;
-      }
-      let logger = options.logger;
-      if (options.logger === true) {
-        logger = createDefaultLogger(levels);
-      }
-      levels.forEach((level) => {
-        response[level] = (data, message, ...args) => {
-          module.exports._logFunc(logger, level, defaults, data, message, ...args);
+      }), h;
+    }, b.exports._logFunc = (a, h, u, _, w, ...E) => {
+      let S = {};
+      Object.keys(u || {}).forEach((A) => {
+        A !== "level" && (S[A] = u[A]);
+      }), Object.keys(_ || {}).forEach((A) => {
+        A !== "level" && (S[A] = _[A]);
+      }), a[h](S, w, ...E);
+    }, b.exports.getLogger = (a, h) => {
+      a = a || {};
+      let u = {}, _ = ["trace", "debug", "info", "warn", "error", "fatal"];
+      if (!a.logger)
+        return _.forEach((E) => {
+          u[E] = () => !1;
+        }), u;
+      let w = a.logger;
+      return a.logger === !0 && (w = d(_)), _.forEach((E) => {
+        u[E] = (S, A, ...C) => {
+          b.exports._logFunc(w, E, h, S, A, ...C);
         };
-      });
-      return response;
-    };
-    module.exports.callbackPromise = (resolve, reject) => function() {
-      let args = Array.from(arguments);
-      let err = args.shift();
-      if (err) {
-        reject(err);
-      } else {
-        resolve(...args);
-      }
-    };
-    module.exports.parseDataURI = (uri) => {
-      if (typeof uri !== "string") {
+      }), u;
+    }, b.exports.callbackPromise = (a, h) => function() {
+      let u = Array.from(arguments), _ = u.shift();
+      _ ? h(_) : a(...u);
+    }, b.exports.parseDataURI = (a) => {
+      if (typeof a != "string" || !a.startsWith("data:"))
         return null;
-      }
-      if (!uri.startsWith("data:")) {
+      const h = a.indexOf(",");
+      if (h === -1)
         return null;
+      const u = a.substring(h + 1), _ = a.substring(5, h);
+      let w;
+      const E = _.split(";");
+      if (E.length > 0) {
+        const j = E[E.length - 1].toLowerCase().trim();
+        ["base64", "utf8", "utf-8"].includes(j) && j.indexOf("=") === -1 && (w = j, E.pop());
       }
-      const commaPos = uri.indexOf(",");
-      if (commaPos === -1) {
-        return null;
-      }
-      const data = uri.substring(commaPos + 1);
-      const metaStr = uri.substring("data:".length, commaPos);
-      let encoding;
-      const metaEntries = metaStr.split(";");
-      if (metaEntries.length > 0) {
-        const lastEntry = metaEntries[metaEntries.length - 1].toLowerCase().trim();
-        if (["base64", "utf8", "utf-8"].includes(lastEntry) && lastEntry.indexOf("=") === -1) {
-          encoding = lastEntry;
-          metaEntries.pop();
+      const S = E.length > 0 ? E.shift() : "application/octet-stream", A = {};
+      for (let j = 0; j < E.length; j++) {
+        const T = E[j], I = T.indexOf("=");
+        if (I > 0) {
+          const M = T.substring(0, I).trim(), L = T.substring(I + 1).trim();
+          M && (A[M] = L);
         }
       }
-      const contentType = metaEntries.length > 0 ? metaEntries.shift() : "application/octet-stream";
-      const params = {};
-      for (let i = 0; i < metaEntries.length; i++) {
-        const entry = metaEntries[i];
-        const sepPos = entry.indexOf("=");
-        if (sepPos > 0) {
-          const key = entry.substring(0, sepPos).trim();
-          const value = entry.substring(sepPos + 1).trim();
-          if (key) {
-            params[key] = value;
-          }
-        }
-      }
-      let bufferData;
+      let C;
       try {
-        if (encoding === "base64") {
-          bufferData = Buffer.from(data, "base64");
-        } else {
+        if (w === "base64")
+          C = Buffer.from(u, "base64");
+        else
           try {
-            bufferData = Buffer.from(decodeURIComponent(data));
-          } catch (_decodeError) {
-            bufferData = Buffer.from(data);
+            C = Buffer.from(decodeURIComponent(u));
+          } catch {
+            C = Buffer.from(u);
           }
-        }
-      } catch (_bufferError) {
-        bufferData = Buffer.alloc(0);
+      } catch {
+        C = Buffer.alloc(0);
       }
       return {
-        data: bufferData,
-        encoding: encoding || null,
-        contentType: contentType || "application/octet-stream",
-        params
+        data: C,
+        encoding: w || null,
+        contentType: S || "application/octet-stream",
+        params: A
       };
-    };
-    module.exports.resolveContent = (data, key, callback) => {
-      let promise;
-      if (!callback) {
-        promise = new Promise((resolve, reject) => {
-          callback = module.exports.callbackPromise(resolve, reject);
-        });
-      }
-      let content = data && data[key] && data[key].content || data[key];
-      let contentStream;
-      let encoding = (typeof data[key] === "object" && data[key].encoding || "utf8").toString().toLowerCase().replace(/[-_\s]/g, "");
-      if (!content) {
-        return callback(null, content);
-      }
-      if (typeof content === "object") {
-        if (typeof content.pipe === "function") {
-          return resolveStream(content, (err, value) => {
-            if (err) {
-              return callback(err);
-            }
-            if (data[key].content) {
-              data[key].content = value;
-            } else {
-              data[key] = value;
-            }
-            callback(null, value);
+    }, b.exports.resolveContent = (a, h, u) => {
+      let _;
+      u || (_ = new Promise((A, C) => {
+        u = b.exports.callbackPromise(A, C);
+      }));
+      let w = a && a[h] && a[h].content || a[h], E, S = (typeof a[h] == "object" && a[h].encoding || "utf8").toString().toLowerCase().replace(/[-_\s]/g, "");
+      if (!w)
+        return u(null, w);
+      if (typeof w == "object") {
+        if (typeof w.pipe == "function")
+          return i(w, (A, C) => {
+            if (A)
+              return u(A);
+            a[h].content ? a[h].content = C : a[h] = C, u(null, C);
           });
-        } else if (/^https?:\/\//i.test(content.path || content.href)) {
-          contentStream = nmfetch(content.path || content.href);
-          return resolveStream(contentStream, callback);
-        } else if (/^data:/i.test(content.path || content.href)) {
-          let parsedDataUri = module.exports.parseDataURI(content.path || content.href);
-          if (!parsedDataUri || !parsedDataUri.data) {
-            return callback(null, Buffer.from(0));
-          }
-          return callback(null, parsedDataUri.data);
-        } else if (content.path) {
-          return resolveStream(fs.createReadStream(content.path), callback);
-        }
+        if (/^https?:\/\//i.test(w.path || w.href))
+          return E = p(w.path || w.href), i(E, u);
+        if (/^data:/i.test(w.path || w.href)) {
+          let A = b.exports.parseDataURI(w.path || w.href);
+          return !A || !A.data ? u(null, Buffer.from(0)) : u(null, A.data);
+        } else if (w.path)
+          return i(f.createReadStream(w.path), u);
       }
-      if (typeof data[key].content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
-        content = Buffer.from(data[key].content, encoding);
-      }
-      setImmediate(() => callback(null, content));
-      return promise;
-    };
-    module.exports.assign = function() {
-      let args = Array.from(arguments);
-      let target = args.shift() || {};
-      args.forEach((source) => {
-        Object.keys(source || {}).forEach((key) => {
-          if (["tls", "auth"].includes(key) && source[key] && typeof source[key] === "object") {
-            if (!target[key]) {
-              target[key] = {};
-            }
-            Object.keys(source[key]).forEach((subKey) => {
-              target[key][subKey] = source[key][subKey];
-            });
-          } else {
-            target[key] = source[key];
-          }
+      return typeof a[h].content == "string" && !["utf8", "usascii", "ascii"].includes(S) && (w = Buffer.from(a[h].content, S)), setImmediate(() => u(null, w)), _;
+    }, b.exports.assign = function() {
+      let a = Array.from(arguments), h = a.shift() || {};
+      return a.forEach((u) => {
+        Object.keys(u || {}).forEach((_) => {
+          ["tls", "auth"].includes(_) && u[_] && typeof u[_] == "object" ? (h[_] || (h[_] = {}), Object.keys(u[_]).forEach((w) => {
+            h[_][w] = u[_][w];
+          })) : h[_] = u[_];
         });
-      });
-      return target;
-    };
-    module.exports.encodeXText = (str) => {
-      if (!/[^\x21-\x2A\x2C-\x3C\x3E-\x7E]/.test(str)) {
-        return str;
+      }), h;
+    }, b.exports.encodeXText = (a) => {
+      if (!/[^\x21-\x2A\x2C-\x3C\x3E-\x7E]/.test(a))
+        return a;
+      let h = Buffer.from(a), u = "";
+      for (let _ = 0, w = h.length; _ < w; _++) {
+        let E = h[_];
+        E < 33 || E > 126 || E === 43 || E === 61 ? u += "+" + (E < 16 ? "0" : "") + E.toString(16).toUpperCase() : u += String.fromCharCode(E);
       }
-      let buf = Buffer.from(str);
-      let result = "";
-      for (let i = 0, len = buf.length; i < len; i++) {
-        let c = buf[i];
-        if (c < 33 || c > 126 || c === 43 || c === 61) {
-          result += "+" + (c < 16 ? "0" : "") + c.toString(16).toUpperCase();
-        } else {
-          result += String.fromCharCode(c);
-        }
-      }
-      return result;
+      return u;
     };
-    function resolveStream(stream, callback) {
-      let responded = false;
-      let chunks = [];
-      let chunklen = 0;
-      stream.on("error", (err) => {
-        if (responded) {
+    function i(a, h) {
+      let u = !1, _ = [], w = 0;
+      a.on("error", (E) => {
+        u || (u = !0, h(E));
+      }), a.on("readable", () => {
+        let E;
+        for (; (E = a.read()) !== null; )
+          _.push(E), w += E.length;
+      }), a.on("end", () => {
+        if (u)
           return;
-        }
-        responded = true;
-        callback(err);
-      });
-      stream.on("readable", () => {
-        let chunk;
-        while ((chunk = stream.read()) !== null) {
-          chunks.push(chunk);
-          chunklen += chunk.length;
-        }
-      });
-      stream.on("end", () => {
-        if (responded) {
-          return;
-        }
-        responded = true;
-        let value;
+        u = !0;
+        let E;
         try {
-          value = Buffer.concat(chunks, chunklen);
-        } catch (E) {
-          return callback(E);
+          E = Buffer.concat(_, w);
+        } catch (S) {
+          return h(S);
         }
-        callback(null, value);
+        h(null, E);
       });
     }
-    function createDefaultLogger(levels) {
-      let levelMaxLen = 0;
-      let levelNames = /* @__PURE__ */ new Map();
-      levels.forEach((level) => {
-        if (level.length > levelMaxLen) {
-          levelMaxLen = level.length;
-        }
+    function d(a) {
+      let h = 0, u = /* @__PURE__ */ new Map();
+      a.forEach((E) => {
+        E.length > h && (h = E.length);
+      }), a.forEach((E) => {
+        let S = E.toUpperCase();
+        S.length < h && (S += " ".repeat(h - S.length)), u.set(E, S);
       });
-      levels.forEach((level) => {
-        let levelName = level.toUpperCase();
-        if (levelName.length < levelMaxLen) {
-          levelName += " ".repeat(levelMaxLen - levelName.length);
-        }
-        levelNames.set(level, levelName);
-      });
-      let print = (level, entry, message, ...args) => {
-        let prefix = "";
-        if (entry) {
-          if (entry.tnx === "server") {
-            prefix = "S: ";
-          } else if (entry.tnx === "client") {
-            prefix = "C: ";
-          }
-          if (entry.sid) {
-            prefix = "[" + entry.sid + "] " + prefix;
-          }
-          if (entry.cid) {
-            prefix = "[#" + entry.cid + "] " + prefix;
-          }
-        }
-        message = util.format(message, ...args);
-        message.split(/\r?\n/).forEach((line) => {
-          console.log("[%s] %s %s", (/* @__PURE__ */ new Date()).toISOString().substr(0, 19).replace(/T/, " "), levelNames.get(level), prefix + line);
+      let _ = (E, S, A, ...C) => {
+        let j = "";
+        S && (S.tnx === "server" ? j = "S: " : S.tnx === "client" && (j = "C: "), S.sid && (j = "[" + S.sid + "] " + j), S.cid && (j = "[#" + S.cid + "] " + j)), A = k.format(A, ...C), A.split(/\r?\n/).forEach((T) => {
+          console.log("[%s] %s %s", (/* @__PURE__ */ new Date()).toISOString().substr(0, 19).replace(/T/, " "), u.get(E), j + T);
         });
-      };
-      let logger = {};
-      levels.forEach((level) => {
-        logger[level] = print.bind(null, level);
-      });
-      return logger;
+      }, w = {};
+      return a.forEach((E) => {
+        w[E] = _.bind(null, E);
+      }), w;
     }
-  })(shared);
-  return shared.exports;
+  })(re)), re.exports;
 }
-var mimeTypes_1;
-var hasRequiredMimeTypes;
-function requireMimeTypes() {
-  if (hasRequiredMimeTypes) return mimeTypes_1;
-  hasRequiredMimeTypes = 1;
-  const path = require$$0$4;
-  const defaultMimeType = "application/octet-stream";
-  const defaultExtension = "bin";
-  const mimeTypes = /* @__PURE__ */ new Map([
+var ce, Xe;
+function Lt() {
+  if (Xe) return ce;
+  Xe = 1;
+  const b = At, y = "application/octet-stream", k = "bin", f = /* @__PURE__ */ new Map([
     ["application/acad", "dwg"],
     ["application/applixware", "aw"],
     ["application/arj", "arj"],
@@ -2110,8 +1695,7 @@ function requireMimeTypes() {
     ["x-world/x-vrt", "vrt"],
     ["xgl/drawing", "xgz"],
     ["xgl/movie", "xmz"]
-  ]);
-  const extensions = /* @__PURE__ */ new Map([
+  ]), p = /* @__PURE__ */ new Map([
     ["123", "application/vnd.lotus-1-2-3"],
     ["323", "text/h323"],
     ["*", "application/octet-stream"],
@@ -3145,263 +2729,133 @@ function requireMimeTypes() {
     ["zoo", "application/octet-stream"],
     ["zsh", "text/x-script.zsh"]
   ]);
-  mimeTypes_1 = {
-    detectMimeType(filename) {
-      if (!filename) {
-        return defaultMimeType;
-      }
-      let parsed = path.parse(filename);
-      let extension = (parsed.ext.substr(1) || parsed.name || "").split("?").shift().trim().toLowerCase();
-      let value = defaultMimeType;
-      if (extensions.has(extension)) {
-        value = extensions.get(extension);
-      }
-      if (Array.isArray(value)) {
-        return value[0];
-      }
-      return value;
+  return ce = {
+    detectMimeType(n) {
+      if (!n)
+        return y;
+      let r = b.parse(n), o = (r.ext.substr(1) || r.name || "").split("?").shift().trim().toLowerCase(), m = y;
+      return p.has(o) && (m = p.get(o)), Array.isArray(m) ? m[0] : m;
     },
-    detectExtension(mimeType) {
-      if (!mimeType) {
-        return defaultExtension;
+    detectExtension(n) {
+      if (!n)
+        return k;
+      let r = (n || "").toLowerCase().trim().split("/"), o = r.shift().trim(), m = r.join("/").trim();
+      if (f.has(o + "/" + m)) {
+        let e = f.get(o + "/" + m);
+        return Array.isArray(e) ? e[0] : e;
       }
-      let parts = (mimeType || "").toLowerCase().trim().split("/");
-      let rootType = parts.shift().trim();
-      let subType = parts.join("/").trim();
-      if (mimeTypes.has(rootType + "/" + subType)) {
-        let value = mimeTypes.get(rootType + "/" + subType);
-        if (Array.isArray(value)) {
-          return value[0];
-        }
-        return value;
-      }
-      switch (rootType) {
-        case "text":
-          return "txt";
-        default:
-          return "bin";
-      }
+      return o === "text" ? "txt" : "bin";
     }
-  };
-  return mimeTypes_1;
+  }, ce;
 }
-var punycode_1;
-var hasRequiredPunycode;
-function requirePunycode() {
-  if (hasRequiredPunycode) return punycode_1;
-  hasRequiredPunycode = 1;
-  const maxInt = 2147483647;
-  const base = 36;
-  const tMin = 1;
-  const tMax = 26;
-  const skew = 38;
-  const damp = 700;
-  const initialBias = 72;
-  const initialN = 128;
-  const delimiter = "-";
-  const regexPunycode = /^xn--/;
-  const regexNonASCII = /[^\0-\x7F]/;
-  const regexSeparators = /[\x2E\u3002\uFF0E\uFF61]/g;
-  const errors2 = {
+var de, Je;
+function Ot() {
+  if (Je) return de;
+  Je = 1;
+  const b = 2147483647, y = 36, k = 1, f = 26, p = 38, n = 700, r = 72, o = 128, m = "-", e = /^xn--/, l = /[^\0-\x7F]/, c = /[\x2E\u3002\uFF0E\uFF61]/g, s = {
     overflow: "Overflow: input needs wider integers to process",
     "not-basic": "Illegal input >= 0x80 (not a basic code point)",
     "invalid-input": "Invalid input"
-  };
-  const baseMinusTMin = base - tMin;
-  const floor = Math.floor;
-  const stringFromCharCode = String.fromCharCode;
-  function error(type) {
-    throw new RangeError(errors2[type]);
+  }, x = y - k, g = Math.floor, v = String.fromCharCode;
+  function t(T) {
+    throw new RangeError(s[T]);
   }
-  function map(array, callback) {
-    const result = [];
-    let length = array.length;
-    while (length--) {
-      result[length] = callback(array[length]);
-    }
-    return result;
+  function i(T, I) {
+    const M = [];
+    let L = T.length;
+    for (; L--; )
+      M[L] = I(T[L]);
+    return M;
   }
-  function mapDomain(domain, callback) {
-    const parts = domain.split("@");
-    let result = "";
-    if (parts.length > 1) {
-      result = parts[0] + "@";
-      domain = parts[1];
-    }
-    domain = domain.replace(regexSeparators, ".");
-    const labels = domain.split(".");
-    const encoded = map(labels, callback).join(".");
-    return result + encoded;
+  function d(T, I) {
+    const M = T.split("@");
+    let L = "";
+    M.length > 1 && (L = M[0] + "@", T = M[1]), T = T.replace(c, ".");
+    const O = T.split("."), N = i(O, I).join(".");
+    return L + N;
   }
-  function ucs2decode(string) {
-    const output = [];
-    let counter = 0;
-    const length = string.length;
-    while (counter < length) {
-      const value = string.charCodeAt(counter++);
-      if (value >= 55296 && value <= 56319 && counter < length) {
-        const extra = string.charCodeAt(counter++);
-        if ((extra & 64512) == 56320) {
-          output.push(((value & 1023) << 10) + (extra & 1023) + 65536);
-        } else {
-          output.push(value);
-          counter--;
-        }
-      } else {
-        output.push(value);
-      }
+  function a(T) {
+    const I = [];
+    let M = 0;
+    const L = T.length;
+    for (; M < L; ) {
+      const O = T.charCodeAt(M++);
+      if (O >= 55296 && O <= 56319 && M < L) {
+        const N = T.charCodeAt(M++);
+        (N & 64512) == 56320 ? I.push(((O & 1023) << 10) + (N & 1023) + 65536) : (I.push(O), M--);
+      } else
+        I.push(O);
     }
-    return output;
+    return I;
   }
-  const ucs2encode = (codePoints) => String.fromCodePoint(...codePoints);
-  const basicToDigit = function(codePoint) {
-    if (codePoint >= 48 && codePoint < 58) {
-      return 26 + (codePoint - 48);
-    }
-    if (codePoint >= 65 && codePoint < 91) {
-      return codePoint - 65;
-    }
-    if (codePoint >= 97 && codePoint < 123) {
-      return codePoint - 97;
-    }
-    return base;
-  };
-  const digitToBasic = function(digit, flag) {
-    return digit + 22 + 75 * (digit < 26) - ((flag != 0) << 5);
-  };
-  const adapt = function(delta, numPoints, firstTime) {
-    let k = 0;
-    delta = firstTime ? floor(delta / damp) : delta >> 1;
-    delta += floor(delta / numPoints);
+  const h = (T) => String.fromCodePoint(...T), u = function(T) {
+    return T >= 48 && T < 58 ? 26 + (T - 48) : T >= 65 && T < 91 ? T - 65 : T >= 97 && T < 123 ? T - 97 : y;
+  }, _ = function(T, I) {
+    return T + 22 + 75 * (T < 26) - ((I != 0) << 5);
+  }, w = function(T, I, M) {
+    let L = 0;
     for (
-      ;
+      T = M ? g(T / n) : T >> 1, T += g(T / I);
       /* no initialization */
-      delta > baseMinusTMin * tMax >> 1;
-      k += base
-    ) {
-      delta = floor(delta / baseMinusTMin);
-    }
-    return floor(k + (baseMinusTMin + 1) * delta / (delta + skew));
-  };
-  const decode = function(input) {
-    const output = [];
-    const inputLength = input.length;
-    let i = 0;
-    let n = initialN;
-    let bias = initialBias;
-    let basic = input.lastIndexOf(delimiter);
-    if (basic < 0) {
-      basic = 0;
-    }
-    for (let j = 0; j < basic; ++j) {
-      if (input.charCodeAt(j) >= 128) {
-        error("not-basic");
-      }
-      output.push(input.charCodeAt(j));
-    }
-    for (let index = basic > 0 ? basic + 1 : 0; index < inputLength; ) {
-      const oldi = i;
-      for (let w = 1, k = base; ; k += base) {
-        if (index >= inputLength) {
-          error("invalid-input");
-        }
-        const digit = basicToDigit(input.charCodeAt(index++));
-        if (digit >= base) {
-          error("invalid-input");
-        }
-        if (digit > floor((maxInt - i) / w)) {
-          error("overflow");
-        }
-        i += digit * w;
-        const t = k <= bias ? tMin : k >= bias + tMax ? tMax : k - bias;
-        if (digit < t) {
+      T > x * f >> 1;
+      L += y
+    )
+      T = g(T / x);
+    return g(L + (x + 1) * T / (T + p));
+  }, E = function(T) {
+    const I = [], M = T.length;
+    let L = 0, O = o, N = r, R = T.lastIndexOf(m);
+    R < 0 && (R = 0);
+    for (let z = 0; z < R; ++z)
+      T.charCodeAt(z) >= 128 && t("not-basic"), I.push(T.charCodeAt(z));
+    for (let z = R > 0 ? R + 1 : 0; z < M; ) {
+      const U = L;
+      for (let B = 1, $ = y; ; $ += y) {
+        z >= M && t("invalid-input");
+        const G = u(T.charCodeAt(z++));
+        G >= y && t("invalid-input"), G > g((b - L) / B) && t("overflow"), L += G * B;
+        const W = $ <= N ? k : $ >= N + f ? f : $ - N;
+        if (G < W)
           break;
-        }
-        const baseMinusT = base - t;
-        if (w > floor(maxInt / baseMinusT)) {
-          error("overflow");
-        }
-        w *= baseMinusT;
+        const X = y - W;
+        B > g(b / X) && t("overflow"), B *= X;
       }
-      const out = output.length + 1;
-      bias = adapt(i - oldi, out, oldi == 0);
-      if (floor(i / out) > maxInt - n) {
-        error("overflow");
-      }
-      n += floor(i / out);
-      i %= out;
-      output.splice(i++, 0, n);
+      const Q = I.length + 1;
+      N = w(L - U, Q, U == 0), g(L / Q) > b - O && t("overflow"), O += g(L / Q), L %= Q, I.splice(L++, 0, O);
     }
-    return String.fromCodePoint(...output);
-  };
-  const encode = function(input) {
-    const output = [];
-    input = ucs2decode(input);
-    const inputLength = input.length;
-    let n = initialN;
-    let delta = 0;
-    let bias = initialBias;
-    for (const currentValue of input) {
-      if (currentValue < 128) {
-        output.push(stringFromCharCode(currentValue));
-      }
-    }
-    const basicLength = output.length;
-    let handledCPCount = basicLength;
-    if (basicLength) {
-      output.push(delimiter);
-    }
-    while (handledCPCount < inputLength) {
-      let m = maxInt;
-      for (const currentValue of input) {
-        if (currentValue >= n && currentValue < m) {
-          m = currentValue;
-        }
-      }
-      const handledCPCountPlusOne = handledCPCount + 1;
-      if (m - n > floor((maxInt - delta) / handledCPCountPlusOne)) {
-        error("overflow");
-      }
-      delta += (m - n) * handledCPCountPlusOne;
-      n = m;
-      for (const currentValue of input) {
-        if (currentValue < n && ++delta > maxInt) {
-          error("overflow");
-        }
-        if (currentValue === n) {
-          let q = delta;
-          for (let k = base; ; k += base) {
-            const t = k <= bias ? tMin : k >= bias + tMax ? tMax : k - bias;
-            if (q < t) {
+    return String.fromCodePoint(...I);
+  }, S = function(T) {
+    const I = [];
+    T = a(T);
+    const M = T.length;
+    let L = o, O = 0, N = r;
+    for (const U of T)
+      U < 128 && I.push(v(U));
+    const R = I.length;
+    let z = R;
+    for (R && I.push(m); z < M; ) {
+      let U = b;
+      for (const B of T)
+        B >= L && B < U && (U = B);
+      const Q = z + 1;
+      U - L > g((b - O) / Q) && t("overflow"), O += (U - L) * Q, L = U;
+      for (const B of T)
+        if (B < L && ++O > b && t("overflow"), B === L) {
+          let $ = O;
+          for (let G = y; ; G += y) {
+            const W = G <= N ? k : G >= N + f ? f : G - N;
+            if ($ < W)
               break;
-            }
-            const qMinusT = q - t;
-            const baseMinusT = base - t;
-            output.push(stringFromCharCode(digitToBasic(t + qMinusT % baseMinusT, 0)));
-            q = floor(qMinusT / baseMinusT);
+            const X = $ - W, Ge = y - W;
+            I.push(v(_(W + X % Ge, 0))), $ = g(X / Ge);
           }
-          output.push(stringFromCharCode(digitToBasic(q, 0)));
-          bias = adapt(delta, handledCPCountPlusOne, handledCPCount === basicLength);
-          delta = 0;
-          ++handledCPCount;
+          I.push(v(_($, 0))), N = w(O, Q, z === R), O = 0, ++z;
         }
-      }
-      ++delta;
-      ++n;
+      ++O, ++L;
     }
-    return output.join("");
+    return I.join("");
   };
-  const toUnicode = function(input) {
-    return mapDomain(input, function(string) {
-      return regexPunycode.test(string) ? decode(string.slice(4).toLowerCase()) : string;
-    });
-  };
-  const toASCII = function(input) {
-    return mapDomain(input, function(string) {
-      return regexNonASCII.test(string) ? "xn--" + encode(string) : string;
-    });
-  };
-  const punycode = {
+  return de = {
     /**
      * A string representing the current Punycode.js version number.
      * @memberOf punycode
@@ -3416,128 +2870,80 @@ function requirePunycode() {
      * @type Object
      */
     ucs2: {
-      decode: ucs2decode,
-      encode: ucs2encode
+      decode: a,
+      encode: h
     },
-    decode,
-    encode,
-    toASCII,
-    toUnicode
-  };
-  punycode_1 = punycode;
-  return punycode_1;
+    decode: E,
+    encode: S,
+    toASCII: function(T) {
+      return d(T, function(I) {
+        return l.test(I) ? "xn--" + S(I) : I;
+      });
+    },
+    toUnicode: function(T) {
+      return d(T, function(I) {
+        return e.test(I) ? E(I.slice(4).toLowerCase()) : I;
+      });
+    }
+  }, de;
 }
-var base64;
-var hasRequiredBase64;
-function requireBase64() {
-  if (hasRequiredBase64) return base64;
-  hasRequiredBase64 = 1;
-  const Transform = require$$0$2.Transform;
-  function encode(buffer) {
-    if (typeof buffer === "string") {
-      buffer = Buffer.from(buffer, "utf-8");
-    }
-    return buffer.toString("base64");
+var me, Ye;
+function Nt() {
+  if (Ye) return me;
+  Ye = 1;
+  const b = P.Transform;
+  function y(p) {
+    return typeof p == "string" && (p = Buffer.from(p, "utf-8")), p.toString("base64");
   }
-  function wrap(str, lineLength) {
-    str = (str || "").toString();
-    lineLength = lineLength || 76;
-    if (str.length <= lineLength) {
-      return str;
+  function k(p, n) {
+    if (p = (p || "").toString(), n = n || 76, p.length <= n)
+      return p;
+    let r = [], o = 0, m = n * 1024;
+    for (; o < p.length; ) {
+      let e = p.substr(o, m).replace(new RegExp(".{" + n + "}", "g"), `$&\r
+`);
+      r.push(e), o += m;
     }
-    let result = [];
-    let pos = 0;
-    let chunkLength = lineLength * 1024;
-    while (pos < str.length) {
-      let wrappedLines = str.substr(pos, chunkLength).replace(new RegExp(".{" + lineLength + "}", "g"), "$&\r\n");
-      result.push(wrappedLines);
-      pos += chunkLength;
-    }
-    return result.join("");
+    return r.join("");
   }
-  class Encoder extends Transform {
-    constructor(options) {
-      super();
-      this.options = options || {};
-      if (this.options.lineLength !== false) {
-        this.options.lineLength = this.options.lineLength || 76;
-      }
-      this._curLine = "";
-      this._remainingBytes = false;
-      this.inputBytes = 0;
-      this.outputBytes = 0;
+  class f extends b {
+    constructor(n) {
+      super(), this.options = n || {}, this.options.lineLength !== !1 && (this.options.lineLength = this.options.lineLength || 76), this._curLine = "", this._remainingBytes = !1, this.inputBytes = 0, this.outputBytes = 0;
     }
-    _transform(chunk, encoding, done) {
-      if (encoding !== "buffer") {
-        chunk = Buffer.from(chunk, encoding);
-      }
-      if (!chunk || !chunk.length) {
-        return setImmediate(done);
-      }
-      this.inputBytes += chunk.length;
-      if (this._remainingBytes && this._remainingBytes.length) {
-        chunk = Buffer.concat([this._remainingBytes, chunk], this._remainingBytes.length + chunk.length);
-        this._remainingBytes = false;
-      }
-      if (chunk.length % 3) {
-        this._remainingBytes = chunk.slice(chunk.length - chunk.length % 3);
-        chunk = chunk.slice(0, chunk.length - chunk.length % 3);
-      } else {
-        this._remainingBytes = false;
-      }
-      let b64 = this._curLine + encode(chunk);
+    _transform(n, r, o) {
+      if (r !== "buffer" && (n = Buffer.from(n, r)), !n || !n.length)
+        return setImmediate(o);
+      this.inputBytes += n.length, this._remainingBytes && this._remainingBytes.length && (n = Buffer.concat([this._remainingBytes, n], this._remainingBytes.length + n.length), this._remainingBytes = !1), n.length % 3 ? (this._remainingBytes = n.slice(n.length - n.length % 3), n = n.slice(0, n.length - n.length % 3)) : this._remainingBytes = !1;
+      let m = this._curLine + y(n);
       if (this.options.lineLength) {
-        b64 = wrap(b64, this.options.lineLength);
-        let lastLF = b64.lastIndexOf("\n");
-        if (lastLF < 0) {
-          this._curLine = b64;
-          b64 = "";
-        } else {
-          this._curLine = b64.substring(lastLF + 1);
-          b64 = b64.substring(0, lastLF + 1);
-          if (b64 && !b64.endsWith("\r\n")) {
-            b64 += "\r\n";
-          }
-        }
-      } else {
+        m = k(m, this.options.lineLength);
+        let e = m.lastIndexOf(`
+`);
+        e < 0 ? (this._curLine = m, m = "") : (this._curLine = m.substring(e + 1), m = m.substring(0, e + 1), m && !m.endsWith(`\r
+`) && (m += `\r
+`));
+      } else
         this._curLine = "";
-      }
-      if (b64) {
-        this.outputBytes += b64.length;
-        this.push(Buffer.from(b64, "ascii"));
-      }
-      setImmediate(done);
+      m && (this.outputBytes += m.length, this.push(Buffer.from(m, "ascii"))), setImmediate(o);
     }
-    _flush(done) {
-      if (this._remainingBytes && this._remainingBytes.length) {
-        this._curLine += encode(this._remainingBytes);
-      }
-      if (this._curLine) {
-        this.outputBytes += this._curLine.length;
-        this.push(Buffer.from(this._curLine, "ascii"));
-        this._curLine = "";
-      }
-      done();
+    _flush(n) {
+      this._remainingBytes && this._remainingBytes.length && (this._curLine += y(this._remainingBytes)), this._curLine && (this.outputBytes += this._curLine.length, this.push(Buffer.from(this._curLine, "ascii")), this._curLine = ""), n();
     }
   }
-  base64 = {
-    encode,
-    wrap,
-    Encoder
-  };
-  return base64;
+  return me = {
+    encode: y,
+    wrap: k,
+    Encoder: f
+  }, me;
 }
-var qp;
-var hasRequiredQp;
-function requireQp() {
-  if (hasRequiredQp) return qp;
-  hasRequiredQp = 1;
-  const Transform = require$$0$2.Transform;
-  function encode(buffer) {
-    if (typeof buffer === "string") {
-      buffer = Buffer.from(buffer, "utf-8");
-    }
-    let ranges = [
+var he, Ze;
+function Ht() {
+  if (Ze) return he;
+  Ze = 1;
+  const b = P.Transform;
+  function y(n) {
+    typeof n == "string" && (n = Buffer.from(n, "utf-8"));
+    let r = [
       // https://tools.ietf.org/html/rfc2045#section-6.7
       [9],
       // <TAB>
@@ -3549,168 +2955,83 @@ function requireQp() {
       // <SP>!"#$%&'()*+,-./0123456789:;
       [62, 126]
       // >?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}
-    ];
-    let result = "";
-    let ord;
-    for (let i = 0, len = buffer.length; i < len; i++) {
-      ord = buffer[i];
-      if (checkRanges(ord, ranges) && !((ord === 32 || ord === 9) && (i === len - 1 || buffer[i + 1] === 10 || buffer[i + 1] === 13))) {
-        result += String.fromCharCode(ord);
+    ], o = "", m;
+    for (let e = 0, l = n.length; e < l; e++) {
+      if (m = n[e], f(m, r) && !((m === 32 || m === 9) && (e === l - 1 || n[e + 1] === 10 || n[e + 1] === 13))) {
+        o += String.fromCharCode(m);
         continue;
       }
-      result += "=" + (ord < 16 ? "0" : "") + ord.toString(16).toUpperCase();
+      o += "=" + (m < 16 ? "0" : "") + m.toString(16).toUpperCase();
     }
-    return result;
+    return o;
   }
-  function wrap(str, lineLength) {
-    str = (str || "").toString();
-    lineLength = lineLength || 76;
-    if (str.length <= lineLength) {
-      return str;
+  function k(n, r) {
+    if (n = (n || "").toString(), r = r || 76, n.length <= r)
+      return n;
+    let o = 0, m = n.length, e, l, c, s = Math.floor(r / 3), x = "";
+    for (; o < m; ) {
+      if (c = n.substr(o, r), e = c.match(/\r\n/)) {
+        c = c.substr(0, e.index + e[0].length), x += c, o += c.length;
+        continue;
+      }
+      if (c.substr(-1) === `
+`) {
+        x += c, o += c.length;
+        continue;
+      } else if (e = c.substr(-s).match(/\n.*?$/)) {
+        c = c.substr(0, c.length - (e[0].length - 1)), x += c, o += c.length;
+        continue;
+      } else if (c.length > r - s && (e = c.substr(-s).match(/[ \t.,!?][^ \t.,!?]*$/)))
+        c = c.substr(0, c.length - (e[0].length - 1));
+      else if (c.match(/[=][\da-f]{0,2}$/i))
+        for ((e = c.match(/[=][\da-f]{0,1}$/i)) && (c = c.substr(0, c.length - e[0].length)); c.length > 3 && c.length < m - o && !c.match(/^(?:=[\da-f]{2}){1,4}$/i) && (e = c.match(/[=][\da-f]{2}$/gi)) && (l = parseInt(e[0].substr(1, 2), 16), !(l < 128 || (c = c.substr(0, c.length - 3), l >= 192))); )
+          ;
+      o + c.length < m && c.substr(-1) !== `
+` ? (c.length === r && c.match(/[=][\da-f]{2}$/i) ? c = c.substr(0, c.length - 3) : c.length === r && (c = c.substr(0, c.length - 1)), o += c.length, c += `=\r
+`) : o += c.length, x += c;
     }
-    let pos = 0;
-    let len = str.length;
-    let match, code, line;
-    let lineMargin = Math.floor(lineLength / 3);
-    let result = "";
-    while (pos < len) {
-      line = str.substr(pos, lineLength);
-      if (match = line.match(/\r\n/)) {
-        line = line.substr(0, match.index + match[0].length);
-        result += line;
-        pos += line.length;
-        continue;
-      }
-      if (line.substr(-1) === "\n") {
-        result += line;
-        pos += line.length;
-        continue;
-      } else if (match = line.substr(-lineMargin).match(/\n.*?$/)) {
-        line = line.substr(0, line.length - (match[0].length - 1));
-        result += line;
-        pos += line.length;
-        continue;
-      } else if (line.length > lineLength - lineMargin && (match = line.substr(-lineMargin).match(/[ \t.,!?][^ \t.,!?]*$/))) {
-        line = line.substr(0, line.length - (match[0].length - 1));
-      } else if (line.match(/[=][\da-f]{0,2}$/i)) {
-        if (match = line.match(/[=][\da-f]{0,1}$/i)) {
-          line = line.substr(0, line.length - match[0].length);
-        }
-        while (line.length > 3 && line.length < len - pos && !line.match(/^(?:=[\da-f]{2}){1,4}$/i) && (match = line.match(/[=][\da-f]{2}$/gi))) {
-          code = parseInt(match[0].substr(1, 2), 16);
-          if (code < 128) {
-            break;
-          }
-          line = line.substr(0, line.length - 3);
-          if (code >= 192) {
-            break;
-          }
-        }
-      }
-      if (pos + line.length < len && line.substr(-1) !== "\n") {
-        if (line.length === lineLength && line.match(/[=][\da-f]{2}$/i)) {
-          line = line.substr(0, line.length - 3);
-        } else if (line.length === lineLength) {
-          line = line.substr(0, line.length - 1);
-        }
-        pos += line.length;
-        line += "=\r\n";
-      } else {
-        pos += line.length;
-      }
-      result += line;
-    }
-    return result;
+    return x;
   }
-  function checkRanges(nr, ranges) {
-    for (let i = ranges.length - 1; i >= 0; i--) {
-      if (!ranges[i].length) {
-        continue;
-      }
-      if (ranges[i].length === 1 && nr === ranges[i][0]) {
-        return true;
-      }
-      if (ranges[i].length === 2 && nr >= ranges[i][0] && nr <= ranges[i][1]) {
-        return true;
-      }
-    }
-    return false;
+  function f(n, r) {
+    for (let o = r.length - 1; o >= 0; o--)
+      if (r[o].length && (r[o].length === 1 && n === r[o][0] || r[o].length === 2 && n >= r[o][0] && n <= r[o][1]))
+        return !0;
+    return !1;
   }
-  class Encoder extends Transform {
-    constructor(options) {
-      super();
-      this.options = options || {};
-      if (this.options.lineLength !== false) {
-        this.options.lineLength = this.options.lineLength || 76;
-      }
-      this._curLine = "";
-      this.inputBytes = 0;
-      this.outputBytes = 0;
+  class p extends b {
+    constructor(r) {
+      super(), this.options = r || {}, this.options.lineLength !== !1 && (this.options.lineLength = this.options.lineLength || 76), this._curLine = "", this.inputBytes = 0, this.outputBytes = 0;
     }
-    _transform(chunk, encoding, done) {
-      let qp2;
-      if (encoding !== "buffer") {
-        chunk = Buffer.from(chunk, encoding);
-      }
-      if (!chunk || !chunk.length) {
-        return done();
-      }
-      this.inputBytes += chunk.length;
-      if (this.options.lineLength) {
-        qp2 = this._curLine + encode(chunk);
-        qp2 = wrap(qp2, this.options.lineLength);
-        qp2 = qp2.replace(/(^|\n)([^\n]*)$/, (match, lineBreak, lastLine) => {
-          this._curLine = lastLine;
-          return lineBreak;
-        });
-        if (qp2) {
-          this.outputBytes += qp2.length;
-          this.push(qp2);
-        }
-      } else {
-        qp2 = encode(chunk);
-        this.outputBytes += qp2.length;
-        this.push(qp2, "ascii");
-      }
-      done();
+    _transform(r, o, m) {
+      let e;
+      if (o !== "buffer" && (r = Buffer.from(r, o)), !r || !r.length)
+        return m();
+      this.inputBytes += r.length, this.options.lineLength ? (e = this._curLine + y(r), e = k(e, this.options.lineLength), e = e.replace(/(^|\n)([^\n]*)$/, (l, c, s) => (this._curLine = s, c)), e && (this.outputBytes += e.length, this.push(e))) : (e = y(r), this.outputBytes += e.length, this.push(e, "ascii")), m();
     }
-    _flush(done) {
-      if (this._curLine) {
-        this.outputBytes += this._curLine.length;
-        this.push(this._curLine, "ascii");
-      }
-      done();
+    _flush(r) {
+      this._curLine && (this.outputBytes += this._curLine.length, this.push(this._curLine, "ascii")), r();
     }
   }
-  qp = {
-    encode,
-    wrap,
-    Encoder
-  };
-  return qp;
+  return he = {
+    encode: y,
+    wrap: k,
+    Encoder: p
+  }, he;
 }
-var mimeFuncs;
-var hasRequiredMimeFuncs;
-function requireMimeFuncs() {
-  if (hasRequiredMimeFuncs) return mimeFuncs;
-  hasRequiredMimeFuncs = 1;
-  const base642 = requireBase64();
-  const qp2 = requireQp();
-  const mimeTypes = requireMimeTypes();
-  mimeFuncs = {
+var ue, et;
+function oe() {
+  if (et) return ue;
+  et = 1;
+  const b = Nt(), y = Ht(), k = Lt();
+  return ue = {
     /**
      * Checks if a value is plaintext string (uses only printable 7bit chars)
      *
      * @param {String} value String to be tested
      * @returns {Boolean} true if it is a plaintext string
      */
-    isPlainText(value, isParam) {
-      const re = isParam ? /[\x00-\x08\x0b\x0c\x0e-\x1f"\u0080-\uFFFF]/ : /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/;
-      if (typeof value !== "string" || re.test(value)) {
-        return false;
-      } else {
-        return true;
-      }
+    isPlainText(f, p) {
+      return !(typeof f != "string" || (p ? /[\x00-\x08\x0b\x0c\x0e-\x1f"\u0080-\uFFFF]/ : /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/).test(f));
     },
     /**
      * Checks if a multi line string containes lines longer than the selected value.
@@ -3723,11 +3044,8 @@ function requireMimeFuncs() {
      * @param {Number} lineLength Max line length to check for
      * @returns {Boolean} Returns true if there is at least one line longer than lineLength chars
      */
-    hasLongerLines(str, lineLength) {
-      if (str.length > 128 * 1024) {
-        return true;
-      }
-      return new RegExp("^.{" + (lineLength + 1) + ",}", "m").test(str);
+    hasLongerLines(f, p) {
+      return f.length > 128 * 1024 ? !0 : new RegExp("^.{" + (p + 1) + ",}", "m").test(f);
     },
     /**
      * Encodes a string or an Buffer to an UTF-8 MIME Word (rfc2047)
@@ -3737,58 +3055,25 @@ function requireMimeFuncs() {
      * @param {Number} [maxLength=0] If set, split mime words into several chunks if needed
      * @return {String} Single or several mime words joined together
      */
-    encodeWord(data, mimeWordEncoding, maxLength) {
-      mimeWordEncoding = (mimeWordEncoding || "Q").toString().toUpperCase().trim().charAt(0);
-      maxLength = maxLength || 0;
-      let encodedStr;
-      let toCharset = "UTF-8";
-      if (maxLength && maxLength > 7 + toCharset.length) {
-        maxLength -= 7 + toCharset.length;
-      }
-      if (mimeWordEncoding === "Q") {
-        encodedStr = qp2.encode(data).replace(/[^a-z0-9!*+\-/=]/gi, (chr) => {
-          let ord = chr.charCodeAt(0).toString(16).toUpperCase();
-          if (chr === " ") {
-            return "_";
-          } else {
-            return "=" + (ord.length === 1 ? "0" + ord : ord);
+    encodeWord(f, p, n) {
+      p = (p || "Q").toString().toUpperCase().trim().charAt(0), n = n || 0;
+      let r, o = "UTF-8";
+      if (n && n > 7 + o.length && (n -= 7 + o.length), p === "Q" ? r = y.encode(f).replace(/[^a-z0-9!*+\-/=]/gi, (m) => {
+        let e = m.charCodeAt(0).toString(16).toUpperCase();
+        return m === " " ? "_" : "=" + (e.length === 1 ? "0" + e : e);
+      }) : p === "B" && (r = typeof f == "string" ? f : b.encode(f), n = n ? Math.max(3, (n - n % 4) / 4 * 3) : 0), n && (p !== "B" ? r : b.encode(f)).length > n)
+        if (p === "Q")
+          r = this.splitMimeEncodedString(r, n).join("?= =?" + o + "?" + p + "?");
+        else {
+          let m = [], e = "";
+          for (let l = 0, c = r.length; l < c; l++) {
+            let s = r.charAt(l);
+            /[\ud83c\ud83d\ud83e]/.test(s) && l < c - 1 && (s += r.charAt(++l)), Buffer.byteLength(e + s) <= n || l === 0 ? e += s : (m.push(b.encode(e)), e = s);
           }
-        });
-      } else if (mimeWordEncoding === "B") {
-        encodedStr = typeof data === "string" ? data : base642.encode(data);
-        maxLength = maxLength ? Math.max(3, (maxLength - maxLength % 4) / 4 * 3) : 0;
-      }
-      if (maxLength && (mimeWordEncoding !== "B" ? encodedStr : base642.encode(data)).length > maxLength) {
-        if (mimeWordEncoding === "Q") {
-          encodedStr = this.splitMimeEncodedString(encodedStr, maxLength).join("?= =?" + toCharset + "?" + mimeWordEncoding + "?");
-        } else {
-          let parts = [];
-          let lpart = "";
-          for (let i = 0, len = encodedStr.length; i < len; i++) {
-            let chr = encodedStr.charAt(i);
-            if (/[\ud83c\ud83d\ud83e]/.test(chr) && i < len - 1) {
-              chr += encodedStr.charAt(++i);
-            }
-            if (Buffer.byteLength(lpart + chr) <= maxLength || i === 0) {
-              lpart += chr;
-            } else {
-              parts.push(base642.encode(lpart));
-              lpart = chr;
-            }
-          }
-          if (lpart) {
-            parts.push(base642.encode(lpart));
-          }
-          if (parts.length > 1) {
-            encodedStr = parts.join("?= =?" + toCharset + "?" + mimeWordEncoding + "?");
-          } else {
-            encodedStr = parts.join("");
-          }
+          e && m.push(b.encode(e)), m.length > 1 ? r = m.join("?= =?" + o + "?" + p + "?") : r = m.join("");
         }
-      } else if (mimeWordEncoding === "B") {
-        encodedStr = base642.encode(data);
-      }
-      return "=?" + toCharset + "?" + mimeWordEncoding + "?" + encodedStr + (encodedStr.substr(-2) === "?=" ? "" : "?=");
+      else p === "B" && (r = b.encode(f));
+      return "=?" + o + "?" + p + "?" + r + (r.substr(-2) === "?=" ? "" : "?=");
     },
     /**
      * Finds word sequences with non ascii text and converts these to mime words
@@ -3799,26 +3084,20 @@ function requireMimeFuncs() {
      * @param {Boolean} [encodeAll=false] If true and the value needs encoding then encodes entire string, not just the smallest match
      * @return {String} String with possible mime words
      */
-    encodeWords(value, mimeWordEncoding, maxLength, encodeAll) {
-      maxLength = maxLength || 0;
-      let encodedValue;
-      let firstMatch = value.match(/(?:^|\s)([^\s]*["\u0080-\uFFFF])/);
-      if (!firstMatch) {
-        return value;
-      }
-      if (encodeAll) {
-        return this.encodeWord(value, mimeWordEncoding, maxLength);
-      }
-      let lastMatch = value.match(/(["\u0080-\uFFFF][^\s]*)[^"\u0080-\uFFFF]*$/);
-      if (!lastMatch) {
-        return value;
-      }
-      let startIndex = firstMatch.index + (firstMatch[0].match(/[^\s]/) || {
+    encodeWords(f, p, n, r) {
+      n = n || 0;
+      let o, m = f.match(/(?:^|\s)([^\s]*["\u0080-\uFFFF])/);
+      if (!m)
+        return f;
+      if (r)
+        return this.encodeWord(f, p, n);
+      let e = f.match(/(["\u0080-\uFFFF][^\s]*)[^"\u0080-\uFFFF]*$/);
+      if (!e)
+        return f;
+      let l = m.index + (m[0].match(/[^\s]/) || {
         index: 0
-      }).index;
-      let endIndex = lastMatch.index + (lastMatch[1] || "").length;
-      encodedValue = (startIndex ? value.substr(0, startIndex) : "") + this.encodeWord(value.substring(startIndex, endIndex), mimeWordEncoding || "Q", maxLength) + (endIndex < value.length ? value.substr(endIndex) : "");
-      return encodedValue;
+      }).index, c = e.index + (e[1] || "").length;
+      return o = (l ? f.substr(0, l) : "") + this.encodeWord(f.substring(l, c), p || "Q", n) + (c < f.length ? f.substr(c) : ""), o;
     },
     /**
      * Joins parsed header value together as 'value; param1=value1; param2=value2'
@@ -3827,25 +3106,14 @@ function requireMimeFuncs() {
      * @param {Object} structured Parsed header value
      * @return {String} joined header value
      */
-    buildHeaderValue(structured) {
-      let paramsArray = [];
-      Object.keys(structured.params || {}).forEach((param) => {
-        let value = structured.params[param];
-        if (!this.isPlainText(value, true) || value.length >= 75) {
-          this.buildHeaderParam(param, value, 50).forEach((encodedParam) => {
-            if (!/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(encodedParam.value) || encodedParam.key.substr(-1) === "*") {
-              paramsArray.push(encodedParam.key + "=" + encodedParam.value);
-            } else {
-              paramsArray.push(encodedParam.key + "=" + JSON.stringify(encodedParam.value));
-            }
-          });
-        } else if (/[\s'"\\;:/=(),<>@[\]?]|^-/.test(value)) {
-          paramsArray.push(param + "=" + JSON.stringify(value));
-        } else {
-          paramsArray.push(param + "=" + value);
-        }
-      });
-      return structured.value + (paramsArray.length ? "; " + paramsArray.join("; ") : "");
+    buildHeaderValue(f) {
+      let p = [];
+      return Object.keys(f.params || {}).forEach((n) => {
+        let r = f.params[n];
+        !this.isPlainText(r, !0) || r.length >= 75 ? this.buildHeaderParam(n, r, 50).forEach((o) => {
+          !/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(o.value) || o.key.substr(-1) === "*" ? p.push(o.key + "=" + o.value) : p.push(o.key + "=" + JSON.stringify(o.value));
+        }) : /[\s'"\\;:/=(),<>@[\]?]|^-/.test(r) ? p.push(n + "=" + JSON.stringify(r)) : p.push(n + "=" + r);
+      }), f.value + (p.length ? "; " + p.join("; ") : "");
     },
     /**
      * Encodes a string or an Buffer to an UTF-8 Parameter Value Continuation encoding (rfc2231)
@@ -3862,105 +3130,58 @@ function requireMimeFuncs() {
      * @param {String} [fromCharset='UTF-8'] Source sharacter set
      * @return {Array} A list of encoded keys and headers
      */
-    buildHeaderParam(key, data, maxLength) {
-      let list = [];
-      let encodedStr = typeof data === "string" ? data : (data || "").toString();
-      let encodedStrArr;
-      let chr, ord;
-      let line;
-      let startPos = 0;
-      let i, len;
-      maxLength = maxLength || 50;
-      if (this.isPlainText(data, true)) {
-        if (encodedStr.length <= maxLength) {
+    buildHeaderParam(f, p, n) {
+      let r = [], o = typeof p == "string" ? p : (p || "").toString(), m, e, l, c, s = 0, x, g;
+      if (n = n || 50, this.isPlainText(p, !0)) {
+        if (o.length <= n)
           return [
             {
-              key,
-              value: encodedStr
+              key: f,
+              value: o
             }
           ];
-        }
-        encodedStr = encodedStr.replace(new RegExp(".{" + maxLength + "}", "g"), (str) => {
-          list.push({
-            line: str
-          });
-          return "";
+        o = o.replace(new RegExp(".{" + n + "}", "g"), (v) => (r.push({
+          line: v
+        }), "")), o && r.push({
+          line: o
         });
-        if (encodedStr) {
-          list.push({
-            line: encodedStr
-          });
-        }
       } else {
-        if (/[\uD800-\uDBFF]/.test(encodedStr)) {
-          encodedStrArr = [];
-          for (i = 0, len = encodedStr.length; i < len; i++) {
-            chr = encodedStr.charAt(i);
-            ord = chr.charCodeAt(0);
-            if (ord >= 55296 && ord <= 56319 && i < len - 1) {
-              chr += encodedStr.charAt(i + 1);
-              encodedStrArr.push(chr);
-              i++;
-            } else {
-              encodedStrArr.push(chr);
-            }
-          }
-          encodedStr = encodedStrArr;
+        if (/[\uD800-\uDBFF]/.test(o)) {
+          for (m = [], x = 0, g = o.length; x < g; x++)
+            e = o.charAt(x), l = e.charCodeAt(0), l >= 55296 && l <= 56319 && x < g - 1 ? (e += o.charAt(x + 1), m.push(e), x++) : m.push(e);
+          o = m;
         }
-        line = "utf-8''";
-        let encoded = true;
-        startPos = 0;
-        for (i = 0, len = encodedStr.length; i < len; i++) {
-          chr = encodedStr[i];
-          if (encoded) {
-            chr = this.safeEncodeURIComponent(chr);
-          } else {
-            chr = chr === " " ? chr : this.safeEncodeURIComponent(chr);
-            if (chr !== encodedStr[i]) {
-              if ((this.safeEncodeURIComponent(line) + chr).length >= maxLength) {
-                list.push({
-                  line,
-                  encoded
-                });
-                line = "";
-                startPos = i - 1;
-              } else {
-                encoded = true;
-                i = startPos;
-                line = "";
-                continue;
-              }
+        c = "utf-8''";
+        let v = !0;
+        for (s = 0, x = 0, g = o.length; x < g; x++) {
+          if (e = o[x], v)
+            e = this.safeEncodeURIComponent(e);
+          else if (e = e === " " ? e : this.safeEncodeURIComponent(e), e !== o[x])
+            if ((this.safeEncodeURIComponent(c) + e).length >= n)
+              r.push({
+                line: c,
+                encoded: v
+              }), c = "", s = x - 1;
+            else {
+              v = !0, x = s, c = "";
+              continue;
             }
-          }
-          if ((line + chr).length >= maxLength) {
-            list.push({
-              line,
-              encoded
-            });
-            line = chr = encodedStr[i] === " " ? " " : this.safeEncodeURIComponent(encodedStr[i]);
-            if (chr === encodedStr[i]) {
-              encoded = false;
-              startPos = i - 1;
-            } else {
-              encoded = true;
-            }
-          } else {
-            line += chr;
-          }
+          (c + e).length >= n ? (r.push({
+            line: c,
+            encoded: v
+          }), c = e = o[x] === " " ? " " : this.safeEncodeURIComponent(o[x]), e === o[x] ? (v = !1, s = x - 1) : v = !0) : c += e;
         }
-        if (line) {
-          list.push({
-            line,
-            encoded
-          });
-        }
+        c && r.push({
+          line: c,
+          encoded: v
+        });
       }
-      return list.map((item, i2) => ({
+      return r.map((v, t) => ({
         // encoded lines: {name}*{part}*
         // unencoded lines: {name}*{part}
         // if any line needs to be encoded then the first line (part==0) is always encoded
-        key: key + "*" + i2 + (item.encoded ? "*" : ""),
-        value: item.line
+        key: f + "*" + t + (v.encoded ? "*" : ""),
+        value: v.line
       }));
     },
     /**
@@ -3978,99 +3199,40 @@ function requireMimeFuncs() {
      * @param {String} str Header value
      * @return {Object} Header value as a parsed structure
      */
-    parseHeaderValue(str) {
-      let response = {
-        value: false,
+    parseHeaderValue(f) {
+      let p = {
+        value: !1,
         params: {}
-      };
-      let key = false;
-      let value = "";
-      let type = "value";
-      let quote = false;
-      let escaped = false;
-      let chr;
-      for (let i = 0, len = str.length; i < len; i++) {
-        chr = str.charAt(i);
-        if (type === "key") {
-          if (chr === "=") {
-            key = value.trim().toLowerCase();
-            type = "value";
-            value = "";
+      }, n = !1, r = "", o = "value", m = !1, e = !1, l;
+      for (let c = 0, s = f.length; c < s; c++)
+        if (l = f.charAt(c), o === "key") {
+          if (l === "=") {
+            n = r.trim().toLowerCase(), o = "value", r = "";
             continue;
           }
-          value += chr;
+          r += l;
         } else {
-          if (escaped) {
-            value += chr;
-          } else if (chr === "\\") {
-            escaped = true;
+          if (e)
+            r += l;
+          else if (l === "\\") {
+            e = !0;
             continue;
-          } else if (quote && chr === quote) {
-            quote = false;
-          } else if (!quote && chr === '"') {
-            quote = chr;
-          } else if (!quote && chr === ";") {
-            if (key === false) {
-              response.value = value.trim();
-            } else {
-              response.params[key] = value.trim();
-            }
-            type = "key";
-            value = "";
-          } else {
-            value += chr;
-          }
-          escaped = false;
+          } else m && l === m ? m = !1 : !m && l === '"' ? m = l : !m && l === ";" ? (n === !1 ? p.value = r.trim() : p.params[n] = r.trim(), o = "key", r = "") : r += l;
+          e = !1;
         }
-      }
-      if (type === "value") {
-        if (key === false) {
-          response.value = value.trim();
-        } else {
-          response.params[key] = value.trim();
-        }
-      } else if (value.trim()) {
-        response.params[value.trim().toLowerCase()] = "";
-      }
-      Object.keys(response.params).forEach((key2) => {
-        let actualKey, nr, match, value2;
-        if (match = key2.match(/(\*(\d+)|\*(\d+)\*|\*)$/)) {
-          actualKey = key2.substr(0, match.index);
-          nr = Number(match[2] || match[3]) || 0;
-          if (!response.params[actualKey] || typeof response.params[actualKey] !== "object") {
-            response.params[actualKey] = {
-              charset: false,
-              values: []
-            };
-          }
-          value2 = response.params[key2];
-          if (nr === 0 && match[0].substr(-1) === "*" && (match = value2.match(/^([^']*)'[^']*'(.*)$/))) {
-            response.params[actualKey].charset = match[1] || "iso-8859-1";
-            value2 = match[2];
-          }
-          response.params[actualKey].values[nr] = value2;
-          delete response.params[key2];
-        }
-      });
-      Object.keys(response.params).forEach((key2) => {
-        let value2;
-        if (response.params[key2] && Array.isArray(response.params[key2].values)) {
-          value2 = response.params[key2].values.map((val) => val || "").join("");
-          if (response.params[key2].charset) {
-            response.params[key2] = "=?" + response.params[key2].charset + "?Q?" + value2.replace(/[=?_\s]/g, (s) => {
-              let c = s.charCodeAt(0).toString(16);
-              if (s === " ") {
-                return "_";
-              } else {
-                return "%" + (c.length < 2 ? "0" : "") + c;
-              }
-            }).replace(/%/g, "=") + "?=";
-          } else {
-            response.params[key2] = value2;
-          }
-        }
-      });
-      return response;
+      return o === "value" ? n === !1 ? p.value = r.trim() : p.params[n] = r.trim() : r.trim() && (p.params[r.trim().toLowerCase()] = ""), Object.keys(p.params).forEach((c) => {
+        let s, x, g, v;
+        (g = c.match(/(\*(\d+)|\*(\d+)\*|\*)$/)) && (s = c.substr(0, g.index), x = Number(g[2] || g[3]) || 0, (!p.params[s] || typeof p.params[s] != "object") && (p.params[s] = {
+          charset: !1,
+          values: []
+        }), v = p.params[c], x === 0 && g[0].substr(-1) === "*" && (g = v.match(/^([^']*)'[^']*'(.*)$/)) && (p.params[s].charset = g[1] || "iso-8859-1", v = g[2]), p.params[s].values[x] = v, delete p.params[c]);
+      }), Object.keys(p.params).forEach((c) => {
+        let s;
+        p.params[c] && Array.isArray(p.params[c].values) && (s = p.params[c].values.map((x) => x || "").join(""), p.params[c].charset ? p.params[c] = "=?" + p.params[c].charset + "?Q?" + s.replace(/[=?_\s]/g, (x) => {
+          let g = x.charCodeAt(0).toString(16);
+          return x === " " ? "_" : "%" + (g.length < 2 ? "0" : "") + g;
+        }).replace(/%/g, "=") + "?=" : p.params[c] = s);
+      }), p;
     },
     /**
      * Returns file extension for a content type string. If no suitable extensions
@@ -4079,7 +3241,7 @@ function requireMimeFuncs() {
      * @param {String} mimeType Content type to be checked for
      * @return {String} File extension
      */
-    detectExtension: (mimeType) => mimeTypes.detectExtension(mimeType),
+    detectExtension: (f) => k.detectExtension(f),
     /**
      * Returns content type for a file extension. If no suitable content types
      * are found, 'application/octet-stream' is used as the default content type
@@ -4087,7 +3249,7 @@ function requireMimeFuncs() {
      * @param {String} extension Extension to be checked for
      * @return {String} File extension
      */
-    detectMimeType: (extension) => mimeTypes.detectMimeType(extension),
+    detectMimeType: (f) => k.detectMimeType(f),
     /**
      * Folds long lines, useful for folding header lines (afterSpace=false) and
      * flowed text (afterSpace=true)
@@ -4097,33 +3259,22 @@ function requireMimeFuncs() {
      * @param {Boolean} afterSpace If true, leave a space in th end of a line
      * @return {String} String with folded lines
      */
-    foldLines(str, lineLength, afterSpace) {
-      str = (str || "").toString();
-      lineLength = lineLength || 76;
-      let pos = 0, len = str.length, result = "", line, match;
-      while (pos < len) {
-        line = str.substr(pos, lineLength);
-        if (line.length < lineLength) {
-          result += line;
+    foldLines(f, p, n) {
+      f = (f || "").toString(), p = p || 76;
+      let r = 0, o = f.length, m = "", e, l;
+      for (; r < o; ) {
+        if (e = f.substr(r, p), e.length < p) {
+          m += e;
           break;
         }
-        if (match = line.match(/^[^\n\r]*(\r?\n|\r)/)) {
-          line = match[0];
-          result += line;
-          pos += line.length;
+        if (l = e.match(/^[^\n\r]*(\r?\n|\r)/)) {
+          e = l[0], m += e, r += e.length;
           continue;
-        } else if ((match = line.match(/(\s+)[^\s]*$/)) && match[0].length - (afterSpace ? (match[1] || "").length : 0) < line.length) {
-          line = line.substr(0, line.length - (match[0].length - (afterSpace ? (match[1] || "").length : 0)));
-        } else if (match = str.substr(pos + line.length).match(/^[^\s]+(\s*)/)) {
-          line = line + match[0].substr(0, match[0].length - (!afterSpace ? (match[1] || "").length : 0));
-        }
-        result += line;
-        pos += line.length;
-        if (pos < len) {
-          result += "\r\n";
-        }
+        } else (l = e.match(/(\s+)[^\s]*$/)) && l[0].length - (n ? (l[1] || "").length : 0) < e.length ? e = e.substr(0, e.length - (l[0].length - (n ? (l[1] || "").length : 0))) : (l = f.substr(r + e.length).match(/^[^\s]+(\s*)/)) && (e = e + l[0].substr(0, l[0].length - (n ? 0 : (l[1] || "").length)));
+        m += e, r += e.length, r < o && (m += `\r
+`);
       }
-      return result;
+      return m;
     },
     /**
      * Splits a mime encoded string. Needed for dividing mime words into smaller chunks
@@ -4132,210 +3283,105 @@ function requireMimeFuncs() {
      * @param {Number} maxlen Maximum length of characters for one part (minimum 12)
      * @return {Array} Split string
      */
-    splitMimeEncodedString: (str, maxlen) => {
-      let curLine, match, chr, done, lines = [];
-      maxlen = Math.max(maxlen || 0, 12);
-      while (str.length) {
-        curLine = str.substr(0, maxlen);
-        if (match = curLine.match(/[=][0-9A-F]?$/i)) {
-          curLine = curLine.substr(0, match.index);
-        }
-        done = false;
-        while (!done) {
-          done = true;
-          if (match = str.substr(curLine.length).match(/^[=]([0-9A-F]{2})/i)) {
-            chr = parseInt(match[1], 16);
-            if (chr < 194 && chr > 127) {
-              curLine = curLine.substr(0, curLine.length - 3);
-              done = false;
-            }
-          }
-        }
-        if (curLine.length) {
-          lines.push(curLine);
-        }
-        str = str.substr(curLine.length);
+    splitMimeEncodedString: (f, p) => {
+      let n, r, o, m, e = [];
+      for (p = Math.max(p || 0, 12); f.length; ) {
+        for (n = f.substr(0, p), (r = n.match(/[=][0-9A-F]?$/i)) && (n = n.substr(0, r.index)), m = !1; !m; )
+          m = !0, (r = f.substr(n.length).match(/^[=]([0-9A-F]{2})/i)) && (o = parseInt(r[1], 16), o < 194 && o > 127 && (n = n.substr(0, n.length - 3), m = !1));
+        n.length && e.push(n), f = f.substr(n.length);
       }
-      return lines;
+      return e;
     },
-    encodeURICharComponent: (chr) => {
-      let res = "";
-      let ord = chr.charCodeAt(0).toString(16).toUpperCase();
-      if (ord.length % 2) {
-        ord = "0" + ord;
-      }
-      if (ord.length > 2) {
-        for (let i = 0, len = ord.length / 2; i < len; i++) {
-          res += "%" + ord.substr(i, 2);
-        }
-      } else {
-        res += "%" + ord;
-      }
-      return res;
+    encodeURICharComponent: (f) => {
+      let p = "", n = f.charCodeAt(0).toString(16).toUpperCase();
+      if (n.length % 2 && (n = "0" + n), n.length > 2)
+        for (let r = 0, o = n.length / 2; r < o; r++)
+          p += "%" + n.substr(r, 2);
+      else
+        p += "%" + n;
+      return p;
     },
-    safeEncodeURIComponent(str) {
-      str = (str || "").toString();
+    safeEncodeURIComponent(f) {
+      f = (f || "").toString();
       try {
-        str = encodeURIComponent(str);
-      } catch (_E) {
-        return str.replace(/[^\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]+/g, "");
+        f = encodeURIComponent(f);
+      } catch {
+        return f.replace(/[^\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]+/g, "");
       }
-      return str.replace(/[\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]/g, (chr) => this.encodeURICharComponent(chr));
+      return f.replace(/[\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]/g, (p) => this.encodeURICharComponent(p));
     }
-  };
-  return mimeFuncs;
+  }, ue;
 }
-var addressparser_1;
-var hasRequiredAddressparser;
-function requireAddressparser() {
-  if (hasRequiredAddressparser) return addressparser_1;
-  hasRequiredAddressparser = 1;
-  function _handleAddress(tokens, depth) {
-    let isGroup = false;
-    let state = "text";
-    let address;
-    let addresses = [];
-    let data = {
+var fe, tt;
+function ti() {
+  if (tt) return fe;
+  tt = 1;
+  function b(p, n) {
+    let r = !1, o = "text", m, e = [], l = {
       address: [],
       comment: [],
       group: [],
       text: [],
       textWasQuoted: []
       // Track which text tokens came from inside quotes
-    };
-    let i;
-    let len;
-    let insideQuotes = false;
-    for (i = 0, len = tokens.length; i < len; i++) {
-      let token = tokens[i];
-      let prevToken = i ? tokens[i - 1] : null;
-      if (token.type === "operator") {
-        switch (token.value) {
+    }, c, s, x = !1;
+    for (c = 0, s = p.length; c < s; c++) {
+      let g = p[c], v = c ? p[c - 1] : null;
+      if (g.type === "operator")
+        switch (g.value) {
           case "<":
-            state = "address";
-            insideQuotes = false;
+            o = "address", x = !1;
             break;
           case "(":
-            state = "comment";
-            insideQuotes = false;
+            o = "comment", x = !1;
             break;
           case ":":
-            state = "group";
-            isGroup = true;
-            insideQuotes = false;
+            o = "group", r = !0, x = !1;
             break;
           case '"':
-            insideQuotes = !insideQuotes;
-            state = "text";
+            x = !x, o = "text";
             break;
           default:
-            state = "text";
-            insideQuotes = false;
+            o = "text", x = !1;
             break;
         }
-      } else if (token.value) {
-        if (state === "address") {
-          token.value = token.value.replace(/^[^<]*<\s*/, "");
-        }
-        if (prevToken && prevToken.noBreak && data[state].length) {
-          data[state][data[state].length - 1] += token.value;
-          if (state === "text" && insideQuotes) {
-            data.textWasQuoted[data.textWasQuoted.length - 1] = true;
-          }
-        } else {
-          data[state].push(token.value);
-          if (state === "text") {
-            data.textWasQuoted.push(insideQuotes);
-          }
-        }
-      }
+      else g.value && (o === "address" && (g.value = g.value.replace(/^[^<]*<\s*/, "")), v && v.noBreak && l[o].length ? (l[o][l[o].length - 1] += g.value, o === "text" && x && (l.textWasQuoted[l.textWasQuoted.length - 1] = !0)) : (l[o].push(g.value), o === "text" && l.textWasQuoted.push(x)));
     }
-    if (!data.text.length && data.comment.length) {
-      data.text = data.comment;
-      data.comment = [];
-    }
-    if (isGroup) {
-      data.text = data.text.join(" ");
-      let groupMembers = [];
-      if (data.group.length) {
-        let parsedGroup = addressparser(data.group.join(","), { _depth: depth + 1 });
-        parsedGroup.forEach((member) => {
-          if (member.group) {
-            groupMembers = groupMembers.concat(member.group);
-          } else {
-            groupMembers.push(member);
-          }
-        });
-      }
-      addresses.push({
-        name: data.text || address && address.name,
-        group: groupMembers
+    if (!l.text.length && l.comment.length && (l.text = l.comment, l.comment = []), r) {
+      l.text = l.text.join(" ");
+      let g = [];
+      l.group.length && f(l.group.join(","), { _depth: n + 1 }).forEach((t) => {
+        t.group ? g = g.concat(t.group) : g.push(t);
+      }), e.push({
+        name: l.text || m && m.name,
+        group: g
       });
     } else {
-      if (!data.address.length && data.text.length) {
-        for (i = data.text.length - 1; i >= 0; i--) {
-          if (!data.textWasQuoted[i] && data.text[i].match(/^[^@\s]+@[^@\s]+$/)) {
-            data.address = data.text.splice(i, 1);
-            data.textWasQuoted.splice(i, 1);
+      if (!l.address.length && l.text.length) {
+        for (c = l.text.length - 1; c >= 0; c--)
+          if (!l.textWasQuoted[c] && l.text[c].match(/^[^@\s]+@[^@\s]+$/)) {
+            l.address = l.text.splice(c, 1), l.textWasQuoted.splice(c, 1);
             break;
           }
-        }
-        let _regexHandler = function(address2) {
-          if (!data.address.length) {
-            data.address = [address2.trim()];
-            return " ";
-          } else {
-            return address2;
-          }
+        let g = function(v) {
+          return l.address.length ? v : (l.address = [v.trim()], " ");
         };
-        if (!data.address.length) {
-          for (i = data.text.length - 1; i >= 0; i--) {
-            if (!data.textWasQuoted[i]) {
-              data.text[i] = data.text[i].replace(/\s*\b[^@\s]+@[^\s]+\b\s*/, _regexHandler).trim();
-              if (data.address.length) {
-                break;
-              }
-            }
-          }
-        }
+        if (!l.address.length)
+          for (c = l.text.length - 1; c >= 0 && !(!l.textWasQuoted[c] && (l.text[c] = l.text[c].replace(/\s*\b[^@\s]+@[^\s]+\b\s*/, g).trim(), l.address.length)); c--)
+            ;
       }
-      if (!data.text.length && data.comment.length) {
-        data.text = data.comment;
-        data.comment = [];
-      }
-      if (data.address.length > 1) {
-        data.text = data.text.concat(data.address.splice(1));
-      }
-      data.text = data.text.join(" ");
-      data.address = data.address.join(" ");
-      if (!data.address && isGroup) {
+      if (!l.text.length && l.comment.length && (l.text = l.comment, l.comment = []), l.address.length > 1 && (l.text = l.text.concat(l.address.splice(1))), l.text = l.text.join(" "), l.address = l.address.join(" "), !l.address && r)
         return [];
-      } else {
-        address = {
-          address: data.address || data.text || "",
-          name: data.text || data.address || ""
-        };
-        if (address.address === address.name) {
-          if ((address.address || "").match(/@/)) {
-            address.name = "";
-          } else {
-            address.address = "";
-          }
-        }
-        addresses.push(address);
-      }
+      m = {
+        address: l.address || l.text || "",
+        name: l.text || l.address || ""
+      }, m.address === m.name && ((m.address || "").match(/@/) ? m.name = "" : m.address = ""), e.push(m);
     }
-    return addresses;
+    return e;
   }
-  class Tokenizer {
-    constructor(str) {
-      this.str = (str || "").toString();
-      this.operatorCurrent = "";
-      this.operatorExpecting = "";
-      this.node = null;
-      this.escaped = false;
-      this.list = [];
-      this.operators = {
+  class y {
+    constructor(n) {
+      this.str = (n || "").toString(), this.operatorCurrent = "", this.operatorExpecting = "", this.node = null, this.escaped = !1, this.list = [], this.operators = {
         '"': '"',
         "(": ")",
         "<": ">",
@@ -4356,287 +3402,143 @@ function requireAddressparser() {
      * @return {Array} An array of operator|text tokens
      */
     tokenize() {
-      let list = [];
-      for (let i = 0, len = this.str.length; i < len; i++) {
-        let chr = this.str.charAt(i);
-        let nextChr = i < len - 1 ? this.str.charAt(i + 1) : null;
-        this.checkChar(chr, nextChr);
+      let n = [];
+      for (let r = 0, o = this.str.length; r < o; r++) {
+        let m = this.str.charAt(r), e = r < o - 1 ? this.str.charAt(r + 1) : null;
+        this.checkChar(m, e);
       }
-      this.list.forEach((node) => {
-        node.value = (node.value || "").toString().trim();
-        if (node.value) {
-          list.push(node);
-        }
-      });
-      return list;
+      return this.list.forEach((r) => {
+        r.value = (r.value || "").toString().trim(), r.value && n.push(r);
+      }), n;
     }
     /**
      * Checks if a character is an operator or text and acts accordingly
      *
      * @param {String} chr Character from the address field
      */
-    checkChar(chr, nextChr) {
-      if (this.escaped) ;
-      else if (chr === this.operatorExpecting) {
-        this.node = {
-          type: "operator",
-          value: chr
-        };
-        if (nextChr && ![" ", "	", "\r", "\n", ",", ";"].includes(nextChr)) {
-          this.node.noBreak = true;
+    checkChar(n, r) {
+      if (!this.escaped) {
+        if (n === this.operatorExpecting) {
+          this.node = {
+            type: "operator",
+            value: n
+          }, r && ![" ", "	", "\r", `
+`, ",", ";"].includes(r) && (this.node.noBreak = !0), this.list.push(this.node), this.node = null, this.operatorExpecting = "", this.escaped = !1;
+          return;
+        } else if (!this.operatorExpecting && n in this.operators) {
+          this.node = {
+            type: "operator",
+            value: n
+          }, this.list.push(this.node), this.node = null, this.operatorExpecting = this.operators[n], this.escaped = !1;
+          return;
+        } else if (['"', "'"].includes(this.operatorExpecting) && n === "\\") {
+          this.escaped = !0;
+          return;
         }
-        this.list.push(this.node);
-        this.node = null;
-        this.operatorExpecting = "";
-        this.escaped = false;
-        return;
-      } else if (!this.operatorExpecting && chr in this.operators) {
-        this.node = {
-          type: "operator",
-          value: chr
-        };
-        this.list.push(this.node);
-        this.node = null;
-        this.operatorExpecting = this.operators[chr];
-        this.escaped = false;
-        return;
-      } else if (['"', "'"].includes(this.operatorExpecting) && chr === "\\") {
-        this.escaped = true;
-        return;
       }
-      if (!this.node) {
-        this.node = {
-          type: "text",
-          value: ""
-        };
-        this.list.push(this.node);
-      }
-      if (chr === "\n") {
-        chr = " ";
-      }
-      if (chr.charCodeAt(0) >= 33 || [" ", "	"].includes(chr)) {
-        this.node.value += chr;
-      }
-      this.escaped = false;
+      this.node || (this.node = {
+        type: "text",
+        value: ""
+      }, this.list.push(this.node)), n === `
+` && (n = " "), (n.charCodeAt(0) >= 33 || [" ", "	"].includes(n)) && (this.node.value += n), this.escaped = !1;
     }
   }
-  const MAX_NESTED_GROUP_DEPTH = 50;
-  function addressparser(str, options) {
-    options = options || {};
-    let depth = options._depth || 0;
-    if (depth > MAX_NESTED_GROUP_DEPTH) {
+  const k = 50;
+  function f(p, n) {
+    n = n || {};
+    let r = n._depth || 0;
+    if (r > k)
       return [];
-    }
-    let tokenizer = new Tokenizer(str);
-    let tokens = tokenizer.tokenize();
-    let addresses = [];
-    let address = [];
-    let parsedAddresses = [];
-    tokens.forEach((token) => {
-      if (token.type === "operator" && (token.value === "," || token.value === ";")) {
-        if (address.length) {
-          addresses.push(address);
-        }
-        address = [];
-      } else {
-        address.push(token);
-      }
-    });
-    if (address.length) {
-      addresses.push(address);
-    }
-    addresses.forEach((address2) => {
-      address2 = _handleAddress(address2, depth);
-      if (address2.length) {
-        parsedAddresses = parsedAddresses.concat(address2);
-      }
-    });
-    if (options.flatten) {
-      let addresses2 = [];
-      let walkAddressList = (list) => {
-        list.forEach((address2) => {
-          if (address2.group) {
-            return walkAddressList(address2.group);
-          } else {
-            addresses2.push(address2);
-          }
+    let m = new y(p).tokenize(), e = [], l = [], c = [];
+    if (m.forEach((s) => {
+      s.type === "operator" && (s.value === "," || s.value === ";") ? (l.length && e.push(l), l = []) : l.push(s);
+    }), l.length && e.push(l), e.forEach((s) => {
+      s = b(s, r), s.length && (c = c.concat(s));
+    }), n.flatten) {
+      let s = [], x = (g) => {
+        g.forEach((v) => {
+          if (v.group)
+            return x(v.group);
+          s.push(v);
         });
       };
-      walkAddressList(parsedAddresses);
-      return addresses2;
+      return x(c), s;
     }
-    return parsedAddresses;
+    return c;
   }
-  addressparser_1 = addressparser;
-  return addressparser_1;
+  return fe = f, fe;
 }
-var lastNewline;
-var hasRequiredLastNewline;
-function requireLastNewline() {
-  if (hasRequiredLastNewline) return lastNewline;
-  hasRequiredLastNewline = 1;
-  const Transform = require$$0$2.Transform;
-  class LastNewline extends Transform {
+var xe, it;
+function ii() {
+  if (it) return xe;
+  it = 1;
+  const b = P.Transform;
+  class y extends b {
     constructor() {
-      super();
-      this.lastByte = false;
+      super(), this.lastByte = !1;
     }
-    _transform(chunk, encoding, done) {
-      if (chunk.length) {
-        this.lastByte = chunk[chunk.length - 1];
-      }
-      this.push(chunk);
-      done();
+    _transform(f, p, n) {
+      f.length && (this.lastByte = f[f.length - 1]), this.push(f), n();
     }
-    _flush(done) {
-      if (this.lastByte === 10) {
-        return done();
-      }
-      if (this.lastByte === 13) {
-        this.push(Buffer.from("\n"));
-        return done();
-      }
-      this.push(Buffer.from("\r\n"));
-      return done();
+    _flush(f) {
+      return this.lastByte === 10 ? f() : this.lastByte === 13 ? (this.push(Buffer.from(`
+`)), f()) : (this.push(Buffer.from(`\r
+`)), f());
     }
   }
-  lastNewline = LastNewline;
-  return lastNewline;
+  return xe = y, xe;
 }
-var leWindows;
-var hasRequiredLeWindows;
-function requireLeWindows() {
-  if (hasRequiredLeWindows) return leWindows;
-  hasRequiredLeWindows = 1;
-  const stream = require$$0$2;
-  const Transform = stream.Transform;
-  class LeWindows extends Transform {
-    constructor(options) {
-      super(options);
-      this.options = options || {};
-      this.lastByte = false;
+var ge, st;
+function qt() {
+  if (st) return ge;
+  st = 1;
+  const y = P.Transform;
+  class k extends y {
+    constructor(p) {
+      super(p), this.options = p || {}, this.lastByte = !1;
     }
     /**
      * Escapes dots
      */
-    _transform(chunk, encoding, done) {
-      let buf;
-      let lastPos = 0;
-      for (let i = 0, len = chunk.length; i < len; i++) {
-        if (chunk[i] === 10) {
-          if (i && chunk[i - 1] !== 13 || !i && this.lastByte !== 13) {
-            if (i > lastPos) {
-              buf = chunk.slice(lastPos, i);
-              this.push(buf);
-            }
-            this.push(Buffer.from("\r\n"));
-            lastPos = i + 1;
-          }
-        }
-      }
-      if (lastPos && lastPos < chunk.length) {
-        buf = chunk.slice(lastPos);
-        this.push(buf);
-      } else if (!lastPos) {
-        this.push(chunk);
-      }
-      this.lastByte = chunk[chunk.length - 1];
-      done();
+    _transform(p, n, r) {
+      let o, m = 0;
+      for (let e = 0, l = p.length; e < l; e++)
+        p[e] === 10 && (e && p[e - 1] !== 13 || !e && this.lastByte !== 13) && (e > m && (o = p.slice(m, e), this.push(o)), this.push(Buffer.from(`\r
+`)), m = e + 1);
+      m && m < p.length ? (o = p.slice(m), this.push(o)) : m || this.push(p), this.lastByte = p[p.length - 1], r();
     }
   }
-  leWindows = LeWindows;
-  return leWindows;
+  return ge = k, ge;
 }
-var leUnix;
-var hasRequiredLeUnix;
-function requireLeUnix() {
-  if (hasRequiredLeUnix) return leUnix;
-  hasRequiredLeUnix = 1;
-  const stream = require$$0$2;
-  const Transform = stream.Transform;
-  class LeWindows extends Transform {
-    constructor(options) {
-      super(options);
-      this.options = options || {};
+var ve, at;
+function si() {
+  if (at) return ve;
+  at = 1;
+  const y = P.Transform;
+  class k extends y {
+    constructor(p) {
+      super(p), this.options = p || {};
     }
     /**
      * Escapes dots
      */
-    _transform(chunk, encoding, done) {
-      let buf;
-      let lastPos = 0;
-      for (let i = 0, len = chunk.length; i < len; i++) {
-        if (chunk[i] === 13) {
-          buf = chunk.slice(lastPos, i);
-          lastPos = i + 1;
-          this.push(buf);
-        }
-      }
-      if (lastPos && lastPos < chunk.length) {
-        buf = chunk.slice(lastPos);
-        this.push(buf);
-      } else if (!lastPos) {
-        this.push(chunk);
-      }
-      done();
+    _transform(p, n, r) {
+      let o, m = 0;
+      for (let e = 0, l = p.length; e < l; e++)
+        p[e] === 13 && (o = p.slice(m, e), m = e + 1, this.push(o));
+      m && m < p.length ? (o = p.slice(m), this.push(o)) : m || this.push(p), r();
     }
   }
-  leUnix = LeWindows;
-  return leUnix;
+  return ve = k, ve;
 }
-var mimeNode;
-var hasRequiredMimeNode;
-function requireMimeNode() {
-  if (hasRequiredMimeNode) return mimeNode;
-  hasRequiredMimeNode = 1;
-  const crypto = require$$2$1;
-  const fs = require$$2;
-  const punycode = requirePunycode();
-  const PassThrough = require$$0$2.PassThrough;
-  const shared2 = requireShared();
-  const mimeFuncs2 = requireMimeFuncs();
-  const qp2 = requireQp();
-  const base642 = requireBase64();
-  const addressparser = requireAddressparser();
-  const nmfetch = requireFetch();
-  const errors2 = requireErrors();
-  const LastNewline = requireLastNewline();
-  const LeWindows = requireLeWindows();
-  const LeUnix = requireLeUnix();
-  class MimeNode {
-    constructor(contentType, options) {
-      this.nodeCounter = 0;
-      options = options || {};
-      this.baseBoundary = options.baseBoundary || crypto.randomBytes(8).toString("hex");
-      this.boundaryPrefix = options.boundaryPrefix || "--_NmP";
-      this.disableFileAccess = !!options.disableFileAccess;
-      this.disableUrlAccess = !!options.disableUrlAccess;
-      this.normalizeHeaderKey = options.normalizeHeaderKey;
-      this.date = /* @__PURE__ */ new Date();
-      this.rootNode = options.rootNode || this;
-      this.keepBcc = !!options.keepBcc;
-      if (options.filename) {
-        this.filename = options.filename;
-        if (!contentType) {
-          contentType = mimeFuncs2.detectMimeType(this.filename.split(".").pop());
-        }
-      }
-      this.textEncoding = (options.textEncoding || "").toString().trim().charAt(0).toUpperCase();
-      this.parentNode = options.parentNode;
-      this.hostname = options.hostname;
-      this.newline = options.newline;
-      this.childNodes = [];
-      this._nodeId = ++this.rootNode.nodeCounter;
-      this._headers = [];
-      this._isPlainText = false;
-      this._hasLongLines = false;
-      this._envelope = false;
-      this._raw = false;
-      this._transforms = [];
-      this._processFuncs = [];
-      if (contentType) {
-        this.setHeader("Content-Type", contentType);
-      }
+var we, nt;
+function Fe() {
+  if (nt) return we;
+  nt = 1;
+  const b = K, y = De, k = Ot(), f = P.PassThrough, p = q(), n = oe(), r = Ht(), o = Nt(), m = ti(), e = ne(), l = F(), c = ii(), s = qt(), x = si();
+  class g {
+    constructor(t, i) {
+      this.nodeCounter = 0, i = i || {}, this.baseBoundary = i.baseBoundary || b.randomBytes(8).toString("hex"), this.boundaryPrefix = i.boundaryPrefix || "--_NmP", this.disableFileAccess = !!i.disableFileAccess, this.disableUrlAccess = !!i.disableUrlAccess, this.normalizeHeaderKey = i.normalizeHeaderKey, this.date = /* @__PURE__ */ new Date(), this.rootNode = i.rootNode || this, this.keepBcc = !!i.keepBcc, i.filename && (this.filename = i.filename, t || (t = n.detectMimeType(this.filename.split(".").pop()))), this.textEncoding = (i.textEncoding || "").toString().trim().charAt(0).toUpperCase(), this.parentNode = i.parentNode, this.hostname = i.hostname, this.newline = i.newline, this.childNodes = [], this._nodeId = ++this.rootNode.nodeCounter, this._headers = [], this._isPlainText = !1, this._hasLongLines = !1, this._envelope = !1, this._raw = !1, this._transforms = [], this._processFuncs = [], t && this.setHeader("Content-Type", t);
     }
     /////// PUBLIC METHODS
     /**
@@ -4646,14 +3548,10 @@ function requireMimeNode() {
      * @param {Object} [options] Optional options object
      * @return {Object} Created node object
      */
-    createChild(contentType, options) {
-      if (!options && typeof contentType === "object") {
-        options = contentType;
-        contentType = void 0;
-      }
-      let node = new MimeNode(contentType, options);
-      this.appendChild(node);
-      return node;
+    createChild(t, i) {
+      !i && typeof t == "object" && (i = t, t = void 0);
+      let d = new g(t, i);
+      return this.appendChild(d), d;
     }
     /**
      * Appends an existing node to the mime tree. Removes the node from an existing
@@ -4662,14 +3560,8 @@ function requireMimeNode() {
      * @param {Object} childNode node to be appended
      * @return {Object} Appended node object
      */
-    appendChild(childNode) {
-      if (childNode.rootNode !== this.rootNode) {
-        childNode.rootNode = this.rootNode;
-        childNode._nodeId = ++this.rootNode.nodeCounter;
-      }
-      childNode.parentNode = this;
-      this.childNodes.push(childNode);
-      return childNode;
+    appendChild(t) {
+      return t.rootNode !== this.rootNode && (t.rootNode = this.rootNode, t._nodeId = ++this.rootNode.nodeCounter), t.parentNode = this, this.childNodes.push(t), t;
     }
     /**
      * Replaces current node with another node
@@ -4677,21 +3569,10 @@ function requireMimeNode() {
      * @param {Object} node Replacement node
      * @return {Object} Replacement node
      */
-    replace(node) {
-      if (node === this) {
-        return this;
-      }
-      this.parentNode.childNodes.forEach((childNode, i) => {
-        if (childNode === this) {
-          node.rootNode = this.rootNode;
-          node.parentNode = this.parentNode;
-          node._nodeId = this._nodeId;
-          this.rootNode = this;
-          this.parentNode = void 0;
-          node.parentNode.childNodes[i] = node;
-        }
-      });
-      return node;
+    replace(t) {
+      return t === this ? this : (this.parentNode.childNodes.forEach((i, d) => {
+        i === this && (t.rootNode = this.rootNode, t.parentNode = this.parentNode, t._nodeId = this._nodeId, this.rootNode = this, this.parentNode = void 0, t.parentNode.childNodes[d] = t);
+      }), t);
     }
     /**
      * Removes current node from the mime tree
@@ -4699,17 +3580,11 @@ function requireMimeNode() {
      * @return {Object} removed node
      */
     remove() {
-      if (!this.parentNode) {
+      if (!this.parentNode)
         return this;
-      }
-      for (let i = this.parentNode.childNodes.length - 1; i >= 0; i--) {
-        if (this.parentNode.childNodes[i] === this) {
-          this.parentNode.childNodes.splice(i, 1);
-          this.parentNode = void 0;
-          this.rootNode = this;
-          return this;
-        }
-      }
+      for (let t = this.parentNode.childNodes.length - 1; t >= 0; t--)
+        if (this.parentNode.childNodes[t] === this)
+          return this.parentNode.childNodes.splice(t, 1), this.parentNode = void 0, this.rootNode = this, this;
     }
     /**
      * Sets a header value. If the value for selected key exists, it is overwritten.
@@ -4720,43 +3595,21 @@ function requireMimeNode() {
      * @param {String} value Header value
      * @return {Object} current node
      */
-    setHeader(key, value) {
-      let added = false, headerValue;
-      if (!value && key && typeof key === "object") {
-        if (key.key && "value" in key) {
-          this.setHeader(key.key, key.value);
-        } else if (Array.isArray(key)) {
-          key.forEach((i) => {
-            this.setHeader(i.key, i.value);
-          });
-        } else {
-          Object.keys(key).forEach((i) => {
-            this.setHeader(i, key[i]);
-          });
-        }
-        return this;
-      }
-      key = this._normalizeHeaderKey(key);
-      headerValue = {
-        key,
-        value
+    setHeader(t, i) {
+      let d = !1, a;
+      if (!i && t && typeof t == "object")
+        return t.key && "value" in t ? this.setHeader(t.key, t.value) : Array.isArray(t) ? t.forEach((h) => {
+          this.setHeader(h.key, h.value);
+        }) : Object.keys(t).forEach((h) => {
+          this.setHeader(h, t[h]);
+        }), this;
+      t = this._normalizeHeaderKey(t), a = {
+        key: t,
+        value: i
       };
-      for (let i = 0, len = this._headers.length; i < len; i++) {
-        if (this._headers[i].key === key) {
-          if (!added) {
-            this._headers[i] = headerValue;
-            added = true;
-          } else {
-            this._headers.splice(i, 1);
-            i--;
-            len--;
-          }
-        }
-      }
-      if (!added) {
-        this._headers.push(headerValue);
-      }
-      return this;
+      for (let h = 0, u = this._headers.length; h < u; h++)
+        this._headers[h].key === t && (d ? (this._headers.splice(h, 1), h--, u--) : (this._headers[h] = a, d = !0));
+      return d || this._headers.push(a), this;
     }
     /**
      * Adds a header value. If the value for selected key exists, the value is appended
@@ -4768,31 +3621,17 @@ function requireMimeNode() {
      * @param {String} value Header value
      * @return {Object} current node
      */
-    addHeader(key, value) {
-      if (!value && key && typeof key === "object") {
-        if (key.key && key.value) {
-          this.addHeader(key.key, key.value);
-        } else if (Array.isArray(key)) {
-          key.forEach((i) => {
-            this.addHeader(i.key, i.value);
-          });
-        } else {
-          Object.keys(key).forEach((i) => {
-            this.addHeader(i, key[i]);
-          });
-        }
-        return this;
-      } else if (Array.isArray(value)) {
-        value.forEach((val) => {
-          this.addHeader(key, val);
-        });
-        return this;
-      }
-      this._headers.push({
-        key: this._normalizeHeaderKey(key),
-        value
-      });
-      return this;
+    addHeader(t, i) {
+      return !i && t && typeof t == "object" ? (t.key && t.value ? this.addHeader(t.key, t.value) : Array.isArray(t) ? t.forEach((d) => {
+        this.addHeader(d.key, d.value);
+      }) : Object.keys(t).forEach((d) => {
+        this.addHeader(d, t[d]);
+      }), this) : Array.isArray(i) ? (i.forEach((d) => {
+        this.addHeader(t, d);
+      }), this) : (this._headers.push({
+        key: this._normalizeHeaderKey(t),
+        value: i
+      }), this);
     }
     /**
      * Retrieves the first mathcing value of a selected key
@@ -4800,13 +3639,11 @@ function requireMimeNode() {
      * @param {String} key Key to search for
      * @retun {String} Value for the key
      */
-    getHeader(key) {
-      key = this._normalizeHeaderKey(key);
-      for (let i = 0, len = this._headers.length; i < len; i++) {
-        if (this._headers[i].key === key) {
+    getHeader(t) {
+      t = this._normalizeHeaderKey(t);
+      for (let i = 0, d = this._headers.length; i < d; i++)
+        if (this._headers[i].key === t)
           return this._headers[i].value;
-        }
-      }
     }
     /**
      * Sets body content for current node. If the value is a string, charset is added automatically
@@ -4816,80 +3653,32 @@ function requireMimeNode() {
      * @param (String|Buffer) content Body content
      * @return {Object} current node
      */
-    setContent(content) {
-      this.content = content;
-      if (typeof this.content.pipe === "function") {
-        this._contentErrorHandler = (err) => {
-          this.content.removeListener("error", this._contentErrorHandler);
-          this.content = err;
-        };
-        this.content.once("error", this._contentErrorHandler);
-      } else if (typeof this.content === "string") {
-        this._isPlainText = mimeFuncs2.isPlainText(this.content);
-        if (this._isPlainText && mimeFuncs2.hasLongerLines(this.content, 76)) {
-          this._hasLongLines = true;
-        }
-      }
-      return this;
+    setContent(t) {
+      return this.content = t, typeof this.content.pipe == "function" ? (this._contentErrorHandler = (i) => {
+        this.content.removeListener("error", this._contentErrorHandler), this.content = i;
+      }, this.content.once("error", this._contentErrorHandler)) : typeof this.content == "string" && (this._isPlainText = n.isPlainText(this.content), this._isPlainText && n.hasLongerLines(this.content, 76) && (this._hasLongLines = !0)), this;
     }
-    build(callback) {
-      let promise;
-      if (!callback) {
-        promise = new Promise((resolve, reject) => {
-          callback = shared2.callbackPromise(resolve, reject);
-        });
-      }
-      let stream = this.createReadStream();
-      let buf = [];
-      let buflen = 0;
-      let returned = false;
-      stream.on("readable", () => {
-        let chunk;
-        while ((chunk = stream.read()) !== null) {
-          buf.push(chunk);
-          buflen += chunk.length;
-        }
-      });
-      stream.once("error", (err) => {
-        if (returned) {
-          return;
-        }
-        returned = true;
-        return callback(err);
-      });
-      stream.once("end", (chunk) => {
-        if (returned) {
-          return;
-        }
-        returned = true;
-        if (chunk && chunk.length) {
-          buf.push(chunk);
-          buflen += chunk.length;
-        }
-        return callback(null, Buffer.concat(buf, buflen));
-      });
-      return promise;
+    build(t) {
+      let i;
+      t || (i = new Promise((_, w) => {
+        t = p.callbackPromise(_, w);
+      }));
+      let d = this.createReadStream(), a = [], h = 0, u = !1;
+      return d.on("readable", () => {
+        let _;
+        for (; (_ = d.read()) !== null; )
+          a.push(_), h += _.length;
+      }), d.once("error", (_) => {
+        if (!u)
+          return u = !0, t(_);
+      }), d.once("end", (_) => {
+        if (!u)
+          return u = !0, _ && _.length && (a.push(_), h += _.length), t(null, Buffer.concat(a, h));
+      }), i;
     }
     getTransferEncoding() {
-      let transferEncoding = false;
-      let contentType = (this.getHeader("Content-Type") || "").toString().toLowerCase().trim();
-      if (this.content) {
-        transferEncoding = (this.getHeader("Content-Transfer-Encoding") || "").toString().toLowerCase().trim();
-        if (!transferEncoding || !["base64", "quoted-printable"].includes(transferEncoding)) {
-          if (/^text\//i.test(contentType)) {
-            if (this._isPlainText && !this._hasLongLines) {
-              transferEncoding = "7bit";
-            } else if (typeof this.content === "string" || this.content instanceof Buffer) {
-              transferEncoding = this._getTextEncoding(this.content) === "Q" ? "quoted-printable" : "base64";
-            } else {
-              transferEncoding = this.textEncoding === "B" ? "base64" : "quoted-printable";
-            }
-          } else if (!/^(multipart|message)\//i.test(contentType)) {
-            transferEncoding = transferEncoding || "base64";
-          }
-        }
-      }
-      return transferEncoding;
+      let t = !1, i = (this.getHeader("Content-Type") || "").toString().toLowerCase().trim();
+      return this.content && (t = (this.getHeader("Content-Transfer-Encoding") || "").toString().toLowerCase().trim(), (!t || !["base64", "quoted-printable"].includes(t)) && (/^text\//i.test(i) ? this._isPlainText && !this._hasLongLines ? t = "7bit" : typeof this.content == "string" || this.content instanceof Buffer ? t = this._getTextEncoding(this.content) === "Q" ? "quoted-printable" : "base64" : t = this.textEncoding === "B" ? "base64" : "quoted-printable" : /^(multipart|message)\//i.test(i) || (t = t || "base64"))), t;
     }
     /**
      * Builds the header block for the mime node. Append \r\n\r\n before writing the content
@@ -4897,98 +3686,45 @@ function requireMimeNode() {
      * @returns {String} Headers
      */
     buildHeaders() {
-      let transferEncoding = this.getTransferEncoding();
-      let headers = [];
-      if (transferEncoding) {
-        this.setHeader("Content-Transfer-Encoding", transferEncoding);
-      }
-      if (this.filename && !this.getHeader("Content-Disposition")) {
-        this.setHeader("Content-Disposition", "attachment");
-      }
-      if (this.rootNode === this) {
-        if (!this.getHeader("Date")) {
-          this.setHeader("Date", this.date.toUTCString().replace(/GMT/, "+0000"));
-        }
-        this.messageId();
-        if (!this.getHeader("MIME-Version")) {
-          this.setHeader("MIME-Version", "1.0");
-        }
-        for (let i = this._headers.length - 2; i >= 0; i--) {
-          let header = this._headers[i];
-          if (header.key === "Content-Type") {
-            this._headers.splice(i, 1);
-            this._headers.push(header);
-          }
+      let t = this.getTransferEncoding(), i = [];
+      if (t && this.setHeader("Content-Transfer-Encoding", t), this.filename && !this.getHeader("Content-Disposition") && this.setHeader("Content-Disposition", "attachment"), this.rootNode === this) {
+        this.getHeader("Date") || this.setHeader("Date", this.date.toUTCString().replace(/GMT/, "+0000")), this.messageId(), this.getHeader("MIME-Version") || this.setHeader("MIME-Version", "1.0");
+        for (let d = this._headers.length - 2; d >= 0; d--) {
+          let a = this._headers[d];
+          a.key === "Content-Type" && (this._headers.splice(d, 1), this._headers.push(a));
         }
       }
-      this._headers.forEach((header) => {
-        let key = header.key;
-        let value = header.value;
-        let structured;
-        let param;
-        let options = {};
-        let formattedHeaders = ["From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "References"];
-        if (value && typeof value === "object" && !formattedHeaders.includes(key)) {
-          Object.keys(value).forEach((key2) => {
-            if (key2 !== "value") {
-              options[key2] = value[key2];
-            }
-          });
-          value = (value.value || "").toString();
-          if (!value.trim()) {
+      return this._headers.forEach((d) => {
+        let a = d.key, h = d.value, u, _, w = {};
+        if (!(h && typeof h == "object" && !["From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "References"].includes(a) && (Object.keys(h).forEach((S) => {
+          S !== "value" && (w[S] = h[S]);
+        }), h = (h.value || "").toString(), !h.trim()))) {
+          if (w.prepared) {
+            w.foldLines ? i.push(n.foldLines(a + ": " + h)) : i.push(a + ": " + h);
             return;
           }
-        }
-        if (options.prepared) {
-          if (options.foldLines) {
-            headers.push(mimeFuncs2.foldLines(key + ": " + value));
-          } else {
-            headers.push(key + ": " + value);
+          switch (d.key) {
+            case "Content-Disposition":
+              u = n.parseHeaderValue(h), this.filename && (u.params.filename = this.filename), h = n.buildHeaderValue(u);
+              break;
+            case "Content-Type":
+              u = n.parseHeaderValue(h), this._handleContentType(u), u.value.match(/^text\/plain\b/) && typeof this.content == "string" && /[\u0080-\uFFFF]/.test(this.content) && (u.params.charset = "utf-8"), h = n.buildHeaderValue(u), this.filename && (_ = this._encodeWords(this.filename), (_ !== this.filename || /[\s'"\\;:/=(),<>@[\]?]|^-/.test(_)) && (_ = '"' + _ + '"'), h += "; name=" + _);
+              break;
+            case "Bcc":
+              if (!this.keepBcc)
+                return;
+              break;
           }
-          return;
-        }
-        switch (header.key) {
-          case "Content-Disposition":
-            structured = mimeFuncs2.parseHeaderValue(value);
-            if (this.filename) {
-              structured.params.filename = this.filename;
+          if (h = this._encodeHeaderValue(a, h), !!(h || "").toString().trim()) {
+            if (typeof this.normalizeHeaderKey == "function") {
+              let S = this.normalizeHeaderKey(a, h);
+              S && typeof S == "string" && S.length && (a = S);
             }
-            value = mimeFuncs2.buildHeaderValue(structured);
-            break;
-          case "Content-Type":
-            structured = mimeFuncs2.parseHeaderValue(value);
-            this._handleContentType(structured);
-            if (structured.value.match(/^text\/plain\b/) && typeof this.content === "string" && /[\u0080-\uFFFF]/.test(this.content)) {
-              structured.params.charset = "utf-8";
-            }
-            value = mimeFuncs2.buildHeaderValue(structured);
-            if (this.filename) {
-              param = this._encodeWords(this.filename);
-              if (param !== this.filename || /[\s'"\\;:/=(),<>@[\]?]|^-/.test(param)) {
-                param = '"' + param + '"';
-              }
-              value += "; name=" + param;
-            }
-            break;
-          case "Bcc":
-            if (!this.keepBcc) {
-              return;
-            }
-            break;
-        }
-        value = this._encodeHeaderValue(key, value);
-        if (!(value || "").toString().trim()) {
-          return;
-        }
-        if (typeof this.normalizeHeaderKey === "function") {
-          let normalized = this.normalizeHeaderKey(key, value);
-          if (normalized && typeof normalized === "string" && normalized.length) {
-            key = normalized;
+            i.push(n.foldLines(a + ": " + h, 76));
           }
         }
-        headers.push(mimeFuncs2.foldLines(key + ": " + value, 76));
-      });
-      return headers.join("\r\n");
+      }), i.join(`\r
+`);
     }
     /**
      * Streams the rfc2822 message from the current node. If this is a root node,
@@ -4996,42 +3732,31 @@ function requireMimeNode() {
      *
      * @return {String} Compiled message
      */
-    createReadStream(options) {
-      options = options || {};
-      let stream = new PassThrough(options);
-      let outputStream = stream;
-      let transform;
-      this.stream(stream, options, (err) => {
-        if (err) {
-          outputStream.emit("error", err);
+    createReadStream(t) {
+      t = t || {};
+      let i = new f(t), d = i, a;
+      this.stream(i, t, (h) => {
+        if (h) {
+          d.emit("error", h);
           return;
         }
-        stream.end();
+        i.end();
       });
-      for (let i = 0, len = this._transforms.length; i < len; i++) {
-        transform = typeof this._transforms[i] === "function" ? this._transforms[i]() : this._transforms[i];
-        outputStream.once("error", (err) => {
-          transform.emit("error", err);
-        });
-        outputStream = outputStream.pipe(transform);
-      }
-      transform = new LastNewline();
-      outputStream.once("error", (err) => {
-        transform.emit("error", err);
-      });
-      outputStream = outputStream.pipe(transform);
-      for (let i = 0, len = this._processFuncs.length; i < len; i++) {
-        transform = this._processFuncs[i];
-        outputStream = transform(outputStream);
-      }
+      for (let h = 0, u = this._transforms.length; h < u; h++)
+        a = typeof this._transforms[h] == "function" ? this._transforms[h]() : this._transforms[h], d.once("error", (_) => {
+          a.emit("error", _);
+        }), d = d.pipe(a);
+      a = new c(), d.once("error", (h) => {
+        a.emit("error", h);
+      }), d = d.pipe(a);
+      for (let h = 0, u = this._processFuncs.length; h < u; h++)
+        a = this._processFuncs[h], d = a(d);
       if (this.newline) {
-        const winbreak = ["win", "windows", "dos", "\r\n"].includes(this.newline.toString().toLowerCase());
-        const newlineTransform = winbreak ? new LeWindows() : new LeUnix();
-        const stream2 = outputStream.pipe(newlineTransform);
-        outputStream.on("error", (err) => stream2.emit("error", err));
-        return stream2;
+        const u = ["win", "windows", "dos", `\r
+`].includes(this.newline.toString().toLowerCase()) ? new s() : new x(), _ = d.pipe(u);
+        return d.on("error", (w) => _.emit("error", w)), _;
       }
-      return outputStream;
+      return d;
     }
     /**
      * Appends a transform stream object to the transforms list. Final output
@@ -5039,8 +3764,8 @@ function requireMimeNode() {
      *
      * @param {Object} transform Read-Write stream
      */
-    transform(transform) {
-      this._transforms.push(transform);
+    transform(t) {
+      this._transforms.push(t);
     }
     /**
      * Appends a post process function. The functon is run after transforms and
@@ -5050,160 +3775,89 @@ function requireMimeNode() {
      *
      * @param {Object} processFunc Read-Write stream
      */
-    processFunc(processFunc) {
-      this._processFuncs.push(processFunc);
+    processFunc(t) {
+      this._processFuncs.push(t);
     }
-    stream(outputStream, options, done) {
-      let transferEncoding = this.getTransferEncoding();
-      let contentStream;
-      let localStream;
-      let returned = false;
-      let callback = (err) => {
-        if (returned) {
-          return;
-        }
-        returned = true;
-        done(err);
-      };
-      let finalize = () => {
-        let childId = 0;
-        let processChildNode = () => {
-          if (childId >= this.childNodes.length) {
-            outputStream.write("\r\n--" + this.boundary + "--\r\n");
-            return callback();
-          }
-          let child = this.childNodes[childId++];
-          outputStream.write((childId > 1 ? "\r\n" : "") + "--" + this.boundary + "\r\n");
-          child.stream(outputStream, options, (err) => {
-            if (err) {
-              return callback(err);
-            }
-            setImmediate(processChildNode);
+    stream(t, i, d) {
+      let a = this.getTransferEncoding(), h, u, _ = !1, w = (A) => {
+        _ || (_ = !0, d(A));
+      }, E = () => {
+        let A = 0, C = () => {
+          if (A >= this.childNodes.length)
+            return t.write(`\r
+--` + this.boundary + `--\r
+`), w();
+          let j = this.childNodes[A++];
+          t.write((A > 1 ? `\r
+` : "") + "--" + this.boundary + `\r
+`), j.stream(t, i, (T) => {
+            if (T)
+              return w(T);
+            setImmediate(C);
           });
         };
-        if (this.multipart) {
-          setImmediate(processChildNode);
-        } else {
-          return callback();
-        }
-      };
-      let sendContent = () => {
+        if (this.multipart)
+          setImmediate(C);
+        else
+          return w();
+      }, S = () => {
         if (this.content) {
-          if (Object.prototype.toString.call(this.content) === "[object Error]") {
-            return callback(this.content);
-          }
-          if (typeof this.content.pipe === "function") {
-            this.content.removeListener("error", this._contentErrorHandler);
-            this._contentErrorHandler = (err) => callback(err);
-            this.content.once("error", this._contentErrorHandler);
-          }
-          let createStream = () => {
-            if (["quoted-printable", "base64"].includes(transferEncoding)) {
-              contentStream = new (transferEncoding === "base64" ? base642 : qp2).Encoder(options);
-              contentStream.pipe(outputStream, {
-                end: false
-              });
-              contentStream.once("end", finalize);
-              contentStream.once("error", (err) => callback(err));
-              localStream = this._getStream(this.content);
-              localStream.pipe(contentStream);
-            } else {
-              localStream = this._getStream(this.content);
-              localStream.pipe(outputStream, {
-                end: false
-              });
-              localStream.once("end", finalize);
-            }
-            localStream.once("error", (err) => callback(err));
+          if (Object.prototype.toString.call(this.content) === "[object Error]")
+            return w(this.content);
+          typeof this.content.pipe == "function" && (this.content.removeListener("error", this._contentErrorHandler), this._contentErrorHandler = (C) => w(C), this.content.once("error", this._contentErrorHandler));
+          let A = () => {
+            ["quoted-printable", "base64"].includes(a) ? (h = new (a === "base64" ? o : r).Encoder(i), h.pipe(t, {
+              end: !1
+            }), h.once("end", E), h.once("error", (C) => w(C)), u = this._getStream(this.content), u.pipe(h)) : (u = this._getStream(this.content), u.pipe(t, {
+              end: !1
+            }), u.once("end", E)), u.once("error", (C) => w(C));
           };
           if (this.content._resolve) {
-            let chunks = [];
-            let chunklen = 0;
-            let returned2 = false;
-            let sourceStream = this._getStream(this.content);
-            sourceStream.on("error", (err) => {
-              if (returned2) {
-                return;
-              }
-              returned2 = true;
-              callback(err);
+            let C = [], j = 0, T = !1, I = this._getStream(this.content);
+            I.on("error", (M) => {
+              T || (T = !0, w(M));
+            }), I.on("readable", () => {
+              let M;
+              for (; (M = I.read()) !== null; )
+                C.push(M), j += M.length;
+            }), I.on("end", () => {
+              T || (T = !0, this.content._resolve = !1, this.content._resolvedValue = Buffer.concat(C, j), setImmediate(A));
             });
-            sourceStream.on("readable", () => {
-              let chunk;
-              while ((chunk = sourceStream.read()) !== null) {
-                chunks.push(chunk);
-                chunklen += chunk.length;
-              }
-            });
-            sourceStream.on("end", () => {
-              if (returned2) {
-                return;
-              }
-              returned2 = true;
-              this.content._resolve = false;
-              this.content._resolvedValue = Buffer.concat(chunks, chunklen);
-              setImmediate(createStream);
-            });
-          } else {
-            setImmediate(createStream);
-          }
+          } else
+            setImmediate(A);
           return;
-        } else {
-          return setImmediate(finalize);
-        }
+        } else
+          return setImmediate(E);
       };
-      if (this._raw) {
-        setImmediate(() => {
-          if (Object.prototype.toString.call(this._raw) === "[object Error]") {
-            return callback(this._raw);
-          }
-          if (typeof this._raw.pipe === "function") {
-            this._raw.removeListener("error", this._contentErrorHandler);
-          }
-          let raw = this._getStream(this._raw);
-          raw.pipe(outputStream, {
-            end: false
-          });
-          raw.on("error", (err) => outputStream.emit("error", err));
-          raw.on("end", finalize);
-        });
-      } else {
-        outputStream.write(this.buildHeaders() + "\r\n\r\n");
-        setImmediate(sendContent);
-      }
+      this._raw ? setImmediate(() => {
+        if (Object.prototype.toString.call(this._raw) === "[object Error]")
+          return w(this._raw);
+        typeof this._raw.pipe == "function" && this._raw.removeListener("error", this._contentErrorHandler);
+        let A = this._getStream(this._raw);
+        A.pipe(t, {
+          end: !1
+        }), A.on("error", (C) => t.emit("error", C)), A.on("end", E);
+      }) : (t.write(this.buildHeaders() + `\r
+\r
+`), setImmediate(S));
     }
     /**
      * Sets envelope to be used instead of the generated one
      *
      * @return {Object} SMTP envelope in the form of {from: 'from@example.com', to: ['to@example.com']}
      */
-    setEnvelope(envelope) {
-      let list;
+    setEnvelope(t) {
+      let i;
       this._envelope = {
-        from: false,
+        from: !1,
         to: []
-      };
-      if (envelope.from) {
-        list = [];
-        this._convertAddresses(this._parseAddresses(envelope.from), list);
-        list = list.filter((address) => address && address.address);
-        if (list.length && list[0]) {
-          this._envelope.from = list[0].address;
-        }
-      }
-      ["to", "cc", "bcc"].forEach((key) => {
-        if (envelope[key]) {
-          this._convertAddresses(this._parseAddresses(envelope[key]), this._envelope.to);
-        }
-      });
-      this._envelope.to = this._envelope.to.map((to) => to.address).filter((address) => address);
-      let standardFields = ["to", "cc", "bcc", "from"];
-      Object.keys(envelope).forEach((key) => {
-        if (!standardFields.includes(key)) {
-          this._envelope[key] = envelope[key];
-        }
-      });
-      return this;
+      }, t.from && (i = [], this._convertAddresses(this._parseAddresses(t.from), i), i = i.filter((a) => a && a.address), i.length && i[0] && (this._envelope.from = i[0].address)), ["to", "cc", "bcc"].forEach((a) => {
+        t[a] && this._convertAddresses(this._parseAddresses(t[a]), this._envelope.to);
+      }), this._envelope.to = this._envelope.to.map((a) => a.address).filter((a) => a);
+      let d = ["to", "cc", "bcc", "from"];
+      return Object.keys(t).forEach((a) => {
+        d.includes(a) || (this._envelope[a] = t[a]);
+      }), this;
     }
     /**
      * Generates and returns an object with parsed address fields
@@ -5211,17 +3865,11 @@ function requireMimeNode() {
      * @return {Object} Address object
      */
     getAddresses() {
-      let addresses = {};
-      this._headers.forEach((header) => {
-        let key = header.key.toLowerCase();
-        if (["from", "sender", "reply-to", "to", "cc", "bcc"].includes(key)) {
-          if (!Array.isArray(addresses[key])) {
-            addresses[key] = [];
-          }
-          this._convertAddresses(this._parseAddresses(header.value), addresses[key]);
-        }
-      });
-      return addresses;
+      let t = {};
+      return this._headers.forEach((i) => {
+        let d = i.key.toLowerCase();
+        ["from", "sender", "reply-to", "to", "cc", "bcc"].includes(d) && (Array.isArray(t[d]) || (t[d] = []), this._convertAddresses(this._parseAddresses(i.value), t[d]));
+      }), t;
     }
     /**
      * Generates and returns SMTP envelope with the sender address and a list of recipients addresses
@@ -5229,26 +3877,16 @@ function requireMimeNode() {
      * @return {Object} SMTP envelope in the form of {from: 'from@example.com', to: ['to@example.com']}
      */
     getEnvelope() {
-      if (this._envelope) {
+      if (this._envelope)
         return this._envelope;
-      }
-      let envelope = {
-        from: false,
+      let t = {
+        from: !1,
         to: []
       };
-      this._headers.forEach((header) => {
-        let list = [];
-        if (header.key === "From" || !envelope.from && ["Reply-To", "Sender"].includes(header.key)) {
-          this._convertAddresses(this._parseAddresses(header.value), list);
-          if (list.length && list[0]) {
-            envelope.from = list[0].address;
-          }
-        } else if (["To", "Cc", "Bcc"].includes(header.key)) {
-          this._convertAddresses(this._parseAddresses(header.value), envelope.to);
-        }
-      });
-      envelope.to = envelope.to.map((to) => to.address);
-      return envelope;
+      return this._headers.forEach((i) => {
+        let d = [];
+        i.key === "From" || !t.from && ["Reply-To", "Sender"].includes(i.key) ? (this._convertAddresses(this._parseAddresses(i.value), d), d.length && d[0] && (t.from = d[0].address)) : ["To", "Cc", "Bcc"].includes(i.key) && this._convertAddresses(this._parseAddresses(i.value), t.to);
+      }), t.to = t.to.map((i) => i.address), t;
     }
     /**
      * Returns Message-Id value. If it does not exist, then creates one
@@ -5256,28 +3894,18 @@ function requireMimeNode() {
      * @return {String} Message-Id value
      */
     messageId() {
-      let messageId = this.getHeader("Message-ID");
-      if (!messageId) {
-        messageId = this._generateMessageId();
-        this.setHeader("Message-ID", messageId);
-      }
-      return messageId;
+      let t = this.getHeader("Message-ID");
+      return t || (t = this._generateMessageId(), this.setHeader("Message-ID", t)), t;
     }
     /**
      * Sets pregenerated content that will be used as the output of this node
      *
      * @param {String|Buffer|Stream} Raw MIME contents
      */
-    setRaw(raw) {
-      this._raw = raw;
-      if (this._raw && typeof this._raw.pipe === "function") {
-        this._contentErrorHandler = (err) => {
-          this._raw.removeListener("error", this._contentErrorHandler);
-          this._raw = err;
-        };
-        this._raw.once("error", this._contentErrorHandler);
-      }
-      return this;
+    setRaw(t) {
+      return this._raw = t, this._raw && typeof this._raw.pipe == "function" && (this._contentErrorHandler = (i) => {
+        this._raw.removeListener("error", this._contentErrorHandler), this._raw = i;
+      }, this._raw.once("error", this._contentErrorHandler)), this;
     }
     /////// PRIVATE METHODS
     /**
@@ -5286,53 +3914,27 @@ function requireMimeNode() {
      * @param {Mixed} content Node content
      * @returns {Object} Stream object
      */
-    _getStream(content) {
-      let contentStream;
-      if (content._resolvedValue) {
-        contentStream = new PassThrough();
-        setImmediate(() => {
-          try {
-            contentStream.end(content._resolvedValue);
-          } catch (_err) {
-            contentStream.emit("error", _err);
-          }
-        });
-        return contentStream;
-      } else if (typeof content.pipe === "function") {
-        return content;
-      } else if (content && typeof content.path === "string" && !content.href) {
-        if (this.disableFileAccess) {
-          contentStream = new PassThrough();
-          setImmediate(() => {
-            let err = new Error("File access rejected for " + content.path);
-            err.code = errors2.EFILEACCESS;
-            contentStream.emit("error", err);
-          });
-          return contentStream;
+    _getStream(t) {
+      let i;
+      return t._resolvedValue ? (i = new f(), setImmediate(() => {
+        try {
+          i.end(t._resolvedValue);
+        } catch (d) {
+          i.emit("error", d);
         }
-        return fs.createReadStream(content.path);
-      } else if (content && typeof content.href === "string") {
-        if (this.disableUrlAccess) {
-          contentStream = new PassThrough();
-          setImmediate(() => {
-            let err = new Error("Url access rejected for " + content.href);
-            err.code = errors2.EURLACCESS;
-            contentStream.emit("error", err);
-          });
-          return contentStream;
+      }), i) : typeof t.pipe == "function" ? t : t && typeof t.path == "string" && !t.href ? this.disableFileAccess ? (i = new f(), setImmediate(() => {
+        let d = new Error("File access rejected for " + t.path);
+        d.code = l.EFILEACCESS, i.emit("error", d);
+      }), i) : y.createReadStream(t.path) : t && typeof t.href == "string" ? this.disableUrlAccess ? (i = new f(), setImmediate(() => {
+        let d = new Error("Url access rejected for " + t.href);
+        d.code = l.EURLACCESS, i.emit("error", d);
+      }), i) : e(t.href, { headers: t.httpHeaders }) : (i = new f(), setImmediate(() => {
+        try {
+          i.end(t || "");
+        } catch (d) {
+          i.emit("error", d);
         }
-        return nmfetch(content.href, { headers: content.httpHeaders });
-      } else {
-        contentStream = new PassThrough();
-        setImmediate(() => {
-          try {
-            contentStream.end(content || "");
-          } catch (_err) {
-            contentStream.emit("error", _err);
-          }
-        });
-        return contentStream;
-      }
+      }), i);
     }
     /**
      * Parses addresses. Takes in a single address or an array or an
@@ -5341,17 +3943,10 @@ function requireMimeNode() {
      * @param {Mixed} addresses Addresses to be parsed
      * @return {Array} An array of address objects
      */
-    _parseAddresses(addresses) {
+    _parseAddresses(t) {
       return [].concat.apply(
         [],
-        [].concat(addresses).map((address) => {
-          if (address && address.address) {
-            address.address = this._normalizeAddress(address.address);
-            address.name = address.name || "";
-            return [address];
-          }
-          return addressparser(address);
-        })
+        [].concat(t).map((i) => i && i.address ? (i.address = this._normalizeAddress(i.address), i.name = i.name || "", [i]) : m(i))
       );
     }
     /**
@@ -5360,9 +3955,8 @@ function requireMimeNode() {
      * @param {String} key Key to be normalized
      * @return {String} key in Camel-Case form
      */
-    _normalizeHeaderKey(key) {
-      key = (key || "").toString().replace(/\r?\n|\r/g, " ").trim().toLowerCase().replace(/^X-SMTPAPI$|^(MIME|DKIM|ARC|BIMI)\b|^[a-z]|-(SPF|FBL|ID|MD5)$|-[a-z]/gi, (c) => c.toUpperCase()).replace(/^Content-Features$/i, "Content-features");
-      return key;
+    _normalizeHeaderKey(t) {
+      return t = (t || "").toString().replace(/\r?\n|\r/g, " ").trim().toLowerCase().replace(/^X-SMTPAPI$|^(MIME|DKIM|ARC|BIMI)\b|^[a-z]|-(SPF|FBL|ID|MD5)$|-[a-z]/gi, (i) => i.toUpperCase()).replace(/^Content-Features$/i, "Content-features"), t;
     }
     /**
      * Checks if the content type is multipart and defines boundary if needed.
@@ -5370,14 +3964,8 @@ function requireMimeNode() {
      *
      * @param {Object} structured Parsed header value for 'Content-Type' key
      */
-    _handleContentType(structured) {
-      this.contentType = structured.value.trim().toLowerCase();
-      this.multipart = /^multipart\//i.test(this.contentType) ? this.contentType.substr(this.contentType.indexOf("/") + 1) : false;
-      if (this.multipart) {
-        this.boundary = structured.params.boundary = structured.params.boundary || this.boundary || this._generateBoundary();
-      } else {
-        this.boundary = false;
-      }
+    _handleContentType(t) {
+      this.contentType = t.value.trim().toLowerCase(), this.multipart = /^multipart\//i.test(this.contentType) ? this.contentType.substr(this.contentType.indexOf("/") + 1) : !1, this.multipart ? this.boundary = t.params.boundary = t.params.boundary || this.boundary || this._generateBoundary() : this.boundary = !1;
     }
     /**
      * Generates a multipart boundary value
@@ -5393,9 +3981,8 @@ function requireMimeNode() {
      * @param {String} key Header key
      * @param {String} value Header value
      */
-    _encodeHeaderValue(key, value) {
-      key = this._normalizeHeaderKey(key);
-      switch (key) {
+    _encodeHeaderValue(t, i) {
+      switch (t = this._normalizeHeaderKey(t), t) {
         // Structured headers
         case "From":
         case "Sender":
@@ -5403,49 +3990,25 @@ function requireMimeNode() {
         case "Cc":
         case "Bcc":
         case "Reply-To":
-          return this._convertAddresses(this._parseAddresses(value));
+          return this._convertAddresses(this._parseAddresses(i));
         // values enclosed in <>
         case "Message-ID":
         case "In-Reply-To":
         case "Content-Id":
-          value = (value || "").toString().replace(/\r?\n|\r/g, " ");
-          if (value.charAt(0) !== "<") {
-            value = "<" + value;
-          }
-          if (value.charAt(value.length - 1) !== ">") {
-            value = value + ">";
-          }
-          return value;
+          return i = (i || "").toString().replace(/\r?\n|\r/g, " "), i.charAt(0) !== "<" && (i = "<" + i), i.charAt(i.length - 1) !== ">" && (i = i + ">"), i;
         // space separated list of values enclosed in <>
         case "References":
-          value = [].concat.apply(
+          return i = [].concat.apply(
             [],
-            [].concat(value || "").map((elm) => {
-              elm = (elm || "").toString().replace(/\r?\n|\r/g, " ").trim();
-              return elm.replace(/<[^>]*>/g, (str) => str.replace(/\s/g, "")).split(/\s+/);
-            })
-          ).map((elm) => {
-            if (elm.charAt(0) !== "<") {
-              elm = "<" + elm;
-            }
-            if (elm.charAt(elm.length - 1) !== ">") {
-              elm = elm + ">";
-            }
-            return elm;
-          });
-          return value.join(" ").trim();
+            [].concat(i || "").map((d) => (d = (d || "").toString().replace(/\r?\n|\r/g, " ").trim(), d.replace(/<[^>]*>/g, (a) => a.replace(/\s/g, "")).split(/\s+/)))
+          ).map((d) => (d.charAt(0) !== "<" && (d = "<" + d), d.charAt(d.length - 1) !== ">" && (d = d + ">"), d)), i.join(" ").trim();
         case "Date":
-          if (Object.prototype.toString.call(value) === "[object Date]") {
-            return value.toUTCString().replace(/GMT/, "+0000");
-          }
-          value = (value || "").toString().replace(/\r?\n|\r/g, " ");
-          return this._encodeWords(value);
+          return Object.prototype.toString.call(i) === "[object Date]" ? i.toUTCString().replace(/GMT/, "+0000") : (i = (i || "").toString().replace(/\r?\n|\r/g, " "), this._encodeWords(i));
         case "Content-Type":
         case "Content-Disposition":
-          return (value || "").toString().replace(/\r?\n|\r/g, " ");
+          return (i || "").toString().replace(/\r?\n|\r/g, " ");
         default:
-          value = (value || "").toString().replace(/\r?\n|\r/g, " ");
-          return this._encodeWords(value);
+          return i = (i || "").toString().replace(/\r?\n|\r/g, " "), this._encodeWords(i);
       }
     }
     /**
@@ -5455,28 +4018,16 @@ function requireMimeNode() {
      * @param {Array} [uniqueList] An array to be populated with addresses
      * @return {String} address string
      */
-    _convertAddresses(addresses, uniqueList) {
-      let values = [];
-      uniqueList = uniqueList || [];
-      [].concat(addresses || []).forEach((address) => {
-        if (address.address) {
-          address.address = this._normalizeAddress(address.address);
-          if (!address.name) {
-            values.push(address.address.indexOf(" ") >= 0 ? `<${address.address}>` : `${address.address}`);
-          } else if (address.name) {
-            values.push(`${this._encodeAddressName(address.name)} <${address.address}>`);
-          }
-          if (address.address) {
-            if (!uniqueList.filter((a) => a.address === address.address).length) {
-              uniqueList.push(address);
-            }
-          }
-        } else if (address.group) {
-          let groupListAddresses = (address.group.length ? this._convertAddresses(address.group, uniqueList) : "").trim();
-          values.push(`${this._encodeAddressName(address.name)}:${groupListAddresses};`);
+    _convertAddresses(t, i) {
+      let d = [];
+      return i = i || [], [].concat(t || []).forEach((a) => {
+        if (a.address)
+          a.address = this._normalizeAddress(a.address), a.name ? a.name && d.push(`${this._encodeAddressName(a.name)} <${a.address}>`) : d.push(a.address.indexOf(" ") >= 0 ? `<${a.address}>` : `${a.address}`), a.address && (i.filter((h) => h.address === a.address).length || i.push(a));
+        else if (a.group) {
+          let h = (a.group.length ? this._convertAddresses(a.group, i) : "").trim();
+          d.push(`${this._encodeAddressName(a.name)}:${h};`);
         }
-      });
-      return values.join(", ");
+      }), d.join(", ");
     }
     /**
      * Normalizes an email address
@@ -5484,28 +4035,17 @@ function requireMimeNode() {
      * @param {Array} address An array of address objects
      * @return {String} address string
      */
-    _normalizeAddress(address) {
-      address = (address || "").toString().replace(/[\x00-\x1F<>]+/g, " ").trim();
-      let lastAt = address.lastIndexOf("@");
-      if (lastAt < 0) {
-        return address;
-      }
-      let user = address.substr(0, lastAt);
-      let domain = address.substr(lastAt + 1);
-      let encodedDomain;
+    _normalizeAddress(t) {
+      t = (t || "").toString().replace(/[\x00-\x1F<>]+/g, " ").trim();
+      let i = t.lastIndexOf("@");
+      if (i < 0)
+        return t;
+      let d = t.substr(0, i), a = t.substr(i + 1), h;
       try {
-        encodedDomain = punycode.toASCII(domain.toLowerCase());
-      } catch (_err) {
+        h = k.toASCII(a.toLowerCase());
+      } catch {
       }
-      if (user.indexOf(" ") >= 0) {
-        if (user.charAt(0) !== '"') {
-          user = '"' + user;
-        }
-        if (user.substr(-1) !== '"') {
-          user = user + '"';
-        }
-      }
-      return `${user}@${encodedDomain}`;
+      return d.indexOf(" ") >= 0 && (d.charAt(0) !== '"' && (d = '"' + d), d.substr(-1) !== '"' && (d = d + '"')), `${d}@${h}`;
     }
     /**
      * If needed, mime encodes the name part
@@ -5513,15 +4053,8 @@ function requireMimeNode() {
      * @param {String} name Name part of an address
      * @returns {String} Mime word encoded string if needed
      */
-    _encodeAddressName(name2) {
-      if (!/^[\w ]*$/.test(name2)) {
-        if (/^[\x20-\x7e]*$/.test(name2)) {
-          return '"' + name2.replace(/([\\"])/g, "\\$1") + '"';
-        } else {
-          return mimeFuncs2.encodeWord(name2, this._getTextEncoding(name2), 52);
-        }
-      }
-      return name2;
+    _encodeAddressName(t) {
+      return /^[\w ]*$/.test(t) ? t : /^[\x20-\x7e]*$/.test(t) ? '"' + t.replace(/([\\"])/g, "\\$1") + '"' : n.encodeWord(t, this._getTextEncoding(t), 52);
     }
     /**
      * If needed, mime encodes the name part
@@ -5529,8 +4062,8 @@ function requireMimeNode() {
      * @param {String} name Name part of an address
      * @returns {String} Mime word encoded string if needed
      */
-    _encodeWords(value) {
-      return mimeFuncs2.encodeWords(value, this._getTextEncoding(value), 52, true);
+    _encodeWords(t) {
+      return n.encodeWords(t, this._getTextEncoding(t), 52, !0);
     }
     /**
      * Detects best mime encoding for a text value
@@ -5538,17 +4071,10 @@ function requireMimeNode() {
      * @param {String} value Value to check for
      * @return {String} either 'Q' or 'B'
      */
-    _getTextEncoding(value) {
-      value = (value || "").toString();
-      let encoding = this.textEncoding;
-      let latinLen;
-      let nonLatinLen;
-      if (!encoding) {
-        nonLatinLen = (value.match(/[\x00-\x08\x0B\x0C\x0E-\x1F\u0080-\uFFFF]/g) || []).length;
-        latinLen = (value.match(/[a-z]/gi) || []).length;
-        encoding = nonLatinLen < latinLen ? "Q" : "B";
-      }
-      return encoding;
+    _getTextEncoding(t) {
+      t = (t || "").toString();
+      let i = this.textEncoding, d, a;
+      return i || (a = (t.match(/[\x00-\x08\x0B\x0C\x0E-\x1F\u0080-\uFFFF]/g) || []).length, d = (t.match(/[a-z]/gi) || []).length, i = a < d ? "Q" : "B"), i;
     }
     /**
      * Generates a message id
@@ -5558,69 +4084,37 @@ function requireMimeNode() {
     _generateMessageId() {
       return "<" + [2, 2, 2, 6].reduce(
         // crux to generate UUID-like random strings
-        (prev, len) => prev + "-" + crypto.randomBytes(len).toString("hex"),
-        crypto.randomBytes(4).toString("hex")
+        (t, i) => t + "-" + b.randomBytes(i).toString("hex"),
+        b.randomBytes(4).toString("hex")
       ) + "@" + // try to use the domain of the FROM address or fallback to server hostname
       (this.getEnvelope().from || this.hostname || "localhost").split("@").pop() + ">";
     }
   }
-  mimeNode = MimeNode;
-  return mimeNode;
+  return we = g, we;
 }
-var mailComposer;
-var hasRequiredMailComposer;
-function requireMailComposer() {
-  if (hasRequiredMailComposer) return mailComposer;
-  hasRequiredMailComposer = 1;
-  const MimeNode = requireMimeNode();
-  const mimeFuncs2 = requireMimeFuncs();
-  const parseDataURI = requireShared().parseDataURI;
-  class MailComposer {
-    constructor(mail) {
-      this.mail = mail || {};
-      this.message = false;
+var _e, ot;
+function ai() {
+  if (ot) return _e;
+  ot = 1;
+  const b = Fe(), y = oe(), k = q().parseDataURI;
+  class f {
+    constructor(n) {
+      this.mail = n || {}, this.message = !1;
     }
     /**
      * Builds MimeNode instance
      */
     compile() {
-      this._alternatives = this.getAlternatives();
-      this._htmlNode = this._alternatives.filter((alternative) => /^text\/html\b/i.test(alternative.contentType)).pop();
-      this._attachments = this.getAttachments(!!this._htmlNode);
-      this._useRelated = !!(this._htmlNode && this._attachments.related.length);
-      this._useAlternative = this._alternatives.length > 1;
-      this._useMixed = this._attachments.attached.length > 1 || this._alternatives.length && this._attachments.attached.length === 1;
-      if (this.mail.raw) {
-        this.message = new MimeNode("message/rfc822", { newline: this.mail.newline }).setRaw(this.mail.raw);
-      } else if (this._useMixed) {
-        this.message = this._createMixed();
-      } else if (this._useAlternative) {
-        this.message = this._createAlternative();
-      } else if (this._useRelated) {
-        this.message = this._createRelated();
-      } else {
-        this.message = this._createContentNode(
-          false,
-          [].concat(this._alternatives || []).concat(this._attachments.attached || []).shift() || {
-            contentType: "text/plain",
-            content: ""
-          }
-        );
-      }
-      if (this.mail.headers) {
-        this.message.addHeader(this.mail.headers);
-      }
-      ["from", "sender", "to", "cc", "bcc", "reply-to", "in-reply-to", "references", "subject", "message-id", "date"].forEach((header) => {
-        let key = header.replace(/-(\w)/g, (o, c) => c.toUpperCase());
-        if (this.mail[key]) {
-          this.message.setHeader(header, this.mail[key]);
+      return this._alternatives = this.getAlternatives(), this._htmlNode = this._alternatives.filter((n) => /^text\/html\b/i.test(n.contentType)).pop(), this._attachments = this.getAttachments(!!this._htmlNode), this._useRelated = !!(this._htmlNode && this._attachments.related.length), this._useAlternative = this._alternatives.length > 1, this._useMixed = this._attachments.attached.length > 1 || this._alternatives.length && this._attachments.attached.length === 1, this.mail.raw ? this.message = new b("message/rfc822", { newline: this.mail.newline }).setRaw(this.mail.raw) : this._useMixed ? this.message = this._createMixed() : this._useAlternative ? this.message = this._createAlternative() : this._useRelated ? this.message = this._createRelated() : this.message = this._createContentNode(
+        !1,
+        [].concat(this._alternatives || []).concat(this._attachments.attached || []).shift() || {
+          contentType: "text/plain",
+          content: ""
         }
-      });
-      if (this.mail.envelope) {
-        this.message.setEnvelope(this.mail.envelope);
-      }
-      this.message.messageId();
-      return this.message;
+      ), this.mail.headers && this.message.addHeader(this.mail.headers), ["from", "sender", "to", "cc", "bcc", "reply-to", "in-reply-to", "references", "subject", "message-id", "date"].forEach((n) => {
+        let r = n.replace(/-(\w)/g, (o, m) => m.toUpperCase());
+        this.mail[r] && this.message.setHeader(n, this.mail[r]);
+      }), this.mail.envelope && this.message.setEnvelope(this.mail.envelope), this.message.messageId(), this.message;
     }
     /**
      * List all attachments. Resulting attachment objects can be used as input for MimeNode nodes
@@ -5628,98 +4122,33 @@ function requireMailComposer() {
      * @param {Boolean} findRelated If true separate related attachments from attached ones
      * @returns {Object} An object of arrays (`related` and `attached`)
      */
-    getAttachments(findRelated) {
-      let icalEvent, eventObject;
-      let attachments = [].concat(this.mail.attachments || []).map((attachment, i) => {
-        let data;
-        if (/^data:/i.test(attachment.path || attachment.href)) {
-          attachment = this._processDataUrl(attachment);
-        }
-        let contentType = attachment.contentType || mimeFuncs2.detectMimeType(attachment.filename || attachment.path || attachment.href || "bin");
-        let isImage = /^image\//i.test(contentType);
-        let isMessageNode = /^message\//i.test(contentType);
-        let contentDisposition = attachment.contentDisposition || (isMessageNode || isImage && attachment.cid ? "inline" : "attachment");
-        let contentTransferEncoding;
-        if ("contentTransferEncoding" in attachment) {
-          contentTransferEncoding = attachment.contentTransferEncoding;
-        } else if (isMessageNode) {
-          contentTransferEncoding = "8bit";
-        } else {
-          contentTransferEncoding = "base64";
-        }
-        data = {
-          contentType,
-          contentDisposition,
-          contentTransferEncoding
-        };
-        if (attachment.filename) {
-          data.filename = attachment.filename;
-        } else if (!isMessageNode && attachment.filename !== false) {
-          data.filename = (attachment.path || attachment.href || "").split("/").pop().split("?").shift() || "attachment-" + (i + 1);
-          if (data.filename.indexOf(".") < 0) {
-            data.filename += "." + mimeFuncs2.detectExtension(data.contentType);
-          }
-        }
-        if (/^https?:\/\//i.test(attachment.path)) {
-          attachment.href = attachment.path;
-          attachment.path = void 0;
-        }
-        if (attachment.cid) {
-          data.cid = attachment.cid;
-        }
-        if (attachment.raw) {
-          data.raw = attachment.raw;
-        } else if (attachment.path) {
-          data.content = {
-            path: attachment.path
-          };
-        } else if (attachment.href) {
-          data.content = {
-            href: attachment.href,
-            httpHeaders: attachment.httpHeaders
-          };
-        } else {
-          data.content = attachment.content || "";
-        }
-        if (attachment.encoding) {
-          data.encoding = attachment.encoding;
-        }
-        if (attachment.headers) {
-          data.headers = attachment.headers;
-        }
-        return data;
+    getAttachments(n) {
+      let r, o, m = [].concat(this.mail.attachments || []).map((e, l) => {
+        let c;
+        /^data:/i.test(e.path || e.href) && (e = this._processDataUrl(e));
+        let s = e.contentType || y.detectMimeType(e.filename || e.path || e.href || "bin"), x = /^image\//i.test(s), g = /^message\//i.test(s), v = e.contentDisposition || (g || x && e.cid ? "inline" : "attachment"), t;
+        return "contentTransferEncoding" in e ? t = e.contentTransferEncoding : g ? t = "8bit" : t = "base64", c = {
+          contentType: s,
+          contentDisposition: v,
+          contentTransferEncoding: t
+        }, e.filename ? c.filename = e.filename : !g && e.filename !== !1 && (c.filename = (e.path || e.href || "").split("/").pop().split("?").shift() || "attachment-" + (l + 1), c.filename.indexOf(".") < 0 && (c.filename += "." + y.detectExtension(c.contentType))), /^https?:\/\//i.test(e.path) && (e.href = e.path, e.path = void 0), e.cid && (c.cid = e.cid), e.raw ? c.raw = e.raw : e.path ? c.content = {
+          path: e.path
+        } : e.href ? c.content = {
+          href: e.href,
+          httpHeaders: e.httpHeaders
+        } : c.content = e.content || "", e.encoding && (c.encoding = e.encoding), e.headers && (c.headers = e.headers), c;
       });
-      if (this.mail.icalEvent) {
-        if (typeof this.mail.icalEvent === "object" && (this.mail.icalEvent.content || this.mail.icalEvent.path || this.mail.icalEvent.href || this.mail.icalEvent.raw)) {
-          icalEvent = this.mail.icalEvent;
-        } else {
-          icalEvent = {
-            content: this.mail.icalEvent
-          };
-        }
-        eventObject = {};
-        Object.keys(icalEvent).forEach((key) => {
-          eventObject[key] = icalEvent[key];
-        });
-        eventObject.contentType = "application/ics";
-        if (!eventObject.headers) {
-          eventObject.headers = {};
-        }
-        eventObject.filename = eventObject.filename || "invite.ics";
-        eventObject.headers["Content-Disposition"] = "attachment";
-        eventObject.headers["Content-Transfer-Encoding"] = "base64";
-      }
-      if (!findRelated) {
-        return {
-          attached: attachments.concat(eventObject || []),
-          related: []
-        };
-      } else {
-        return {
-          attached: attachments.filter((attachment) => !attachment.cid).concat(eventObject || []),
-          related: attachments.filter((attachment) => !!attachment.cid)
-        };
-      }
+      return this.mail.icalEvent && (typeof this.mail.icalEvent == "object" && (this.mail.icalEvent.content || this.mail.icalEvent.path || this.mail.icalEvent.href || this.mail.icalEvent.raw) ? r = this.mail.icalEvent : r = {
+        content: this.mail.icalEvent
+      }, o = {}, Object.keys(r).forEach((e) => {
+        o[e] = r[e];
+      }), o.contentType = "application/ics", o.headers || (o.headers = {}), o.filename = o.filename || "invite.ics", o.headers["Content-Disposition"] = "attachment", o.headers["Content-Transfer-Encoding"] = "base64"), n ? {
+        attached: m.filter((e) => !e.cid).concat(o || []),
+        related: m.filter((e) => !!e.cid)
+      } : {
+        attached: m.concat(o || []),
+        related: []
+      };
     }
     /**
      * List alternatives. Resulting objects can be used as input for MimeNode nodes
@@ -5727,106 +4156,30 @@ function requireMailComposer() {
      * @returns {Array} An array of alternative elements. Includes the `text` and `html` values as well
      */
     getAlternatives() {
-      let alternatives = [], text, html, watchHtml, amp, icalEvent, eventObject;
-      if (this.mail.text) {
-        if (typeof this.mail.text === "object" && (this.mail.text.content || this.mail.text.path || this.mail.text.href || this.mail.text.raw)) {
-          text = this.mail.text;
-        } else {
-          text = {
-            content: this.mail.text
-          };
-        }
-        text.contentType = "text/plain; charset=utf-8";
-      }
-      if (this.mail.watchHtml) {
-        if (typeof this.mail.watchHtml === "object" && (this.mail.watchHtml.content || this.mail.watchHtml.path || this.mail.watchHtml.href || this.mail.watchHtml.raw)) {
-          watchHtml = this.mail.watchHtml;
-        } else {
-          watchHtml = {
-            content: this.mail.watchHtml
-          };
-        }
-        watchHtml.contentType = "text/watch-html; charset=utf-8";
-      }
-      if (this.mail.amp) {
-        if (typeof this.mail.amp === "object" && (this.mail.amp.content || this.mail.amp.path || this.mail.amp.href || this.mail.amp.raw)) {
-          amp = this.mail.amp;
-        } else {
-          amp = {
-            content: this.mail.amp
-          };
-        }
-        amp.contentType = "text/x-amp-html; charset=utf-8";
-      }
-      if (this.mail.icalEvent) {
-        if (typeof this.mail.icalEvent === "object" && (this.mail.icalEvent.content || this.mail.icalEvent.path || this.mail.icalEvent.href || this.mail.icalEvent.raw)) {
-          icalEvent = this.mail.icalEvent;
-        } else {
-          icalEvent = {
-            content: this.mail.icalEvent
-          };
-        }
-        eventObject = {};
-        Object.keys(icalEvent).forEach((key) => {
-          eventObject[key] = icalEvent[key];
-        });
-        if (eventObject.content && typeof eventObject.content === "object") {
-          eventObject.content._resolve = true;
-        }
-        eventObject.filename = false;
-        eventObject.contentType = "text/calendar; charset=utf-8; method=" + (eventObject.method || "PUBLISH").toString().trim().toUpperCase();
-        if (!eventObject.headers) {
-          eventObject.headers = {};
-        }
-      }
-      if (this.mail.html) {
-        if (typeof this.mail.html === "object" && (this.mail.html.content || this.mail.html.path || this.mail.html.href || this.mail.html.raw)) {
-          html = this.mail.html;
-        } else {
-          html = {
-            content: this.mail.html
-          };
-        }
-        html.contentType = "text/html; charset=utf-8";
-      }
-      [].concat(text || []).concat(watchHtml || []).concat(amp || []).concat(html || []).concat(eventObject || []).concat(this.mail.alternatives || []).forEach((alternative) => {
-        let data;
-        if (/^data:/i.test(alternative.path || alternative.href)) {
-          alternative = this._processDataUrl(alternative);
-        }
-        data = {
-          contentType: alternative.contentType || mimeFuncs2.detectMimeType(alternative.filename || alternative.path || alternative.href || "txt"),
-          contentTransferEncoding: alternative.contentTransferEncoding
-        };
-        if (alternative.filename) {
-          data.filename = alternative.filename;
-        }
-        if (/^https?:\/\//i.test(alternative.path)) {
-          alternative.href = alternative.path;
-          alternative.path = void 0;
-        }
-        if (alternative.raw) {
-          data.raw = alternative.raw;
-        } else if (alternative.path) {
-          data.content = {
-            path: alternative.path
-          };
-        } else if (alternative.href) {
-          data.content = {
-            href: alternative.href
-          };
-        } else {
-          data.content = alternative.content || "";
-        }
-        if (alternative.encoding) {
-          data.encoding = alternative.encoding;
-        }
-        if (alternative.headers) {
-          data.headers = alternative.headers;
-        }
-        alternatives.push(data);
-      });
-      return alternatives;
+      let n = [], r, o, m, e, l, c;
+      return this.mail.text && (typeof this.mail.text == "object" && (this.mail.text.content || this.mail.text.path || this.mail.text.href || this.mail.text.raw) ? r = this.mail.text : r = {
+        content: this.mail.text
+      }, r.contentType = "text/plain; charset=utf-8"), this.mail.watchHtml && (typeof this.mail.watchHtml == "object" && (this.mail.watchHtml.content || this.mail.watchHtml.path || this.mail.watchHtml.href || this.mail.watchHtml.raw) ? m = this.mail.watchHtml : m = {
+        content: this.mail.watchHtml
+      }, m.contentType = "text/watch-html; charset=utf-8"), this.mail.amp && (typeof this.mail.amp == "object" && (this.mail.amp.content || this.mail.amp.path || this.mail.amp.href || this.mail.amp.raw) ? e = this.mail.amp : e = {
+        content: this.mail.amp
+      }, e.contentType = "text/x-amp-html; charset=utf-8"), this.mail.icalEvent && (typeof this.mail.icalEvent == "object" && (this.mail.icalEvent.content || this.mail.icalEvent.path || this.mail.icalEvent.href || this.mail.icalEvent.raw) ? l = this.mail.icalEvent : l = {
+        content: this.mail.icalEvent
+      }, c = {}, Object.keys(l).forEach((s) => {
+        c[s] = l[s];
+      }), c.content && typeof c.content == "object" && (c.content._resolve = !0), c.filename = !1, c.contentType = "text/calendar; charset=utf-8; method=" + (c.method || "PUBLISH").toString().trim().toUpperCase(), c.headers || (c.headers = {})), this.mail.html && (typeof this.mail.html == "object" && (this.mail.html.content || this.mail.html.path || this.mail.html.href || this.mail.html.raw) ? o = this.mail.html : o = {
+        content: this.mail.html
+      }, o.contentType = "text/html; charset=utf-8"), [].concat(r || []).concat(m || []).concat(e || []).concat(o || []).concat(c || []).concat(this.mail.alternatives || []).forEach((s) => {
+        let x;
+        /^data:/i.test(s.path || s.href) && (s = this._processDataUrl(s)), x = {
+          contentType: s.contentType || y.detectMimeType(s.filename || s.path || s.href || "txt"),
+          contentTransferEncoding: s.contentTransferEncoding
+        }, s.filename && (x.filename = s.filename), /^https?:\/\//i.test(s.path) && (s.href = s.path, s.path = void 0), s.raw ? x.raw = s.raw : s.path ? x.content = {
+          path: s.path
+        } : s.href ? x.content = {
+          href: s.href
+        } : x.content = s.content || "", s.encoding && (x.encoding = s.encoding), s.headers && (x.headers = s.headers), n.push(x);
+      }), n;
     }
     /**
      * Builds multipart/mixed node. It should always contain different type of elements on the same level
@@ -5835,37 +4188,24 @@ function requireMailComposer() {
      * @param {Object} parentNode Parent for this note. If it does not exist, a root node is created
      * @returns {Object} MimeNode node element
      */
-    _createMixed(parentNode) {
-      let node;
-      if (!parentNode) {
-        node = new MimeNode("multipart/mixed", {
-          baseBoundary: this.mail.baseBoundary,
-          textEncoding: this.mail.textEncoding,
-          boundaryPrefix: this.mail.boundaryPrefix,
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      } else {
-        node = parentNode.createChild("multipart/mixed", {
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      }
-      if (this._useAlternative) {
-        this._createAlternative(node);
-      } else if (this._useRelated) {
-        this._createRelated(node);
-      }
-      [].concat(!this._useAlternative && this._alternatives || []).concat(this._attachments.attached || []).forEach((element) => {
-        if (!this._useRelated || element !== this._htmlNode) {
-          this._createContentNode(node, element);
-        }
-      });
-      return node;
+    _createMixed(n) {
+      let r;
+      return n ? r = n.createChild("multipart/mixed", {
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }) : r = new b("multipart/mixed", {
+        baseBoundary: this.mail.baseBoundary,
+        textEncoding: this.mail.textEncoding,
+        boundaryPrefix: this.mail.boundaryPrefix,
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }), this._useAlternative ? this._createAlternative(r) : this._useRelated && this._createRelated(r), [].concat(!this._useAlternative && this._alternatives || []).concat(this._attachments.attached || []).forEach((o) => {
+        (!this._useRelated || o !== this._htmlNode) && this._createContentNode(r, o);
+      }), r;
     }
     /**
      * Builds multipart/alternative node. It should always contain same type of elements on the same level
@@ -5874,34 +4214,24 @@ function requireMailComposer() {
      * @param {Object} parentNode Parent for this note. If it does not exist, a root node is created
      * @returns {Object} MimeNode node element
      */
-    _createAlternative(parentNode) {
-      let node;
-      if (!parentNode) {
-        node = new MimeNode("multipart/alternative", {
-          baseBoundary: this.mail.baseBoundary,
-          textEncoding: this.mail.textEncoding,
-          boundaryPrefix: this.mail.boundaryPrefix,
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      } else {
-        node = parentNode.createChild("multipart/alternative", {
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      }
-      this._alternatives.forEach((alternative) => {
-        if (this._useRelated && this._htmlNode === alternative) {
-          this._createRelated(node);
-        } else {
-          this._createContentNode(node, alternative);
-        }
-      });
-      return node;
+    _createAlternative(n) {
+      let r;
+      return n ? r = n.createChild("multipart/alternative", {
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }) : r = new b("multipart/alternative", {
+        baseBoundary: this.mail.baseBoundary,
+        textEncoding: this.mail.textEncoding,
+        boundaryPrefix: this.mail.boundaryPrefix,
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }), this._alternatives.forEach((o) => {
+        this._useRelated && this._htmlNode === o ? this._createRelated(r) : this._createContentNode(r, o);
+      }), r;
     }
     /**
      * Builds multipart/related node. It should always contain html node with related attachments
@@ -5909,29 +4239,22 @@ function requireMailComposer() {
      * @param {Object} parentNode Parent for this note. If it does not exist, a root node is created
      * @returns {Object} MimeNode node element
      */
-    _createRelated(parentNode) {
-      let node;
-      if (!parentNode) {
-        node = new MimeNode('multipart/related; type="text/html"', {
-          baseBoundary: this.mail.baseBoundary,
-          textEncoding: this.mail.textEncoding,
-          boundaryPrefix: this.mail.boundaryPrefix,
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      } else {
-        node = parentNode.createChild('multipart/related; type="text/html"', {
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      }
-      this._createContentNode(node, this._htmlNode);
-      this._attachments.related.forEach((alternative) => this._createContentNode(node, alternative));
-      return node;
+    _createRelated(n) {
+      let r;
+      return n ? r = n.createChild('multipart/related; type="text/html"', {
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }) : r = new b('multipart/related; type="text/html"', {
+        baseBoundary: this.mail.baseBoundary,
+        textEncoding: this.mail.textEncoding,
+        boundaryPrefix: this.mail.boundaryPrefix,
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }), this._createContentNode(r, this._htmlNode), this._attachments.related.forEach((o) => this._createContentNode(r, o)), r;
     }
     /**
      * Creates a regular node with contents
@@ -5940,58 +4263,29 @@ function requireMailComposer() {
      * @param {Object} element Node data
      * @returns {Object} MimeNode node element
      */
-    _createContentNode(parentNode, element) {
-      element = element || {};
-      element.content = element.content || "";
-      let node;
-      let encoding = (element.encoding || "utf8").toString().toLowerCase().replace(/[-_\s]/g, "");
-      if (!parentNode) {
-        node = new MimeNode(element.contentType, {
-          filename: element.filename,
-          baseBoundary: this.mail.baseBoundary,
-          textEncoding: this.mail.textEncoding,
-          boundaryPrefix: this.mail.boundaryPrefix,
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      } else {
-        node = parentNode.createChild(element.contentType, {
-          filename: element.filename,
-          textEncoding: this.mail.textEncoding,
-          disableUrlAccess: this.mail.disableUrlAccess,
-          disableFileAccess: this.mail.disableFileAccess,
-          normalizeHeaderKey: this.mail.normalizeHeaderKey,
-          newline: this.mail.newline
-        });
-      }
-      if (element.headers) {
-        node.addHeader(element.headers);
-      }
-      if (element.cid) {
-        node.setHeader("Content-Id", "<" + element.cid.replace(/[<>]/g, "") + ">");
-      }
-      if (element.contentTransferEncoding) {
-        node.setHeader("Content-Transfer-Encoding", element.contentTransferEncoding);
-      } else if (this.mail.encoding && /^text\//i.test(element.contentType)) {
-        node.setHeader("Content-Transfer-Encoding", this.mail.encoding);
-      }
-      if (!/^text\//i.test(element.contentType) || element.contentDisposition) {
-        node.setHeader(
-          "Content-Disposition",
-          element.contentDisposition || (element.cid && /^image\//i.test(element.contentType) ? "inline" : "attachment")
-        );
-      }
-      if (typeof element.content === "string" && !["utf8", "usascii", "ascii"].includes(encoding)) {
-        element.content = Buffer.from(element.content, encoding);
-      }
-      if (element.raw) {
-        node.setRaw(element.raw);
-      } else {
-        node.setContent(element.content);
-      }
-      return node;
+    _createContentNode(n, r) {
+      r = r || {}, r.content = r.content || "";
+      let o, m = (r.encoding || "utf8").toString().toLowerCase().replace(/[-_\s]/g, "");
+      return n ? o = n.createChild(r.contentType, {
+        filename: r.filename,
+        textEncoding: this.mail.textEncoding,
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }) : o = new b(r.contentType, {
+        filename: r.filename,
+        baseBoundary: this.mail.baseBoundary,
+        textEncoding: this.mail.textEncoding,
+        boundaryPrefix: this.mail.boundaryPrefix,
+        disableUrlAccess: this.mail.disableUrlAccess,
+        disableFileAccess: this.mail.disableFileAccess,
+        normalizeHeaderKey: this.mail.normalizeHeaderKey,
+        newline: this.mail.newline
+      }), r.headers && o.addHeader(r.headers), r.cid && o.setHeader("Content-Id", "<" + r.cid.replace(/[<>]/g, "") + ">"), r.contentTransferEncoding ? o.setHeader("Content-Transfer-Encoding", r.contentTransferEncoding) : this.mail.encoding && /^text\//i.test(r.contentType) && o.setHeader("Content-Transfer-Encoding", this.mail.encoding), (!/^text\//i.test(r.contentType) || r.contentDisposition) && o.setHeader(
+        "Content-Disposition",
+        r.contentDisposition || (r.cid && /^image\//i.test(r.contentType) ? "inline" : "attachment")
+      ), typeof r.content == "string" && !["utf8", "usascii", "ascii"].includes(m) && (r.content = Buffer.from(r.content, m)), r.raw ? o.setRaw(r.raw) : o.setContent(r.content), o;
     }
     /**
      * Parses data uri and converts it to a Buffer
@@ -5999,84 +4293,55 @@ function requireMailComposer() {
      * @param {Object} element Content element
      * @return {Object} Parsed element
      */
-    _processDataUrl(element) {
-      const dataUrl = element.path || element.href;
-      if (!dataUrl || typeof dataUrl !== "string") {
-        return element;
-      }
-      if (!dataUrl.startsWith("data:")) {
-        return element;
-      }
-      if (dataUrl.length > 52428800) {
-        let detectedType = "application/octet-stream";
-        const commaPos = dataUrl.indexOf(",");
-        if (commaPos > 0 && commaPos < 200) {
-          const header = dataUrl.substring(5, commaPos);
-          const parts = header.split(";");
-          if (parts[0] && parts[0].includes("/")) {
-            detectedType = parts[0].trim();
-          }
+    _processDataUrl(n) {
+      const r = n.path || n.href;
+      if (!r || typeof r != "string" || !r.startsWith("data:"))
+        return n;
+      if (r.length > 52428800) {
+        let m = "application/octet-stream";
+        const e = r.indexOf(",");
+        if (e > 0 && e < 200) {
+          const c = r.substring(5, e).split(";");
+          c[0] && c[0].includes("/") && (m = c[0].trim());
         }
-        return Object.assign({}, element, {
-          path: false,
-          href: false,
+        return Object.assign({}, n, {
+          path: !1,
+          href: !1,
           content: Buffer.alloc(0),
-          contentType: element.contentType || detectedType
+          contentType: n.contentType || m
         });
       }
-      let parsedDataUri;
+      let o;
       try {
-        parsedDataUri = parseDataURI(dataUrl);
-      } catch (_err) {
-        return element;
+        o = k(r);
+      } catch {
+        return n;
       }
-      if (!parsedDataUri) {
-        return element;
-      }
-      element.content = parsedDataUri.data;
-      element.contentType = element.contentType || parsedDataUri.contentType;
-      if ("path" in element) {
-        element.path = false;
-      }
-      if ("href" in element) {
-        element.href = false;
-      }
-      return element;
+      return o && (n.content = o.data, n.contentType = n.contentType || o.contentType, "path" in n && (n.path = !1), "href" in n && (n.href = !1)), n;
     }
   }
-  mailComposer = MailComposer;
-  return mailComposer;
+  return _e = f, _e;
 }
-var messageParser;
-var hasRequiredMessageParser;
-function requireMessageParser() {
-  if (hasRequiredMessageParser) return messageParser;
-  hasRequiredMessageParser = 1;
-  const Transform = require$$0$2.Transform;
-  class MessageParser extends Transform {
-    constructor(options) {
-      super(options);
-      this.lastBytes = Buffer.alloc(4);
-      this.headersParsed = false;
-      this.headerBytes = 0;
-      this.headerChunks = [];
-      this.rawHeaders = false;
-      this.bodySize = 0;
+var be, rt;
+function ni() {
+  if (rt) return be;
+  rt = 1;
+  const b = P.Transform;
+  class y extends b {
+    constructor(f) {
+      super(f), this.lastBytes = Buffer.alloc(4), this.headersParsed = !1, this.headerBytes = 0, this.headerChunks = [], this.rawHeaders = !1, this.bodySize = 0;
     }
     /**
      * Keeps count of the last 4 bytes in order to detect line breaks on chunk boundaries
      *
      * @param {Buffer} data Next data chunk from the stream
      */
-    updateLastBytes(data) {
-      let lblen = this.lastBytes.length;
-      let nblen = Math.min(data.length, lblen);
-      for (let i = 0, len = lblen - nblen; i < len; i++) {
-        this.lastBytes[i] = this.lastBytes[i + nblen];
-      }
-      for (let i = 1; i <= nblen; i++) {
-        this.lastBytes[lblen - i] = data[data.length - i];
-      }
+    updateLastBytes(f) {
+      let p = this.lastBytes.length, n = Math.min(f.length, p);
+      for (let r = 0, o = p - n; r < o; r++)
+        this.lastBytes[r] = this.lastBytes[r + n];
+      for (let r = 1; r <= n; r++)
+        this.lastBytes[p - r] = f[f.length - r];
     }
     /**
      * Finds and removes message headers from the remaining body. We want to keep
@@ -6085,954 +4350,542 @@ function requireMessageParser() {
      * @param {Buffer} data Next chunk of data
      * @return {Boolean} Returns true if headers are already found or false otherwise
      */
-    checkHeaders(data) {
-      if (this.headersParsed) {
-        return true;
-      }
-      let lblen = this.lastBytes.length;
-      let headerPos = 0;
+    checkHeaders(f) {
+      if (this.headersParsed)
+        return !0;
+      let p = this.lastBytes.length, n = 0;
       this.curLinePos = 0;
-      for (let i = 0, len = this.lastBytes.length + data.length; i < len; i++) {
-        let chr;
-        if (i < lblen) {
-          chr = this.lastBytes[i];
-        } else {
-          chr = data[i - lblen];
-        }
-        if (chr === 10 && i) {
-          let pr1 = i - 1 < lblen ? this.lastBytes[i - 1] : data[i - 1 - lblen];
-          let pr2 = i > 1 ? i - 2 < lblen ? this.lastBytes[i - 2] : data[i - 2 - lblen] : false;
-          if (pr1 === 10) {
-            this.headersParsed = true;
-            headerPos = i - lblen + 1;
-            this.headerBytes += headerPos;
+      for (let r = 0, o = this.lastBytes.length + f.length; r < o; r++) {
+        let m;
+        if (r < p ? m = this.lastBytes[r] : m = f[r - p], m === 10 && r) {
+          let e = r - 1 < p ? this.lastBytes[r - 1] : f[r - 1 - p], l = r > 1 ? r - 2 < p ? this.lastBytes[r - 2] : f[r - 2 - p] : !1;
+          if (e === 10) {
+            this.headersParsed = !0, n = r - p + 1, this.headerBytes += n;
             break;
-          } else if (pr1 === 13 && pr2 === 10) {
-            this.headersParsed = true;
-            headerPos = i - lblen + 1;
-            this.headerBytes += headerPos;
+          } else if (e === 13 && l === 10) {
+            this.headersParsed = !0, n = r - p + 1, this.headerBytes += n;
             break;
           }
         }
       }
       if (this.headersParsed) {
-        this.headerChunks.push(data.slice(0, headerPos));
-        this.rawHeaders = Buffer.concat(this.headerChunks, this.headerBytes);
-        this.headerChunks = null;
-        this.emit("headers", this.parseHeaders());
-        if (data.length - 1 > headerPos) {
-          let chunk = data.slice(headerPos);
-          this.bodySize += chunk.length;
-          setImmediate(() => this.push(chunk));
+        if (this.headerChunks.push(f.slice(0, n)), this.rawHeaders = Buffer.concat(this.headerChunks, this.headerBytes), this.headerChunks = null, this.emit("headers", this.parseHeaders()), f.length - 1 > n) {
+          let r = f.slice(n);
+          this.bodySize += r.length, setImmediate(() => this.push(r));
         }
-        return false;
-      } else {
-        this.headerBytes += data.length;
-        this.headerChunks.push(data);
-      }
-      this.updateLastBytes(data);
-      return false;
+        return !1;
+      } else
+        this.headerBytes += f.length, this.headerChunks.push(f);
+      return this.updateLastBytes(f), !1;
     }
-    _transform(chunk, encoding, callback) {
-      if (!chunk || !chunk.length) {
-        return callback();
-      }
-      if (typeof chunk === "string") {
-        chunk = Buffer.from(chunk, encoding);
-      }
-      let headersFound;
+    _transform(f, p, n) {
+      if (!f || !f.length)
+        return n();
+      typeof f == "string" && (f = Buffer.from(f, p));
+      let r;
       try {
-        headersFound = this.checkHeaders(chunk);
-      } catch (E) {
-        return callback(E);
+        r = this.checkHeaders(f);
+      } catch (o) {
+        return n(o);
       }
-      if (headersFound) {
-        this.bodySize += chunk.length;
-        this.push(chunk);
-      }
-      setImmediate(callback);
+      r && (this.bodySize += f.length, this.push(f)), setImmediate(n);
     }
-    _flush(callback) {
+    _flush(f) {
       if (this.headerChunks) {
-        let chunk = Buffer.concat(this.headerChunks, this.headerBytes);
-        this.bodySize += chunk.length;
-        this.push(chunk);
-        this.headerChunks = null;
+        let p = Buffer.concat(this.headerChunks, this.headerBytes);
+        this.bodySize += p.length, this.push(p), this.headerChunks = null;
       }
-      callback();
+      f();
     }
     parseHeaders() {
-      let lines = (this.rawHeaders || "").toString().split(/\r?\n/);
-      for (let i = lines.length - 1; i > 0; i--) {
-        if (/^\s/.test(lines[i])) {
-          lines[i - 1] += "\n" + lines[i];
-          lines.splice(i, 1);
-        }
-      }
-      return lines.filter((line) => line.trim()).map((line) => ({
-        key: line.substr(0, line.indexOf(":")).trim().toLowerCase(),
-        line
+      let f = (this.rawHeaders || "").toString().split(/\r?\n/);
+      for (let p = f.length - 1; p > 0; p--)
+        /^\s/.test(f[p]) && (f[p - 1] += `
+` + f[p], f.splice(p, 1));
+      return f.filter((p) => p.trim()).map((p) => ({
+        key: p.substr(0, p.indexOf(":")).trim().toLowerCase(),
+        line: p
       }));
     }
   }
-  messageParser = MessageParser;
-  return messageParser;
+  return be = y, be;
 }
-var relaxedBody;
-var hasRequiredRelaxedBody;
-function requireRelaxedBody() {
-  if (hasRequiredRelaxedBody) return relaxedBody;
-  hasRequiredRelaxedBody = 1;
-  const Transform = require$$0$2.Transform;
-  const crypto = require$$2$1;
-  class RelaxedBody extends Transform {
-    constructor(options) {
-      super();
-      options = options || {};
-      this.chunkBuffer = [];
-      this.chunkBufferLen = 0;
-      this.bodyHash = crypto.createHash(options.hashAlgo || "sha1");
-      this.remainder = "";
-      this.byteLength = 0;
-      this.debug = options.debug;
-      this._debugBody = options.debug ? [] : false;
+var Ee, pt;
+function oi() {
+  if (pt) return Ee;
+  pt = 1;
+  const b = P.Transform, y = K;
+  class k extends b {
+    constructor(p) {
+      super(), p = p || {}, this.chunkBuffer = [], this.chunkBufferLen = 0, this.bodyHash = y.createHash(p.hashAlgo || "sha1"), this.remainder = "", this.byteLength = 0, this.debug = p.debug, this._debugBody = p.debug ? [] : !1;
     }
-    updateHash(chunk) {
-      let bodyStr;
-      let nextRemainder = "";
-      let state = "file";
-      for (let i = chunk.length - 1; i >= 0; i--) {
-        let c = chunk[i];
-        if (state === "file" && (c === 10 || c === 13)) ;
-        else if (state === "file" && (c === 9 || c === 32)) {
-          state = "line";
-        } else if (state === "line" && (c === 9 || c === 32)) ;
-        else if (state === "file" || state === "line") {
-          state = "body";
-          if (i === chunk.length - 1) {
-            break;
+    updateHash(p) {
+      let n, r = "", o = "file";
+      for (let e = p.length - 1; e >= 0; e--) {
+        let l = p[e];
+        if (!(o === "file" && (l === 10 || l === 13))) {
+          if (o === "file" && (l === 9 || l === 32))
+            o = "line";
+          else if (!(o === "line" && (l === 9 || l === 32))) {
+            if ((o === "file" || o === "line") && (o = "body", e === p.length - 1))
+              break;
           }
         }
-        if (i === 0) {
-          if (state === "file" && (!this.remainder || /[\r\n]$/.test(this.remainder)) || state === "line" && (!this.remainder || /[ \t]$/.test(this.remainder))) {
-            this.remainder += chunk.toString("binary");
+        if (e === 0) {
+          if (o === "file" && (!this.remainder || /[\r\n]$/.test(this.remainder)) || o === "line" && (!this.remainder || /[ \t]$/.test(this.remainder))) {
+            this.remainder += p.toString("binary");
             return;
-          } else if (state === "line" || state === "file") {
-            nextRemainder = chunk.toString("binary");
-            chunk = false;
+          } else if (o === "line" || o === "file") {
+            r = p.toString("binary"), p = !1;
             break;
           }
         }
-        if (state !== "body") {
-          continue;
+        if (o === "body") {
+          r = p.slice(e + 1).toString("binary"), p = p.slice(0, e + 1);
+          break;
         }
-        nextRemainder = chunk.slice(i + 1).toString("binary");
-        chunk = chunk.slice(0, i + 1);
-        break;
       }
-      let needsFixing = !!this.remainder;
-      if (chunk && !needsFixing) {
-        for (let i = 0, len = chunk.length; i < len; i++) {
-          if (i && chunk[i] === 10 && chunk[i - 1] !== 13) {
-            needsFixing = true;
+      let m = !!this.remainder;
+      if (p && !m) {
+        for (let e = 0, l = p.length; e < l; e++)
+          if (e && p[e] === 10 && p[e - 1] !== 13) {
+            m = !0;
             break;
-          } else if (i && chunk[i] === 13 && chunk[i - 1] === 32) {
-            needsFixing = true;
+          } else if (e && p[e] === 13 && p[e - 1] === 32) {
+            m = !0;
             break;
-          } else if (i && chunk[i] === 32 && chunk[i - 1] === 32) {
-            needsFixing = true;
+          } else if (e && p[e] === 32 && p[e - 1] === 32) {
+            m = !0;
             break;
-          } else if (chunk[i] === 9) {
-            needsFixing = true;
+          } else if (p[e] === 9) {
+            m = !0;
             break;
           }
-        }
       }
-      if (needsFixing) {
-        bodyStr = this.remainder + (chunk ? chunk.toString("binary") : "");
-        this.remainder = nextRemainder;
-        bodyStr = bodyStr.replace(/\r?\n/g, "\n").replace(/[ \t]*$/gm, "").replace(/[ \t]+/gm, " ").replace(/\n/g, "\r\n");
-        chunk = Buffer.from(bodyStr, "binary");
-      } else if (nextRemainder) {
-        this.remainder = nextRemainder;
-      }
-      if (this.debug) {
-        this._debugBody.push(chunk);
-      }
-      this.bodyHash.update(chunk);
+      m ? (n = this.remainder + (p ? p.toString("binary") : ""), this.remainder = r, n = n.replace(/\r?\n/g, `
+`).replace(/[ \t]*$/gm, "").replace(/[ \t]+/gm, " ").replace(/\n/g, `\r
+`), p = Buffer.from(n, "binary")) : r && (this.remainder = r), this.debug && this._debugBody.push(p), this.bodyHash.update(p);
     }
-    _transform(chunk, encoding, callback) {
-      if (!chunk || !chunk.length) {
-        return callback();
-      }
-      if (typeof chunk === "string") {
-        chunk = Buffer.from(chunk, encoding);
-      }
-      this.updateHash(chunk);
-      this.byteLength += chunk.length;
-      this.push(chunk);
-      callback();
+    _transform(p, n, r) {
+      if (!p || !p.length)
+        return r();
+      typeof p == "string" && (p = Buffer.from(p, n)), this.updateHash(p), this.byteLength += p.length, this.push(p), r();
     }
-    _flush(callback) {
-      if (/[\r\n]$/.test(this.remainder) && this.byteLength > 2) {
-        this.bodyHash.update(Buffer.from("\r\n"));
-      }
-      if (!this.byteLength) {
-        this.push(Buffer.from("\r\n"));
-      }
-      this.emit("hash", this.bodyHash.digest("base64"), this.debug ? Buffer.concat(this._debugBody) : false);
-      callback();
+    _flush(p) {
+      /[\r\n]$/.test(this.remainder) && this.byteLength > 2 && this.bodyHash.update(Buffer.from(`\r
+`)), this.byteLength || this.push(Buffer.from(`\r
+`)), this.emit("hash", this.bodyHash.digest("base64"), this.debug ? Buffer.concat(this._debugBody) : !1), p();
     }
   }
-  relaxedBody = RelaxedBody;
-  return relaxedBody;
+  return Ee = k, Ee;
 }
-var sign = { exports: {} };
-var hasRequiredSign;
-function requireSign() {
-  if (hasRequiredSign) return sign.exports;
-  hasRequiredSign = 1;
-  const punycode = requirePunycode();
-  const mimeFuncs2 = requireMimeFuncs();
-  const crypto = require$$2$1;
-  sign.exports = (headers, hashAlgo, bodyHash, options) => {
-    options = options || {};
-    let defaultFieldNames = "From:Sender:Reply-To:Subject:Date:Message-ID:To:Cc:MIME-Version:Content-Type:Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive";
-    let fieldNames = options.headerFieldNames || defaultFieldNames;
-    let canonicalizedHeaderData = relaxedHeaders(headers, fieldNames, options.skipFields);
-    let dkimHeader = generateDKIMHeader(options.domainName, options.keySelector, canonicalizedHeaderData.fieldNames, hashAlgo, bodyHash);
-    let signer, signature;
-    canonicalizedHeaderData.headers += "dkim-signature:" + relaxedHeaderLine(dkimHeader);
-    signer = crypto.createSign(("rsa-" + hashAlgo).toUpperCase());
-    signer.update(canonicalizedHeaderData.headers);
+var se = { exports: {} }, lt;
+function ri() {
+  if (lt) return se.exports;
+  lt = 1;
+  const b = Ot(), y = oe(), k = K;
+  se.exports = (r, o, m, e) => {
+    e = e || {};
+    let c = e.headerFieldNames || "From:Sender:Reply-To:Subject:Date:Message-ID:To:Cc:MIME-Version:Content-Type:Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive", s = p(r, c, e.skipFields), x = f(e.domainName, e.keySelector, s.fieldNames, o, m), g, v;
+    s.headers += "dkim-signature:" + n(x), g = k.createSign(("rsa-" + o).toUpperCase()), g.update(s.headers);
     try {
-      signature = signer.sign(options.privateKey, "base64");
-    } catch (_E) {
-      return false;
+      v = g.sign(e.privateKey, "base64");
+    } catch {
+      return !1;
     }
-    return dkimHeader + signature.replace(/(^.{73}|.{75}(?!\r?\n|\r))/g, "$&\r\n ").trim();
-  };
-  sign.exports.relaxedHeaders = relaxedHeaders;
-  function generateDKIMHeader(domainName, keySelector, fieldNames, hashAlgo, bodyHash) {
-    let dkim2 = [
+    return x + v.replace(/(^.{73}|.{75}(?!\r?\n|\r))/g, `$&\r
+ `).trim();
+  }, se.exports.relaxedHeaders = p;
+  function f(r, o, m, e, l) {
+    let c = [
       "v=1",
-      "a=rsa-" + hashAlgo,
+      "a=rsa-" + e,
       "c=relaxed/relaxed",
-      "d=" + punycode.toASCII(domainName),
+      "d=" + b.toASCII(r),
       "q=dns/txt",
-      "s=" + keySelector,
-      "bh=" + bodyHash,
-      "h=" + fieldNames
+      "s=" + o,
+      "bh=" + l,
+      "h=" + m
     ].join("; ");
-    return mimeFuncs2.foldLines("DKIM-Signature: " + dkim2, 76) + ";\r\n b=";
+    return y.foldLines("DKIM-Signature: " + c, 76) + `;\r
+ b=`;
   }
-  function relaxedHeaders(headers, fieldNames, skipFields) {
-    let includedFields = /* @__PURE__ */ new Set();
-    let skip = /* @__PURE__ */ new Set();
-    let headerFields = /* @__PURE__ */ new Map();
-    (skipFields || "").toLowerCase().split(":").forEach((field) => {
-      skip.add(field.trim());
+  function p(r, o, m) {
+    let e = /* @__PURE__ */ new Set(), l = /* @__PURE__ */ new Set(), c = /* @__PURE__ */ new Map();
+    (m || "").toLowerCase().split(":").forEach((g) => {
+      l.add(g.trim());
+    }), (o || "").toLowerCase().split(":").filter((g) => !l.has(g.trim())).forEach((g) => {
+      e.add(g.trim());
     });
-    (fieldNames || "").toLowerCase().split(":").filter((field) => !skip.has(field.trim())).forEach((field) => {
-      includedFields.add(field.trim());
-    });
-    for (let i = headers.length - 1; i >= 0; i--) {
-      let line = headers[i];
-      if (includedFields.has(line.key) && !headerFields.has(line.key)) {
-        headerFields.set(line.key, relaxedHeaderLine(line.line));
-      }
+    for (let g = r.length - 1; g >= 0; g--) {
+      let v = r[g];
+      e.has(v.key) && !c.has(v.key) && c.set(v.key, n(v.line));
     }
-    let headersList = [];
-    let fields = [];
-    includedFields.forEach((field) => {
-      if (headerFields.has(field)) {
-        fields.push(field);
-        headersList.push(field + ":" + headerFields.get(field));
-      }
-    });
-    return {
-      headers: headersList.join("\r\n") + "\r\n",
-      fieldNames: fields.join(":")
+    let s = [], x = [];
+    return e.forEach((g) => {
+      c.has(g) && (x.push(g), s.push(g + ":" + c.get(g)));
+    }), {
+      headers: s.join(`\r
+`) + `\r
+`,
+      fieldNames: x.join(":")
     };
   }
-  function relaxedHeaderLine(line) {
-    return line.substr(line.indexOf(":") + 1).replace(/\r?\n/g, "").replace(/\s+/g, " ").trim();
+  function n(r) {
+    return r.substr(r.indexOf(":") + 1).replace(/\r?\n/g, "").replace(/\s+/g, " ").trim();
   }
-  return sign.exports;
+  return se.exports;
 }
-var dkim;
-var hasRequiredDkim;
-function requireDkim() {
-  if (hasRequiredDkim) return dkim;
-  hasRequiredDkim = 1;
-  const MessageParser = requireMessageParser();
-  const RelaxedBody = requireRelaxedBody();
-  const sign2 = requireSign();
-  const PassThrough = require$$0$2.PassThrough;
-  const fs = require$$2;
-  const path = require$$0$4;
-  const crypto = require$$2$1;
-  const DKIM_ALGO = "sha256";
-  const MAX_MESSAGE_SIZE = 2 * 1024 * 1024;
-  class DKIMSigner {
-    constructor(options, keys, input, output) {
-      this.options = options || {};
-      this.keys = keys;
-      this.cacheTreshold = Number(this.options.cacheTreshold) || MAX_MESSAGE_SIZE;
-      this.hashAlgo = this.options.hashAlgo || DKIM_ALGO;
-      this.cacheDir = this.options.cacheDir || false;
-      this.chunks = [];
-      this.chunklen = 0;
-      this.readPos = 0;
-      this.cachePath = this.cacheDir ? path.join(this.cacheDir, "message." + Date.now() + "-" + crypto.randomBytes(14).toString("hex")) : false;
-      this.cache = false;
-      this.headers = false;
-      this.bodyHash = false;
-      this.parser = false;
-      this.relaxedBody = false;
-      this.input = input;
-      this.output = output;
-      this.output.usingCache = false;
-      this.hasErrored = false;
-      this.input.on("error", (err) => {
-        this.hasErrored = true;
-        this.cleanup();
-        output.emit("error", err);
+var ye, ct;
+function pi() {
+  if (ct) return ye;
+  ct = 1;
+  const b = ni(), y = oi(), k = ri(), f = P.PassThrough, p = De, n = At, r = K, o = "sha256", m = 2 * 1024 * 1024;
+  class e {
+    constructor(s, x, g, v) {
+      this.options = s || {}, this.keys = x, this.cacheTreshold = Number(this.options.cacheTreshold) || m, this.hashAlgo = this.options.hashAlgo || o, this.cacheDir = this.options.cacheDir || !1, this.chunks = [], this.chunklen = 0, this.readPos = 0, this.cachePath = this.cacheDir ? n.join(this.cacheDir, "message." + Date.now() + "-" + r.randomBytes(14).toString("hex")) : !1, this.cache = !1, this.headers = !1, this.bodyHash = !1, this.parser = !1, this.relaxedBody = !1, this.input = g, this.output = v, this.output.usingCache = !1, this.hasErrored = !1, this.input.on("error", (t) => {
+        this.hasErrored = !0, this.cleanup(), v.emit("error", t);
       });
     }
     cleanup() {
-      if (!this.cache || !this.cachePath) {
-        return;
-      }
-      fs.unlink(this.cachePath, () => false);
+      !this.cache || !this.cachePath || p.unlink(this.cachePath, () => !1);
     }
     createReadCache() {
-      this.cache = fs.createReadStream(this.cachePath);
-      this.cache.once("error", (err) => {
+      this.cache = p.createReadStream(this.cachePath), this.cache.once("error", (s) => {
+        this.cleanup(), this.output.emit("error", s);
+      }), this.cache.once("close", () => {
         this.cleanup();
-        this.output.emit("error", err);
-      });
-      this.cache.once("close", () => {
-        this.cleanup();
-      });
-      this.cache.pipe(this.output);
+      }), this.cache.pipe(this.output);
     }
     sendNextChunk() {
-      if (this.hasErrored) {
+      if (this.hasErrored)
         return;
-      }
-      if (this.readPos >= this.chunks.length) {
-        if (!this.cache) {
-          return this.output.end();
-        }
-        return this.createReadCache();
-      }
-      let chunk = this.chunks[this.readPos++];
-      if (this.output.write(chunk) === false) {
+      if (this.readPos >= this.chunks.length)
+        return this.cache ? this.createReadCache() : this.output.end();
+      let s = this.chunks[this.readPos++];
+      if (this.output.write(s) === !1)
         return this.output.once("drain", () => {
           this.sendNextChunk();
         });
-      }
       setImmediate(() => this.sendNextChunk());
     }
     sendSignedOutput() {
-      let keyPos = 0;
-      let signNextKey = () => {
-        if (keyPos >= this.keys.length) {
-          this.output.write(this.parser.rawHeaders);
-          return setImmediate(() => this.sendNextChunk());
-        }
-        let key = this.keys[keyPos++];
-        let dkimField = sign2(this.headers, this.hashAlgo, this.bodyHash, {
-          domainName: key.domainName,
-          keySelector: key.keySelector,
-          privateKey: key.privateKey,
+      let s = 0, x = () => {
+        if (s >= this.keys.length)
+          return this.output.write(this.parser.rawHeaders), setImmediate(() => this.sendNextChunk());
+        let g = this.keys[s++], v = k(this.headers, this.hashAlgo, this.bodyHash, {
+          domainName: g.domainName,
+          keySelector: g.keySelector,
+          privateKey: g.privateKey,
           headerFieldNames: this.options.headerFieldNames,
           skipFields: this.options.skipFields
         });
-        if (dkimField) {
-          this.output.write(Buffer.from(dkimField + "\r\n"));
-        }
-        return setImmediate(signNextKey);
+        return v && this.output.write(Buffer.from(v + `\r
+`)), setImmediate(x);
       };
-      if (this.bodyHash && this.headers) {
-        return signNextKey();
-      }
-      this.output.write(this.parser.rawHeaders);
-      this.sendNextChunk();
+      if (this.bodyHash && this.headers)
+        return x();
+      this.output.write(this.parser.rawHeaders), this.sendNextChunk();
     }
     createWriteCache() {
-      this.output.usingCache = true;
-      this.cache = fs.createWriteStream(this.cachePath);
-      this.cache.once("error", (err) => {
-        this.cleanup();
-        this.relaxedBody.unpipe(this.cache);
-        this.relaxedBody.on("readable", () => {
-          while (this.relaxedBody.read() !== null) {
-          }
-        });
-        this.hasErrored = true;
-        this.output.emit("error", err);
-      });
-      this.cache.once("close", () => {
+      this.output.usingCache = !0, this.cache = p.createWriteStream(this.cachePath), this.cache.once("error", (s) => {
+        this.cleanup(), this.relaxedBody.unpipe(this.cache), this.relaxedBody.on("readable", () => {
+          for (; this.relaxedBody.read() !== null; )
+            ;
+        }), this.hasErrored = !0, this.output.emit("error", s);
+      }), this.cache.once("close", () => {
         this.sendSignedOutput();
-      });
-      this.relaxedBody.removeAllListeners("readable");
-      this.relaxedBody.pipe(this.cache);
+      }), this.relaxedBody.removeAllListeners("readable"), this.relaxedBody.pipe(this.cache);
     }
     signStream() {
-      this.parser = new MessageParser();
-      this.relaxedBody = new RelaxedBody({
+      this.parser = new b(), this.relaxedBody = new y({
         hashAlgo: this.hashAlgo
-      });
-      this.parser.on("headers", (value) => {
-        this.headers = value;
-      });
-      this.relaxedBody.on("hash", (value) => {
-        this.bodyHash = value;
-      });
-      this.relaxedBody.on("readable", () => {
-        let chunk;
-        if (this.cache) {
-          return;
+      }), this.parser.on("headers", (s) => {
+        this.headers = s;
+      }), this.relaxedBody.on("hash", (s) => {
+        this.bodyHash = s;
+      }), this.relaxedBody.on("readable", () => {
+        let s;
+        if (!this.cache) {
+          for (; (s = this.relaxedBody.read()) !== null; )
+            if (this.chunks.push(s), this.chunklen += s.length, this.chunklen >= this.cacheTreshold && this.cachePath)
+              return this.createWriteCache();
         }
-        while ((chunk = this.relaxedBody.read()) !== null) {
-          this.chunks.push(chunk);
-          this.chunklen += chunk.length;
-          if (this.chunklen >= this.cacheTreshold && this.cachePath) {
-            return this.createWriteCache();
-          }
-        }
-      });
-      this.relaxedBody.on("end", () => {
-        if (this.cache) {
-          return;
-        }
-        this.sendSignedOutput();
-      });
-      this.parser.pipe(this.relaxedBody);
-      setImmediate(() => this.input.pipe(this.parser));
+      }), this.relaxedBody.on("end", () => {
+        this.cache || this.sendSignedOutput();
+      }), this.parser.pipe(this.relaxedBody), setImmediate(() => this.input.pipe(this.parser));
     }
   }
-  class DKIM {
-    constructor(options) {
-      this.options = options || {};
-      this.keys = [].concat(
+  class l {
+    constructor(s) {
+      this.options = s || {}, this.keys = [].concat(
         this.options.keys || {
-          domainName: options.domainName,
-          keySelector: options.keySelector,
-          privateKey: options.privateKey
+          domainName: s.domainName,
+          keySelector: s.keySelector,
+          privateKey: s.privateKey
         }
       );
     }
-    sign(input, extraOptions) {
-      let output = new PassThrough();
-      let inputStream = input;
-      let writeValue = false;
-      if (Buffer.isBuffer(input)) {
-        writeValue = input;
-        inputStream = new PassThrough();
-      } else if (typeof input === "string") {
-        writeValue = Buffer.from(input);
-        inputStream = new PassThrough();
-      }
-      let options = this.options;
-      if (extraOptions && Object.keys(extraOptions).length) {
-        options = {};
-        Object.keys(this.options || {}).forEach((key) => {
-          options[key] = this.options[key];
+    sign(s, x) {
+      let g = new f(), v = s, t = !1;
+      Buffer.isBuffer(s) ? (t = s, v = new f()) : typeof s == "string" && (t = Buffer.from(s), v = new f());
+      let i = this.options;
+      x && Object.keys(x).length && (i = {}, Object.keys(this.options || {}).forEach((a) => {
+        i[a] = this.options[a];
+      }), Object.keys(x || {}).forEach((a) => {
+        a in i || (i[a] = x[a]);
+      }));
+      let d = new e(i, this.keys, v, g);
+      return setImmediate(() => {
+        d.signStream(), t && setImmediate(() => {
+          v.end(t);
         });
-        Object.keys(extraOptions || {}).forEach((key) => {
-          if (!(key in options)) {
-            options[key] = extraOptions[key];
-          }
-        });
-      }
-      let signer = new DKIMSigner(options, this.keys, inputStream, output);
-      setImmediate(() => {
-        signer.signStream();
-        if (writeValue) {
-          setImmediate(() => {
-            inputStream.end(writeValue);
-          });
-        }
-      });
-      return output;
+      }), g;
     }
   }
-  dkim = DKIM;
-  return dkim;
+  return ye = l, ye;
 }
-var httpProxyClient_1;
-var hasRequiredHttpProxyClient;
-function requireHttpProxyClient() {
-  if (hasRequiredHttpProxyClient) return httpProxyClient_1;
-  hasRequiredHttpProxyClient = 1;
-  const net = require$$7;
-  const tls = require$$1$2;
-  const urllib = require$$0$1;
-  const errors2 = requireErrors();
-  function httpProxyClient(proxyUrl, destinationPort, destinationHost, callback) {
-    let proxy = urllib.parse(proxyUrl);
-    let options;
-    let connect;
-    let socket;
-    options = {
-      host: proxy.hostname,
-      port: Number(proxy.port) ? Number(proxy.port) : proxy.protocol === "https:" ? 443 : 80
+var Se, dt;
+function li() {
+  if (dt) return Se;
+  dt = 1;
+  const b = te, y = Mt, k = ee, f = F();
+  function p(n, r, o, m) {
+    let e = k.parse(n), l, c, s;
+    l = {
+      host: e.hostname,
+      port: Number(e.port) ? Number(e.port) : e.protocol === "https:" ? 443 : 80
+    }, e.protocol === "https:" ? (l.rejectUnauthorized = !1, c = y.connect.bind(y)) : c = b.connect.bind(b);
+    let x = !1, g = (t) => {
+      if (!x) {
+        x = !0;
+        try {
+          s.destroy();
+        } catch {
+        }
+        m(t);
+      }
+    }, v = () => {
+      let t = new Error("Proxy socket timed out");
+      t.code = "ETIMEDOUT", g(t);
     };
-    if (proxy.protocol === "https:") {
-      options.rejectUnauthorized = false;
-      connect = tls.connect.bind(tls);
-    } else {
-      connect = net.connect.bind(net);
-    }
-    let finished = false;
-    let tempSocketErr = (err) => {
-      if (finished) {
+    s = c(l, () => {
+      if (x)
         return;
-      }
-      finished = true;
-      try {
-        socket.destroy();
-      } catch (_E) {
-      }
-      callback(err);
-    };
-    let timeoutErr = () => {
-      let err = new Error("Proxy socket timed out");
-      err.code = "ETIMEDOUT";
-      tempSocketErr(err);
-    };
-    socket = connect(options, () => {
-      if (finished) {
-        return;
-      }
-      let reqHeaders = {
-        Host: destinationHost + ":" + destinationPort,
+      let t = {
+        Host: o + ":" + r,
         Connection: "close"
       };
-      if (proxy.auth) {
-        reqHeaders["Proxy-Authorization"] = "Basic " + Buffer.from(proxy.auth).toString("base64");
-      }
-      socket.write(
+      e.auth && (t["Proxy-Authorization"] = "Basic " + Buffer.from(e.auth).toString("base64")), s.write(
         // HTTP method
-        "CONNECT " + destinationHost + ":" + destinationPort + " HTTP/1.1\r\n" + // HTTP request headers
-        Object.keys(reqHeaders).map((key) => key + ": " + reqHeaders[key]).join("\r\n") + // End request
-        "\r\n\r\n"
+        "CONNECT " + o + ":" + r + ` HTTP/1.1\r
+` + // HTTP request headers
+        Object.keys(t).map((a) => a + ": " + t[a]).join(`\r
+`) + // End request
+        `\r
+\r
+`
       );
-      let headers = "";
-      let onSocketData = (chunk) => {
-        let match;
-        let remainder;
-        if (finished) {
-          return;
-        }
-        headers += chunk.toString("binary");
-        if (match = headers.match(/\r\n\r\n/)) {
-          socket.removeListener("data", onSocketData);
-          remainder = headers.substr(match.index + match[0].length);
-          headers = headers.substr(0, match.index);
-          if (remainder) {
-            socket.unshift(Buffer.from(remainder, "binary"));
-          }
-          finished = true;
-          match = headers.match(/^HTTP\/\d+\.\d+ (\d+)/i);
-          if (!match || (match[1] || "").charAt(0) !== "2") {
+      let i = "", d = (a) => {
+        let h, u;
+        if (!x && (i += a.toString("binary"), h = i.match(/\r\n\r\n/))) {
+          if (s.removeListener("data", d), u = i.substr(h.index + h[0].length), i = i.substr(0, h.index), u && s.unshift(Buffer.from(u, "binary")), x = !0, h = i.match(/^HTTP\/\d+\.\d+ (\d+)/i), !h || (h[1] || "").charAt(0) !== "2") {
             try {
-              socket.destroy();
-            } catch (_E) {
+              s.destroy();
+            } catch {
             }
-            let err = new Error("Invalid response from proxy" + (match && ": " + match[1] || ""));
-            err.code = errors2.EPROXY;
-            return callback(err);
+            let _ = new Error("Invalid response from proxy" + (h && ": " + h[1] || ""));
+            return _.code = f.EPROXY, m(_);
           }
-          socket.removeListener("error", tempSocketErr);
-          socket.removeListener("timeout", timeoutErr);
-          socket.setTimeout(0);
-          return callback(null, socket);
+          return s.removeListener("error", g), s.removeListener("timeout", v), s.setTimeout(0), m(null, s);
         }
       };
-      socket.on("data", onSocketData);
-    });
-    socket.setTimeout(httpProxyClient.timeout || 30 * 1e3);
-    socket.on("timeout", timeoutErr);
-    socket.once("error", tempSocketErr);
+      s.on("data", d);
+    }), s.setTimeout(p.timeout || 30 * 1e3), s.on("timeout", v), s.once("error", g);
   }
-  httpProxyClient_1 = httpProxyClient;
-  return httpProxyClient_1;
+  return Se = p, Se;
 }
-var mailMessage;
-var hasRequiredMailMessage;
-function requireMailMessage() {
-  if (hasRequiredMailMessage) return mailMessage;
-  hasRequiredMailMessage = 1;
-  const shared2 = requireShared();
-  const MimeNode = requireMimeNode();
-  const mimeFuncs2 = requireMimeFuncs();
-  class MailMessage {
-    constructor(mailer2, data) {
-      this.mailer = mailer2;
-      this.data = {};
-      this.message = null;
-      data = data || {};
-      let options = mailer2.options || {};
-      let defaults = mailer2._defaults || {};
-      Object.keys(data).forEach((key) => {
-        this.data[key] = data[key];
-      });
-      this.data.headers = this.data.headers || {};
-      Object.keys(defaults).forEach((key) => {
-        if (!(key in this.data)) {
-          this.data[key] = defaults[key];
-        } else if (key === "headers") {
-          Object.keys(defaults.headers).forEach((key2) => {
-            if (!(key2 in this.data.headers)) {
-              this.data.headers[key2] = defaults.headers[key2];
-            }
-          });
-        }
-      });
-      ["disableFileAccess", "disableUrlAccess", "normalizeHeaderKey"].forEach((key) => {
-        if (key in options) {
-          this.data[key] = options[key];
-        }
+var Te, mt;
+function ci() {
+  if (mt) return Te;
+  mt = 1;
+  const b = q(), y = Fe(), k = oe();
+  class f {
+    constructor(n, r) {
+      this.mailer = n, this.data = {}, this.message = null, r = r || {};
+      let o = n.options || {}, m = n._defaults || {};
+      Object.keys(r).forEach((e) => {
+        this.data[e] = r[e];
+      }), this.data.headers = this.data.headers || {}, Object.keys(m).forEach((e) => {
+        e in this.data ? e === "headers" && Object.keys(m.headers).forEach((l) => {
+          l in this.data.headers || (this.data.headers[l] = m.headers[l]);
+        }) : this.data[e] = m[e];
+      }), ["disableFileAccess", "disableUrlAccess", "normalizeHeaderKey"].forEach((e) => {
+        e in o && (this.data[e] = o[e]);
       });
     }
-    resolveContent(...args) {
-      return shared2.resolveContent(...args);
+    resolveContent(...n) {
+      return b.resolveContent(...n);
     }
-    resolveAll(callback) {
-      let keys = [
+    resolveAll(n) {
+      let r = [
         [this.data, "html"],
         [this.data, "text"],
         [this.data, "watchHtml"],
         [this.data, "amp"],
         [this.data, "icalEvent"]
       ];
-      if (this.data.alternatives && this.data.alternatives.length) {
-        this.data.alternatives.forEach((alternative, i) => {
-          keys.push([this.data.alternatives, i]);
-        });
-      }
-      if (this.data.attachments && this.data.attachments.length) {
-        this.data.attachments.forEach((attachment, i) => {
-          if (!attachment.filename) {
-            attachment.filename = (attachment.path || attachment.href || "").split("/").pop().split("?").shift() || "attachment-" + (i + 1);
-            if (attachment.filename.indexOf(".") < 0) {
-              attachment.filename += "." + mimeFuncs2.detectExtension(attachment.contentType);
-            }
-          }
-          if (!attachment.contentType) {
-            attachment.contentType = mimeFuncs2.detectMimeType(attachment.filename || attachment.path || attachment.href || "bin");
-          }
-          keys.push([this.data.attachments, i]);
-        });
-      }
-      let mimeNode2 = new MimeNode();
-      let addressKeys = ["from", "to", "cc", "bcc", "sender", "replyTo"];
-      addressKeys.forEach((address) => {
-        let value;
-        if (this.message) {
-          value = [].concat(mimeNode2._parseAddresses(this.message.getHeader(address === "replyTo" ? "reply-to" : address)) || []);
-        } else if (this.data[address]) {
-          value = [].concat(mimeNode2._parseAddresses(this.data[address]) || []);
-        }
-        if (value && value.length) {
-          this.data[address] = value;
-        } else if (address in this.data) {
-          this.data[address] = null;
-        }
+      this.data.alternatives && this.data.alternatives.length && this.data.alternatives.forEach((s, x) => {
+        r.push([this.data.alternatives, x]);
+      }), this.data.attachments && this.data.attachments.length && this.data.attachments.forEach((s, x) => {
+        s.filename || (s.filename = (s.path || s.href || "").split("/").pop().split("?").shift() || "attachment-" + (x + 1), s.filename.indexOf(".") < 0 && (s.filename += "." + k.detectExtension(s.contentType))), s.contentType || (s.contentType = k.detectMimeType(s.filename || s.path || s.href || "bin")), r.push([this.data.attachments, x]);
       });
-      let singleKeys = ["from", "sender"];
-      singleKeys.forEach((address) => {
-        if (this.data[address]) {
-          this.data[address] = this.data[address].shift();
-        }
+      let o = new y();
+      ["from", "to", "cc", "bcc", "sender", "replyTo"].forEach((s) => {
+        let x;
+        this.message ? x = [].concat(o._parseAddresses(this.message.getHeader(s === "replyTo" ? "reply-to" : s)) || []) : this.data[s] && (x = [].concat(o._parseAddresses(this.data[s]) || [])), x && x.length ? this.data[s] = x : s in this.data && (this.data[s] = null);
+      }), ["from", "sender"].forEach((s) => {
+        this.data[s] && (this.data[s] = this.data[s].shift());
       });
-      let pos = 0;
-      let resolveNext = () => {
-        if (pos >= keys.length) {
-          return callback(null, this.data);
-        }
-        let args = keys[pos++];
-        if (!args[0] || !args[0][args[1]]) {
-          return resolveNext();
-        }
-        shared2.resolveContent(...args, (err, value) => {
-          if (err) {
-            return callback(err);
-          }
-          let node = {
-            content: value
+      let l = 0, c = () => {
+        if (l >= r.length)
+          return n(null, this.data);
+        let s = r[l++];
+        if (!s[0] || !s[0][s[1]])
+          return c();
+        b.resolveContent(...s, (x, g) => {
+          if (x)
+            return n(x);
+          let v = {
+            content: g
           };
-          if (args[0][args[1]] && typeof args[0][args[1]] === "object" && !Buffer.isBuffer(args[0][args[1]])) {
-            Object.keys(args[0][args[1]]).forEach((key) => {
-              if (!(key in node) && !["content", "path", "href", "raw"].includes(key)) {
-                node[key] = args[0][args[1]][key];
-              }
-            });
-          }
-          args[0][args[1]] = node;
-          resolveNext();
+          s[0][s[1]] && typeof s[0][s[1]] == "object" && !Buffer.isBuffer(s[0][s[1]]) && Object.keys(s[0][s[1]]).forEach((t) => {
+            !(t in v) && !["content", "path", "href", "raw"].includes(t) && (v[t] = s[0][s[1]][t]);
+          }), s[0][s[1]] = v, c();
         });
       };
-      setImmediate(() => resolveNext());
+      setImmediate(() => c());
     }
-    normalize(callback) {
-      let envelope = this.data.envelope || this.message.getEnvelope();
-      let messageId = this.message.messageId();
-      this.resolveAll((err, data) => {
-        if (err) {
-          return callback(err);
-        }
-        data.envelope = envelope;
-        data.messageId = messageId;
-        ["html", "text", "watchHtml", "amp"].forEach((key) => {
-          if (data[key] && data[key].content) {
-            if (typeof data[key].content === "string") {
-              data[key] = data[key].content;
-            } else if (Buffer.isBuffer(data[key].content)) {
-              data[key] = data[key].content.toString();
-            }
-          }
-        });
-        if (data.icalEvent && Buffer.isBuffer(data.icalEvent.content)) {
-          data.icalEvent.content = data.icalEvent.content.toString("base64");
-          data.icalEvent.encoding = "base64";
-        }
-        if (data.alternatives && data.alternatives.length) {
-          data.alternatives.forEach((alternative) => {
-            if (alternative && alternative.content && Buffer.isBuffer(alternative.content)) {
-              alternative.content = alternative.content.toString("base64");
-              alternative.encoding = "base64";
-            }
-          });
-        }
-        if (data.attachments && data.attachments.length) {
-          data.attachments.forEach((attachment) => {
-            if (attachment && attachment.content && Buffer.isBuffer(attachment.content)) {
-              attachment.content = attachment.content.toString("base64");
-              attachment.encoding = "base64";
-            }
-          });
-        }
-        data.normalizedHeaders = {};
-        Object.keys(data.headers || {}).forEach((key) => {
-          let value = [].concat(data.headers[key] || []).shift();
-          value = value && value.value || value;
-          if (value) {
-            if (["references", "in-reply-to", "message-id", "content-id"].includes(key)) {
-              value = this.message._encodeHeaderValue(key, value);
-            }
-            data.normalizedHeaders[key] = value;
-          }
-        });
-        if (data.list && typeof data.list === "object") {
-          let listHeaders = this._getListHeaders(data.list);
-          listHeaders.forEach((entry) => {
-            data.normalizedHeaders[entry.key] = entry.value.map((val) => val && val.value || val).join(", ");
-          });
-        }
-        if (data.references) {
-          data.normalizedHeaders.references = this.message._encodeHeaderValue("references", data.references);
-        }
-        if (data.inReplyTo) {
-          data.normalizedHeaders["in-reply-to"] = this.message._encodeHeaderValue("in-reply-to", data.inReplyTo);
-        }
-        return callback(null, data);
-      });
+    normalize(n) {
+      let r = this.data.envelope || this.message.getEnvelope(), o = this.message.messageId();
+      this.resolveAll((m, e) => m ? n(m) : (e.envelope = r, e.messageId = o, ["html", "text", "watchHtml", "amp"].forEach((l) => {
+        e[l] && e[l].content && (typeof e[l].content == "string" ? e[l] = e[l].content : Buffer.isBuffer(e[l].content) && (e[l] = e[l].content.toString()));
+      }), e.icalEvent && Buffer.isBuffer(e.icalEvent.content) && (e.icalEvent.content = e.icalEvent.content.toString("base64"), e.icalEvent.encoding = "base64"), e.alternatives && e.alternatives.length && e.alternatives.forEach((l) => {
+        l && l.content && Buffer.isBuffer(l.content) && (l.content = l.content.toString("base64"), l.encoding = "base64");
+      }), e.attachments && e.attachments.length && e.attachments.forEach((l) => {
+        l && l.content && Buffer.isBuffer(l.content) && (l.content = l.content.toString("base64"), l.encoding = "base64");
+      }), e.normalizedHeaders = {}, Object.keys(e.headers || {}).forEach((l) => {
+        let c = [].concat(e.headers[l] || []).shift();
+        c = c && c.value || c, c && (["references", "in-reply-to", "message-id", "content-id"].includes(l) && (c = this.message._encodeHeaderValue(l, c)), e.normalizedHeaders[l] = c);
+      }), e.list && typeof e.list == "object" && this._getListHeaders(e.list).forEach((c) => {
+        e.normalizedHeaders[c.key] = c.value.map((s) => s && s.value || s).join(", ");
+      }), e.references && (e.normalizedHeaders.references = this.message._encodeHeaderValue("references", e.references)), e.inReplyTo && (e.normalizedHeaders["in-reply-to"] = this.message._encodeHeaderValue("in-reply-to", e.inReplyTo)), n(null, e)));
     }
     setMailerHeader() {
-      if (!this.message || !this.data.xMailer) {
-        return;
-      }
-      this.message.setHeader("X-Mailer", this.data.xMailer);
+      !this.message || !this.data.xMailer || this.message.setHeader("X-Mailer", this.data.xMailer);
     }
     setPriorityHeaders() {
-      if (!this.message || !this.data.priority) {
-        return;
-      }
-      switch ((this.data.priority || "").toString().toLowerCase()) {
-        case "high":
-          this.message.setHeader("X-Priority", "1 (Highest)");
-          this.message.setHeader("X-MSMail-Priority", "High");
-          this.message.setHeader("Importance", "High");
-          break;
-        case "low":
-          this.message.setHeader("X-Priority", "5 (Lowest)");
-          this.message.setHeader("X-MSMail-Priority", "Low");
-          this.message.setHeader("Importance", "Low");
-          break;
-      }
+      if (!(!this.message || !this.data.priority))
+        switch ((this.data.priority || "").toString().toLowerCase()) {
+          case "high":
+            this.message.setHeader("X-Priority", "1 (Highest)"), this.message.setHeader("X-MSMail-Priority", "High"), this.message.setHeader("Importance", "High");
+            break;
+          case "low":
+            this.message.setHeader("X-Priority", "5 (Lowest)"), this.message.setHeader("X-MSMail-Priority", "Low"), this.message.setHeader("Importance", "Low");
+            break;
+        }
     }
     setListHeaders() {
-      if (!this.message || !this.data.list || typeof this.data.list !== "object") {
-        return;
-      }
-      if (this.data.list && typeof this.data.list === "object") {
-        this._getListHeaders(this.data.list).forEach((listHeader) => {
-          listHeader.value.forEach((value) => {
-            this.message.addHeader(listHeader.key, value);
-          });
+      !this.message || !this.data.list || typeof this.data.list != "object" || this.data.list && typeof this.data.list == "object" && this._getListHeaders(this.data.list).forEach((n) => {
+        n.value.forEach((r) => {
+          this.message.addHeader(n.key, r);
         });
-      }
+      });
     }
-    _getListHeaders(listData) {
-      return Object.keys(listData).map((key) => ({
-        key: "list-" + key.toLowerCase().trim(),
-        value: [].concat(listData[key] || []).map((value) => ({
-          prepared: true,
-          foldLines: true,
-          value: [].concat(value || []).map((value2) => {
-            if (typeof value2 === "string") {
-              value2 = {
-                url: value2
-              };
-            }
-            if (value2 && value2.url) {
-              if (key.toLowerCase().trim() === "id") {
-                let comment2 = value2.comment || "";
-                if (mimeFuncs2.isPlainText(comment2)) {
-                  comment2 = '"' + comment2 + '"';
-                } else {
-                  comment2 = mimeFuncs2.encodeWord(comment2);
-                }
-                return (value2.comment ? comment2 + " " : "") + this._formatListUrl(value2.url).replace(/^<[^:]+\/{,2}/, "");
+    _getListHeaders(n) {
+      return Object.keys(n).map((r) => ({
+        key: "list-" + r.toLowerCase().trim(),
+        value: [].concat(n[r] || []).map((o) => ({
+          prepared: !0,
+          foldLines: !0,
+          value: [].concat(o || []).map((m) => {
+            if (typeof m == "string" && (m = {
+              url: m
+            }), m && m.url) {
+              if (r.toLowerCase().trim() === "id") {
+                let l = m.comment || "";
+                return k.isPlainText(l) ? l = '"' + l + '"' : l = k.encodeWord(l), (m.comment ? l + " " : "") + this._formatListUrl(m.url).replace(/^<[^:]+\/{,2}/, "");
               }
-              let comment = value2.comment || "";
-              if (!mimeFuncs2.isPlainText(comment)) {
-                comment = mimeFuncs2.encodeWord(comment);
-              }
-              return this._formatListUrl(value2.url) + (value2.comment ? " (" + comment + ")" : "");
+              let e = m.comment || "";
+              return k.isPlainText(e) || (e = k.encodeWord(e)), this._formatListUrl(m.url) + (m.comment ? " (" + e + ")" : "");
             }
             return "";
-          }).filter((value2) => value2).join(", ")
+          }).filter((m) => m).join(", ")
         }))
       }));
     }
-    _formatListUrl(url) {
-      url = url.replace(/[\s<]+|[\s>]+/g, "");
-      if (/^(https?|mailto|ftp):/.test(url)) {
-        return "<" + url + ">";
-      }
-      if (/^[^@]+@[^@]+$/.test(url)) {
-        return "<mailto:" + url + ">";
-      }
-      return "<http://" + url + ">";
+    _formatListUrl(n) {
+      return n = n.replace(/[\s<]+|[\s>]+/g, ""), /^(https?|mailto|ftp):/.test(n) ? "<" + n + ">" : /^[^@]+@[^@]+$/.test(n) ? "<mailto:" + n + ">" : "<http://" + n + ">";
     }
   }
-  mailMessage = MailMessage;
-  return mailMessage;
+  return Te = f, Te;
 }
-var mailer;
-var hasRequiredMailer;
-function requireMailer() {
-  if (hasRequiredMailer) return mailer;
-  hasRequiredMailer = 1;
-  const EventEmitter = require$$0$5;
-  const shared2 = requireShared();
-  const mimeTypes = requireMimeTypes();
-  const MailComposer = requireMailComposer();
-  const DKIM = requireDkim();
-  const httpProxyClient = requireHttpProxyClient();
-  const errors2 = requireErrors();
-  const util = require$$1$1;
-  const urllib = require$$0$1;
-  const packageData = require$$10;
-  const MailMessage = requireMailMessage();
-  const net = require$$7;
-  const dns = require$$4;
-  const crypto = require$$2$1;
-  class Mail extends EventEmitter {
-    constructor(transporter, options, defaults) {
-      super();
-      this.options = options || {};
-      this._defaults = defaults || {};
-      this._defaultPlugins = {
-        compile: [(...args) => this._convertDataImages(...args)],
+var ke, ht;
+function di() {
+  if (ht) return ke;
+  ht = 1;
+  const b = V, y = q(), k = Lt(), f = ai(), p = pi(), n = li(), r = F(), o = Ct, m = ee, e = D, l = ci(), c = te, s = It, x = K;
+  class g extends b {
+    constructor(t, i, d) {
+      super(), this.options = i || {}, this._defaults = d || {}, this._defaultPlugins = {
+        compile: [(...a) => this._convertDataImages(...a)],
         stream: []
-      };
-      this._userPlugins = {
+      }, this._userPlugins = {
         compile: [],
         stream: []
-      };
-      this.meta = /* @__PURE__ */ new Map();
-      this.dkim = this.options.dkim ? new DKIM(this.options.dkim) : false;
-      this.transporter = transporter;
-      this.transporter.mailer = this;
-      this.logger = shared2.getLogger(this.options, {
+      }, this.meta = /* @__PURE__ */ new Map(), this.dkim = this.options.dkim ? new p(this.options.dkim) : !1, this.transporter = t, this.transporter.mailer = this, this.logger = y.getLogger(this.options, {
         component: this.options.component || "mail"
-      });
-      this.logger.debug(
+      }), this.logger.debug(
         {
           tnx: "create"
         },
         "Creating transport: %s",
         this.getVersionString()
-      );
-      if (typeof this.transporter.on === "function") {
-        this.transporter.on("log", (log) => {
-          this.logger.debug(
-            {
-              tnx: "transport"
-            },
-            "%s: %s",
-            log.type,
-            log.message
-          );
-        });
-        this.transporter.on("error", (err) => {
-          this.logger.error(
-            {
-              err,
-              tnx: "transport"
-            },
-            "Transport Error: %s",
-            err.message
-          );
-          this.emit("error", err);
-        });
-        this.transporter.on("idle", (...args) => {
-          this.emit("idle", ...args);
-        });
-        this.transporter.on("clear", (...args) => {
-          this.emit("clear", ...args);
-        });
-      }
-      ["close", "isIdle", "verify"].forEach((method) => {
-        this[method] = (...args) => {
-          if (typeof this.transporter[method] === "function") {
-            if (method === "verify" && typeof this.getSocket === "function") {
-              this.transporter.getSocket = this.getSocket;
-              this.getSocket = false;
-            }
-            return this.transporter[method](...args);
-          } else {
-            this.logger.warn(
-              {
-                tnx: "transport",
-                methodName: method
-              },
-              "Non existing method %s called for transport",
-              method
-            );
-            return false;
-          }
-        };
-      });
-      if (this.options.proxy && typeof this.options.proxy === "string") {
-        this.setupProxy(this.options.proxy);
-      }
+      ), typeof this.transporter.on == "function" && (this.transporter.on("log", (a) => {
+        this.logger.debug(
+          {
+            tnx: "transport"
+          },
+          "%s: %s",
+          a.type,
+          a.message
+        );
+      }), this.transporter.on("error", (a) => {
+        this.logger.error(
+          {
+            err: a,
+            tnx: "transport"
+          },
+          "Transport Error: %s",
+          a.message
+        ), this.emit("error", a);
+      }), this.transporter.on("idle", (...a) => {
+        this.emit("idle", ...a);
+      }), this.transporter.on("clear", (...a) => {
+        this.emit("clear", ...a);
+      })), ["close", "isIdle", "verify"].forEach((a) => {
+        this[a] = (...h) => typeof this.transporter[a] == "function" ? (a === "verify" && typeof this.getSocket == "function" && (this.transporter.getSocket = this.getSocket, this.getSocket = !1), this.transporter[a](...h)) : (this.logger.warn(
+          {
+            tnx: "transport",
+            methodName: a
+          },
+          "Non existing method %s called for transport",
+          a
+        ), !1);
+      }), this.options.proxy && typeof this.options.proxy == "string" && this.setupProxy(this.options.proxy);
     }
-    use(step, plugin) {
-      step = (step || "").toString();
-      if (!this._userPlugins.hasOwnProperty(step)) {
-        this._userPlugins[step] = [plugin];
-      } else {
-        this._userPlugins[step].push(plugin);
-      }
-      return this;
+    use(t, i) {
+      return t = (t || "").toString(), this._userPlugins.hasOwnProperty(t) ? this._userPlugins[t].push(i) : this._userPlugins[t] = [i], this;
     }
     /**
      * Sends an email using the preselected transport object
@@ -7040,19 +4893,13 @@ function requireMailer() {
      * @param {Object} data E-data description
      * @param {Function?} callback Callback to run once the sending succeeded or failed
      */
-    sendMail(data, callback = null) {
-      let promise;
-      if (!callback) {
-        promise = new Promise((resolve, reject) => {
-          callback = shared2.callbackPromise(resolve, reject);
-        });
-      }
-      if (typeof this.getSocket === "function") {
-        this.transporter.getSocket = this.getSocket;
-        this.getSocket = false;
-      }
-      let mail = new MailMessage(this, data);
-      this.logger.debug(
+    sendMail(t, i = null) {
+      let d;
+      i || (d = new Promise((h, u) => {
+        i = y.callbackPromise(h, u);
+      })), typeof this.getSocket == "function" && (this.transporter.getSocket = this.getSocket, this.getSocket = !1);
+      let a = new l(this, t);
+      return this.logger.debug(
         {
           tnx: "transport",
           name: this.transporter.name,
@@ -7062,557 +4909,330 @@ function requireMailer() {
         "Sending mail using %s/%s",
         this.transporter.name,
         this.transporter.version
-      );
-      this._processPlugins("compile", mail, (err) => {
-        if (err) {
-          this.logger.error(
+      ), this._processPlugins("compile", a, (h) => {
+        if (h)
+          return this.logger.error(
             {
-              err,
+              err: h,
               tnx: "plugin",
               action: "compile"
             },
             "PluginCompile Error: %s",
-            err.message
-          );
-          return callback(err);
-        }
-        mail.message = new MailComposer(mail.data).compile();
-        mail.setMailerHeader();
-        mail.setPriorityHeaders();
-        mail.setListHeaders();
-        this._processPlugins("stream", mail, (err2) => {
-          if (err2) {
-            this.logger.error(
+            h.message
+          ), i(h);
+        a.message = new f(a.data).compile(), a.setMailerHeader(), a.setPriorityHeaders(), a.setListHeaders(), this._processPlugins("stream", a, (u) => {
+          if (u)
+            return this.logger.error(
               {
-                err: err2,
+                err: u,
                 tnx: "plugin",
                 action: "stream"
               },
               "PluginStream Error: %s",
-              err2.message
-            );
-            return callback(err2);
-          }
-          if (mail.data.dkim || this.dkim) {
-            mail.message.processFunc((input) => {
-              let dkim2 = mail.data.dkim ? new DKIM(mail.data.dkim) : this.dkim;
-              this.logger.debug(
-                {
-                  tnx: "DKIM",
-                  messageId: mail.message.messageId(),
-                  dkimDomains: dkim2.keys.map((key) => key.keySelector + "." + key.domainName).join(", ")
-                },
-                "Signing outgoing message with %s keys",
-                dkim2.keys.length
-              );
-              return dkim2.sign(input, mail.data._dkim);
-            });
-          }
-          this.transporter.send(mail, (...args) => {
-            if (args[0]) {
-              this.logger.error(
-                {
-                  err: args[0],
-                  tnx: "transport",
-                  action: "send"
-                },
-                "Send Error: %s",
-                args[0].message
-              );
-            }
-            callback(...args);
+              u.message
+            ), i(u);
+          (a.data.dkim || this.dkim) && a.message.processFunc((_) => {
+            let w = a.data.dkim ? new p(a.data.dkim) : this.dkim;
+            return this.logger.debug(
+              {
+                tnx: "DKIM",
+                messageId: a.message.messageId(),
+                dkimDomains: w.keys.map((E) => E.keySelector + "." + E.domainName).join(", ")
+              },
+              "Signing outgoing message with %s keys",
+              w.keys.length
+            ), w.sign(_, a.data._dkim);
+          }), this.transporter.send(a, (..._) => {
+            _[0] && this.logger.error(
+              {
+                err: _[0],
+                tnx: "transport",
+                action: "send"
+              },
+              "Send Error: %s",
+              _[0].message
+            ), i(..._);
           });
         });
-      });
-      return promise;
+      }), d;
     }
     getVersionString() {
-      return util.format(
+      return o.format(
         "%s (%s; +%s; %s/%s)",
-        packageData.name,
-        packageData.version,
-        packageData.homepage,
+        e.name,
+        e.version,
+        e.homepage,
         this.transporter.name,
         this.transporter.version
       );
     }
-    _processPlugins(step, mail, callback) {
-      step = (step || "").toString();
-      if (!this._userPlugins.hasOwnProperty(step)) {
-        return callback();
-      }
-      let userPlugins = this._userPlugins[step] || [];
-      let defaultPlugins = this._defaultPlugins[step] || [];
-      if (userPlugins.length) {
-        this.logger.debug(
-          {
-            tnx: "transaction",
-            pluginCount: userPlugins.length,
-            step
-          },
-          "Using %s plugins for %s",
-          userPlugins.length,
-          step
-        );
-      }
-      if (userPlugins.length + defaultPlugins.length === 0) {
-        return callback();
-      }
-      let pos = 0;
-      let block = "default";
-      let processPlugins = () => {
-        let curplugins = block === "default" ? defaultPlugins : userPlugins;
-        if (pos >= curplugins.length) {
-          if (block === "default" && userPlugins.length) {
-            block = "user";
-            pos = 0;
-            curplugins = userPlugins;
-          } else {
-            return callback();
-          }
-        }
-        let plugin = curplugins[pos++];
-        plugin(mail, (err) => {
-          if (err) {
-            return callback(err);
-          }
-          processPlugins();
+    _processPlugins(t, i, d) {
+      if (t = (t || "").toString(), !this._userPlugins.hasOwnProperty(t))
+        return d();
+      let a = this._userPlugins[t] || [], h = this._defaultPlugins[t] || [];
+      if (a.length && this.logger.debug(
+        {
+          tnx: "transaction",
+          pluginCount: a.length,
+          step: t
+        },
+        "Using %s plugins for %s",
+        a.length,
+        t
+      ), a.length + h.length === 0)
+        return d();
+      let u = 0, _ = "default", w = () => {
+        let E = _ === "default" ? h : a;
+        if (u >= E.length)
+          if (_ === "default" && a.length)
+            _ = "user", u = 0, E = a;
+          else
+            return d();
+        let S = E[u++];
+        S(i, (A) => {
+          if (A)
+            return d(A);
+          w();
         });
       };
-      processPlugins();
+      w();
     }
     /**
      * Sets up proxy handler for a Nodemailer object
      *
      * @param {String} proxyUrl Proxy configuration url
      */
-    setupProxy(proxyUrl) {
-      let proxy = urllib.parse(proxyUrl);
-      this.getSocket = (options, callback) => {
-        let protocol = proxy.protocol.replace(/:$/, "").toLowerCase();
-        if (this.meta.has("proxy_handler_" + protocol)) {
-          return this.meta.get("proxy_handler_" + protocol)(proxy, options, callback);
-        }
-        switch (protocol) {
+    setupProxy(t) {
+      let i = m.parse(t);
+      this.getSocket = (d, a) => {
+        let h = i.protocol.replace(/:$/, "").toLowerCase();
+        if (this.meta.has("proxy_handler_" + h))
+          return this.meta.get("proxy_handler_" + h)(i, d, a);
+        switch (h) {
           // Connect using a HTTP CONNECT method
           case "http":
           case "https":
-            httpProxyClient(proxy.href, options.port, options.host, (err2, socket) => {
-              if (err2) {
-                return callback(err2);
-              }
-              return callback(null, {
-                connection: socket
-              });
-            });
+            n(i.href, d.port, d.host, (_, w) => _ ? a(_) : a(null, {
+              connection: w
+            }));
             return;
           case "socks":
           case "socks5":
           case "socks4":
           case "socks4a": {
             if (!this.meta.has("proxy_socks_module")) {
-              let err2 = new Error("Socks module not loaded");
-              err2.code = errors2.EPROXY;
-              return callback(err2);
+              let w = new Error("Socks module not loaded");
+              return w.code = r.EPROXY, a(w);
             }
-            let connect = (ipaddress) => {
-              let proxyV2 = !!this.meta.get("proxy_socks_module").SocksClient;
-              let socksClient = proxyV2 ? this.meta.get("proxy_socks_module").SocksClient : this.meta.get("proxy_socks_module");
-              let proxyType = Number(proxy.protocol.replace(/\D/g, "")) || 5;
-              let connectionOpts = {
+            let _ = (w) => {
+              let E = !!this.meta.get("proxy_socks_module").SocksClient, S = E ? this.meta.get("proxy_socks_module").SocksClient : this.meta.get("proxy_socks_module"), A = Number(i.protocol.replace(/\D/g, "")) || 5, C = {
                 proxy: {
-                  ipaddress,
-                  port: Number(proxy.port),
-                  type: proxyType
+                  ipaddress: w,
+                  port: Number(i.port),
+                  type: A
                 },
-                [proxyV2 ? "destination" : "target"]: {
-                  host: options.host,
-                  port: options.port
+                [E ? "destination" : "target"]: {
+                  host: d.host,
+                  port: d.port
                 },
                 command: "connect"
               };
-              if (proxy.auth) {
-                let username = decodeURIComponent(proxy.auth.split(":").shift());
-                let password = decodeURIComponent(proxy.auth.split(":").pop());
-                if (proxyV2) {
-                  connectionOpts.proxy.userId = username;
-                  connectionOpts.proxy.password = password;
-                } else if (proxyType === 4) {
-                  connectionOpts.userid = username;
-                } else {
-                  connectionOpts.authentication = {
-                    username,
-                    password
-                  };
-                }
+              if (i.auth) {
+                let j = decodeURIComponent(i.auth.split(":").shift()), T = decodeURIComponent(i.auth.split(":").pop());
+                E ? (C.proxy.userId = j, C.proxy.password = T) : A === 4 ? C.userid = j : C.authentication = {
+                  username: j,
+                  password: T
+                };
               }
-              socksClient.createConnection(connectionOpts, (err2, info) => {
-                if (err2) {
-                  return callback(err2);
-                }
-                return callback(null, {
-                  connection: info.socket || info
-                });
-              });
+              S.createConnection(C, (j, T) => j ? a(j) : a(null, {
+                connection: T.socket || T
+              }));
             };
-            if (net.isIP(proxy.hostname)) {
-              return connect(proxy.hostname);
-            }
-            return dns.resolve(proxy.hostname, (err2, address) => {
-              if (err2) {
-                return callback(err2);
-              }
-              connect(Array.isArray(address) ? address[0] : address);
+            return c.isIP(i.hostname) ? _(i.hostname) : s.resolve(i.hostname, (w, E) => {
+              if (w)
+                return a(w);
+              _(Array.isArray(E) ? E[0] : E);
             });
           }
         }
-        let err = new Error("Unknown proxy configuration");
-        err.code = errors2.EPROXY;
-        callback(err);
+        let u = new Error("Unknown proxy configuration");
+        u.code = r.EPROXY, a(u);
       };
     }
-    _convertDataImages(mail, callback) {
-      if (!this.options.attachDataUrls && !mail.data.attachDataUrls || !mail.data.html) {
-        return callback();
-      }
-      mail.resolveContent(mail.data, "html", (err, html) => {
-        if (err) {
-          return callback(err);
-        }
-        let cidCounter = 0;
-        html = (html || "").toString().replace(/(<img\b[^<>]{0,1024} src\s{0,20}=[\s"']{0,20})(data:([^;]+);[^"'>\s]+)/gi, (match, prefix, dataUri, mimeType) => {
-          let cid = crypto.randomBytes(10).toString("hex") + "@localhost";
-          if (!mail.data.attachments) {
-            mail.data.attachments = [];
-          }
-          if (!Array.isArray(mail.data.attachments)) {
-            mail.data.attachments = [].concat(mail.data.attachments || []);
-          }
-          mail.data.attachments.push({
-            path: dataUri,
-            cid,
-            filename: "image-" + ++cidCounter + "." + mimeTypes.detectExtension(mimeType)
-          });
-          return prefix + "cid:" + cid;
-        });
-        mail.data.html = html;
-        callback();
+    _convertDataImages(t, i) {
+      if (!this.options.attachDataUrls && !t.data.attachDataUrls || !t.data.html)
+        return i();
+      t.resolveContent(t.data, "html", (d, a) => {
+        if (d)
+          return i(d);
+        let h = 0;
+        a = (a || "").toString().replace(/(<img\b[^<>]{0,1024} src\s{0,20}=[\s"']{0,20})(data:([^;]+);[^"'>\s]+)/gi, (u, _, w, E) => {
+          let S = x.randomBytes(10).toString("hex") + "@localhost";
+          return t.data.attachments || (t.data.attachments = []), Array.isArray(t.data.attachments) || (t.data.attachments = [].concat(t.data.attachments || [])), t.data.attachments.push({
+            path: w,
+            cid: S,
+            filename: "image-" + ++h + "." + k.detectExtension(E)
+          }), _ + "cid:" + S;
+        }), t.data.html = a, i();
       });
     }
-    set(key, value) {
-      return this.meta.set(key, value);
+    set(t, i) {
+      return this.meta.set(t, i);
     }
-    get(key) {
-      return this.meta.get(key);
+    get(t) {
+      return this.meta.get(t);
     }
   }
-  mailer = Mail;
-  return mailer;
+  return ke = g, ke;
 }
-var dataStream;
-var hasRequiredDataStream;
-function requireDataStream() {
-  if (hasRequiredDataStream) return dataStream;
-  hasRequiredDataStream = 1;
-  const stream = require$$0$2;
-  const Transform = stream.Transform;
-  class DataStream extends Transform {
-    constructor(options) {
-      super(options);
-      this.options = options || {};
-      this._curLine = "";
-      this.inByteCount = 0;
-      this.outByteCount = 0;
-      this.lastByte = false;
+var Ae, ut;
+function mi() {
+  if (ut) return Ae;
+  ut = 1;
+  const y = P.Transform;
+  class k extends y {
+    constructor(p) {
+      super(p), this.options = p || {}, this._curLine = "", this.inByteCount = 0, this.outByteCount = 0, this.lastByte = !1;
     }
     /**
      * Escapes dots
      */
-    _transform(chunk, encoding, done) {
-      let chunks = [];
-      let chunklen = 0;
-      let i, len, lastPos = 0;
-      let buf;
-      if (!chunk || !chunk.length) {
-        return done();
-      }
-      if (typeof chunk === "string") {
-        chunk = Buffer.from(chunk);
-      }
-      this.inByteCount += chunk.length;
-      for (i = 0, len = chunk.length; i < len; i++) {
-        if (chunk[i] === 46) {
-          if (i && chunk[i - 1] === 10 || !i && (!this.lastByte || this.lastByte === 10)) {
-            buf = chunk.slice(lastPos, i + 1);
-            chunks.push(buf);
-            chunks.push(Buffer.from("."));
-            chunklen += buf.length + 1;
-            lastPos = i + 1;
-          }
-        } else if (chunk[i] === 10) {
-          if (i && chunk[i - 1] !== 13 || !i && this.lastByte !== 13) {
-            if (i > lastPos) {
-              buf = chunk.slice(lastPos, i);
-              chunks.push(buf);
-              chunklen += buf.length + 2;
-            } else {
-              chunklen += 2;
-            }
-            chunks.push(Buffer.from("\r\n"));
-            lastPos = i + 1;
-          }
-        }
-      }
-      if (chunklen) {
-        if (lastPos < chunk.length) {
-          buf = chunk.slice(lastPos);
-          chunks.push(buf);
-          chunklen += buf.length;
-        }
-        this.outByteCount += chunklen;
-        this.push(Buffer.concat(chunks, chunklen));
-      } else {
-        this.outByteCount += chunk.length;
-        this.push(chunk);
-      }
-      this.lastByte = chunk[chunk.length - 1];
-      done();
+    _transform(p, n, r) {
+      let o = [], m = 0, e, l, c = 0, s;
+      if (!p || !p.length)
+        return r();
+      for (typeof p == "string" && (p = Buffer.from(p)), this.inByteCount += p.length, e = 0, l = p.length; e < l; e++)
+        p[e] === 46 ? (e && p[e - 1] === 10 || !e && (!this.lastByte || this.lastByte === 10)) && (s = p.slice(c, e + 1), o.push(s), o.push(Buffer.from(".")), m += s.length + 1, c = e + 1) : p[e] === 10 && (e && p[e - 1] !== 13 || !e && this.lastByte !== 13) && (e > c ? (s = p.slice(c, e), o.push(s), m += s.length + 2) : m += 2, o.push(Buffer.from(`\r
+`)), c = e + 1);
+      m ? (c < p.length && (s = p.slice(c), o.push(s), m += s.length), this.outByteCount += m, this.push(Buffer.concat(o, m))) : (this.outByteCount += p.length, this.push(p)), this.lastByte = p[p.length - 1], r();
     }
     /**
      * Finalizes the stream with a dot on a single line
      */
-    _flush(done) {
-      let buf;
-      if (this.lastByte === 10) {
-        buf = Buffer.from(".\r\n");
-      } else if (this.lastByte === 13) {
-        buf = Buffer.from("\n.\r\n");
-      } else {
-        buf = Buffer.from("\r\n.\r\n");
-      }
-      this.outByteCount += buf.length;
-      this.push(buf);
-      done();
+    _flush(p) {
+      let n;
+      this.lastByte === 10 ? n = Buffer.from(`.\r
+`) : this.lastByte === 13 ? n = Buffer.from(`
+.\r
+`) : n = Buffer.from(`\r
+.\r
+`), this.outByteCount += n.length, this.push(n), p();
     }
   }
-  dataStream = DataStream;
-  return dataStream;
+  return Ae = k, Ae;
 }
-var smtpConnection;
-var hasRequiredSmtpConnection;
-function requireSmtpConnection() {
-  if (hasRequiredSmtpConnection) return smtpConnection;
-  hasRequiredSmtpConnection = 1;
-  const packageInfo = require$$10;
-  const EventEmitter = require$$0$5.EventEmitter;
-  const net = require$$7;
-  const tls = require$$1$2;
-  const os = require$$6;
-  const crypto = require$$2$1;
-  const DataStream = requireDataStream();
-  const PassThrough = require$$0$2.PassThrough;
-  const shared2 = requireShared();
-  const CONNECTION_TIMEOUT = 2 * 60 * 1e3;
-  const SOCKET_TIMEOUT = 10 * 60 * 1e3;
-  const GREETING_TIMEOUT = 30 * 1e3;
-  const DNS_TIMEOUT = 30 * 1e3;
-  const TEARDOWN_NOOP = () => {
+var Ce, ft;
+function $e() {
+  if (ft) return Ce;
+  ft = 1;
+  const b = D, y = V.EventEmitter, k = te, f = Mt, p = jt, n = K, r = mi(), o = P.PassThrough, m = q(), e = 120 * 1e3, l = 600 * 1e3, c = 30 * 1e3, s = 30 * 1e3, x = () => {
   };
-  class SMTPConnection extends EventEmitter {
-    constructor(options) {
-      super(options);
-      this.id = crypto.randomBytes(8).toString("base64").replace(/\W/g, "");
-      this.stage = "init";
-      this.options = options || {};
-      this.secureConnection = !!this.options.secure;
-      this.alreadySecured = !!this.options.secured;
-      this.port = Number(this.options.port) || (this.secureConnection ? 465 : 587);
-      this.host = this.options.host || "localhost";
-      this.servername = this.options.servername ? this.options.servername : !net.isIP(this.host) ? this.host : false;
-      this.allowInternalNetworkInterfaces = this.options.allowInternalNetworkInterfaces || false;
-      if (typeof this.options.secure === "undefined" && this.port === 465) {
-        this.secureConnection = true;
-      }
-      this.name = this.options.name || this._getHostname();
-      this.logger = shared2.getLogger(this.options, {
+  class g extends y {
+    constructor(t) {
+      super(t), this.id = n.randomBytes(8).toString("base64").replace(/\W/g, ""), this.stage = "init", this.options = t || {}, this.secureConnection = !!this.options.secure, this.alreadySecured = !!this.options.secured, this.port = Number(this.options.port) || (this.secureConnection ? 465 : 587), this.host = this.options.host || "localhost", this.servername = this.options.servername ? this.options.servername : k.isIP(this.host) ? !1 : this.host, this.allowInternalNetworkInterfaces = this.options.allowInternalNetworkInterfaces || !1, typeof this.options.secure > "u" && this.port === 465 && (this.secureConnection = !0), this.name = this.options.name || this._getHostname(), this.logger = m.getLogger(this.options, {
         component: this.options.component || "smtp-connection",
         sid: this.id
-      });
-      this.customAuth = /* @__PURE__ */ new Map();
-      Object.keys(this.options.customAuth || {}).forEach((key) => {
-        let mapKey = (key || "").toString().trim().toUpperCase();
-        if (!mapKey) {
-          return;
-        }
-        this.customAuth.set(mapKey, this.options.customAuth[key]);
-      });
-      this.version = packageInfo.version;
-      this.authenticated = false;
-      this.destroyed = false;
-      this.secure = !!this.secureConnection;
-      this._remainder = "";
-      this._responseQueue = [];
-      this.lastServerResponse = false;
-      this._socket = false;
-      this._supportedAuth = [];
-      this.allowsAuth = false;
-      this._envelope = false;
-      this._supportedExtensions = [];
-      this._maxAllowedSize = 0;
-      this._responseActions = [];
-      this._recipientQueue = [];
-      this._greetingTimeout = false;
-      this._connectionTimeout = false;
-      this._destroyed = false;
-      this._closing = false;
-      this._onSocketData = (chunk) => this._onData(chunk);
-      this._onSocketError = (error) => this._onError(error, "ESOCKET", false, "CONN");
-      this._onSocketClose = () => this._onClose();
-      this._onSocketEnd = () => this._onEnd();
-      this._onSocketTimeout = () => this._onTimeout();
-      this._onConnectionSocketError = (err) => this._onConnectionError(err, "ESOCKET");
-      this._connectionAttemptId = 0;
+      }), this.customAuth = /* @__PURE__ */ new Map(), Object.keys(this.options.customAuth || {}).forEach((i) => {
+        let d = (i || "").toString().trim().toUpperCase();
+        d && this.customAuth.set(d, this.options.customAuth[i]);
+      }), this.version = b.version, this.authenticated = !1, this.destroyed = !1, this.secure = !!this.secureConnection, this._remainder = "", this._responseQueue = [], this.lastServerResponse = !1, this._socket = !1, this._supportedAuth = [], this.allowsAuth = !1, this._envelope = !1, this._supportedExtensions = [], this._maxAllowedSize = 0, this._responseActions = [], this._recipientQueue = [], this._greetingTimeout = !1, this._connectionTimeout = !1, this._destroyed = !1, this._closing = !1, this._onSocketData = (i) => this._onData(i), this._onSocketError = (i) => this._onError(i, "ESOCKET", !1, "CONN"), this._onSocketClose = () => this._onClose(), this._onSocketEnd = () => this._onEnd(), this._onSocketTimeout = () => this._onTimeout(), this._onConnectionSocketError = (i) => this._onConnectionError(i, "ESOCKET"), this._connectionAttemptId = 0;
     }
     /**
      * Creates a connection to a SMTP server and sets up connection
      * listener
      */
-    connect(connectCallback) {
-      if (typeof connectCallback === "function") {
+    connect(t) {
+      if (typeof t == "function") {
         this.once("connect", () => {
           this.logger.debug(
             {
               tnx: "smtp"
             },
             "SMTP handshake finished"
-          );
-          connectCallback();
+          ), t();
         });
-        const isDestroyedMessage = this._isDestroyedMessage("connect");
-        if (isDestroyedMessage) {
-          return connectCallback(this._formatError(isDestroyedMessage, "ECONNECTION", false, "CONN"));
-        }
+        const d = this._isDestroyedMessage("connect");
+        if (d)
+          return t(this._formatError(d, "ECONNECTION", !1, "CONN"));
       }
-      let opts = {
+      let i = {
         port: this.port,
         host: this.host,
         allowInternalNetworkInterfaces: this.allowInternalNetworkInterfaces,
-        timeout: this.options.dnsTimeout || DNS_TIMEOUT
+        timeout: this.options.dnsTimeout || s
       };
-      if (this.options.localAddress) {
-        opts.localAddress = this.options.localAddress;
-      }
-      if (this.options.connection) {
-        this._socket = this.options.connection;
-        this._setupConnectionHandlers();
-        if (this.secureConnection && !this.alreadySecured) {
-          setImmediate(
-            () => this._upgradeConnection((err) => {
-              if (err) {
-                this._onError(new Error("Error initiating TLS - " + (err.message || err)), "ETLS", false, "CONN");
-                return;
-              }
-              this._onConnect();
-            })
-          );
-        } else {
-          setImmediate(() => this._onConnect());
-        }
+      if (this.options.localAddress && (i.localAddress = this.options.localAddress), this.options.connection) {
+        this._socket = this.options.connection, this._setupConnectionHandlers(), this.secureConnection && !this.alreadySecured ? setImmediate(
+          () => this._upgradeConnection((d) => {
+            if (d) {
+              this._onError(new Error("Error initiating TLS - " + (d.message || d)), "ETLS", !1, "CONN");
+              return;
+            }
+            this._onConnect();
+          })
+        ) : setImmediate(() => this._onConnect());
         return;
-      } else if (this.options.socket) {
-        this._socket = this.options.socket;
-        return shared2.resolveHostname(opts, (err, resolved) => {
-          if (err) {
-            return setImmediate(() => this._onError(err, "EDNS", false, "CONN"));
-          }
-          this.logger.debug(
-            {
-              tnx: "dns",
-              source: opts.host,
-              resolved: resolved.host,
-              cached: !!resolved.cached
-            },
-            "Resolved %s as %s [cache %s]",
-            opts.host,
-            resolved.host,
-            resolved.cached ? "hit" : "miss"
-          );
-          Object.keys(resolved).forEach((key) => {
-            if (key.charAt(0) !== "_" && resolved[key]) {
-              opts[key] = resolved[key];
-            }
-          });
-          try {
-            this._socket.connect(this.port, this.host, () => {
-              this._socket.setKeepAlive(true);
-              this._onConnect();
-            });
-            this._setupConnectionHandlers();
-          } catch (E) {
-            return setImmediate(() => this._onError(E, "ECONNECTION", false, "CONN"));
-          }
+      } else return this.options.socket ? (this._socket = this.options.socket, m.resolveHostname(i, (d, a) => {
+        if (d)
+          return setImmediate(() => this._onError(d, "EDNS", !1, "CONN"));
+        this.logger.debug(
+          {
+            tnx: "dns",
+            source: i.host,
+            resolved: a.host,
+            cached: !!a.cached
+          },
+          "Resolved %s as %s [cache %s]",
+          i.host,
+          a.host,
+          a.cached ? "hit" : "miss"
+        ), Object.keys(a).forEach((h) => {
+          h.charAt(0) !== "_" && a[h] && (i[h] = a[h]);
         });
-      } else if (this.secureConnection) {
-        if (this.options.tls) {
-          Object.keys(this.options.tls).forEach((key) => {
-            opts[key] = this.options.tls[key];
-          });
+        try {
+          this._socket.connect(this.port, this.host, () => {
+            this._socket.setKeepAlive(!0), this._onConnect();
+          }), this._setupConnectionHandlers();
+        } catch (h) {
+          return setImmediate(() => this._onError(h, "ECONNECTION", !1, "CONN"));
         }
-        if (this.servername && !opts.servername) {
-          opts.servername = this.servername;
-        }
-        return shared2.resolveHostname(opts, (err, resolved) => {
-          if (err) {
-            return setImmediate(() => this._onError(err, "EDNS", false, "CONN"));
-          }
-          this.logger.debug(
-            {
-              tnx: "dns",
-              source: opts.host,
-              resolved: resolved.host,
-              cached: !!resolved.cached
-            },
-            "Resolved %s as %s [cache %s]",
-            opts.host,
-            resolved.host,
-            resolved.cached ? "hit" : "miss"
-          );
-          Object.keys(resolved).forEach((key) => {
-            if (key.charAt(0) !== "_" && resolved[key]) {
-              opts[key] = resolved[key];
-            }
-          });
-          this._fallbackAddresses = (resolved._addresses || []).filter((addr) => addr !== opts.host);
-          this._connectOpts = Object.assign({}, opts);
-          this._connectToHost(opts, true);
-        });
-      } else {
-        return shared2.resolveHostname(opts, (err, resolved) => {
-          if (err) {
-            return setImmediate(() => this._onError(err, "EDNS", false, "CONN"));
-          }
-          this.logger.debug(
-            {
-              tnx: "dns",
-              source: opts.host,
-              resolved: resolved.host,
-              cached: !!resolved.cached
-            },
-            "Resolved %s as %s [cache %s]",
-            opts.host,
-            resolved.host,
-            resolved.cached ? "hit" : "miss"
-          );
-          Object.keys(resolved).forEach((key) => {
-            if (key.charAt(0) !== "_" && resolved[key]) {
-              opts[key] = resolved[key];
-            }
-          });
-          this._fallbackAddresses = (resolved._addresses || []).filter((addr) => addr !== opts.host);
-          this._connectOpts = Object.assign({}, opts);
-          this._connectToHost(opts, false);
-        });
-      }
+      })) : this.secureConnection ? (this.options.tls && Object.keys(this.options.tls).forEach((d) => {
+        i[d] = this.options.tls[d];
+      }), this.servername && !i.servername && (i.servername = this.servername), m.resolveHostname(i, (d, a) => {
+        if (d)
+          return setImmediate(() => this._onError(d, "EDNS", !1, "CONN"));
+        this.logger.debug(
+          {
+            tnx: "dns",
+            source: i.host,
+            resolved: a.host,
+            cached: !!a.cached
+          },
+          "Resolved %s as %s [cache %s]",
+          i.host,
+          a.host,
+          a.cached ? "hit" : "miss"
+        ), Object.keys(a).forEach((h) => {
+          h.charAt(0) !== "_" && a[h] && (i[h] = a[h]);
+        }), this._fallbackAddresses = (a._addresses || []).filter((h) => h !== i.host), this._connectOpts = Object.assign({}, i), this._connectToHost(i, !0);
+      })) : m.resolveHostname(i, (d, a) => {
+        if (d)
+          return setImmediate(() => this._onError(d, "EDNS", !1, "CONN"));
+        this.logger.debug(
+          {
+            tnx: "dns",
+            source: i.host,
+            resolved: a.host,
+            cached: !!a.cached
+          },
+          "Resolved %s as %s [cache %s]",
+          i.host,
+          a.host,
+          a.cached ? "hit" : "miss"
+        ), Object.keys(a).forEach((h) => {
+          h.charAt(0) !== "_" && a[h] && (i[h] = a[h]);
+        }), this._fallbackAddresses = (a._addresses || []).filter((h) => h !== i.host), this._connectOpts = Object.assign({}, i), this._connectToHost(i, !1);
+      });
     }
     /**
      * Attempts to connect to the specified host address
@@ -7620,21 +5240,16 @@ function requireSmtpConnection() {
      * @param {Object} opts Connection options
      * @param {Boolean} secure Whether to use TLS
      */
-    _connectToHost(opts, secure) {
+    _connectToHost(t, i) {
       this._connectionAttemptId++;
-      const currentAttemptId = this._connectionAttemptId;
-      let connectFn = secure ? tls.connect : net.connect;
+      const d = this._connectionAttemptId;
+      let a = i ? f.connect : k.connect;
       try {
-        this._socket = connectFn(opts, () => {
-          if (this._connectionAttemptId !== currentAttemptId) {
-            return;
-          }
-          this._socket.setKeepAlive(true);
-          this._onConnect();
-        });
-        this._setupConnectionHandlers();
-      } catch (E) {
-        return setImmediate(() => this._onError(E, "ECONNECTION", false, "CONN"));
+        this._socket = a(t, () => {
+          this._connectionAttemptId === d && (this._socket.setKeepAlive(!0), this._onConnect());
+        }), this._setupConnectionHandlers();
+      } catch (h) {
+        return setImmediate(() => this._onError(h, "ECONNECTION", !1, "CONN"));
       }
     }
     /**
@@ -7643,8 +5258,7 @@ function requireSmtpConnection() {
     _setupConnectionHandlers() {
       this._connectionTimeout = setTimeout(() => {
         this._onConnectionError("Connection timeout", "ETIMEDOUT");
-      }, this.options.connectionTimeout || CONNECTION_TIMEOUT);
-      this._socket.on("error", this._onConnectionSocketError);
+      }, this.options.connectionTimeout || e), this._socket.on("error", this._onConnectionSocketError);
     }
     /**
      * Handles connection errors with fallback to alternative addresses
@@ -7652,118 +5266,79 @@ function requireSmtpConnection() {
      * @param {Error|String} err Error object or message
      * @param {String} code Error code
      */
-    _onConnectionError(err, code) {
-      clearTimeout(this._connectionTimeout);
-      let canFallback = this._fallbackAddresses && this._fallbackAddresses.length && this.stage === "init" && !this._destroyed;
-      if (!canFallback) {
-        this._onError(err, code, false, "CONN");
+    _onConnectionError(t, i) {
+      if (clearTimeout(this._connectionTimeout), !(this._fallbackAddresses && this._fallbackAddresses.length && this.stage === "init" && !this._destroyed)) {
+        this._onError(t, i, !1, "CONN");
         return;
       }
-      let nextHost = this._fallbackAddresses.shift();
-      this.logger.info(
+      let a = this._fallbackAddresses.shift();
+      if (this.logger.info(
         {
           tnx: "network",
           failedHost: this._connectOpts.host,
-          nextHost,
-          error: err.message || err
+          nextHost: a,
+          error: t.message || t
         },
         "Connection to %s failed, trying %s",
         this._connectOpts.host,
-        nextHost
-      );
-      if (this._socket) {
+        a
+      ), this._socket) {
         try {
-          this._socket.removeListener("error", this._onConnectionSocketError);
-          this._socket.destroy();
-        } catch (_E) {
+          this._socket.removeListener("error", this._onConnectionSocketError), this._socket.destroy();
+        } catch {
         }
         this._socket = null;
       }
-      this._connectOpts.host = nextHost;
-      this._connectToHost(this._connectOpts, this.secureConnection);
+      this._connectOpts.host = a, this._connectToHost(this._connectOpts, this.secureConnection);
     }
     /**
      * Sends QUIT
      */
     quit() {
-      this._sendCommand("QUIT");
-      this._responseActions.push(this.close);
+      this._sendCommand("QUIT"), this._responseActions.push(this.close);
     }
     /**
      * Closes the connection to the server
      */
     close() {
-      clearTimeout(this._connectionTimeout);
-      clearTimeout(this._greetingTimeout);
-      this._responseActions = [];
-      if (this._closing) {
+      if (clearTimeout(this._connectionTimeout), clearTimeout(this._greetingTimeout), this._responseActions = [], this._closing)
         return;
-      }
-      this._closing = true;
-      let closeMethod = "end";
-      if (this.stage === "init") {
-        closeMethod = "destroy";
-      }
-      this.logger.debug(
+      this._closing = !0;
+      let t = "end";
+      this.stage === "init" && (t = "destroy"), this.logger.debug(
         {
           tnx: "smtp"
         },
         'Closing connection to the server using "%s"',
-        closeMethod
+        t
       );
-      let socket = this._socket && this._socket.socket || this._socket;
-      if (socket && !socket.destroyed) {
+      let i = this._socket && this._socket.socket || this._socket;
+      if (i && !i.destroyed)
         try {
-          socket.setTimeout(0);
-          socket.removeListener("data", this._onSocketData);
-          socket.removeListener("timeout", this._onSocketTimeout);
-          socket.removeListener("close", this._onSocketClose);
-          socket.removeListener("end", this._onSocketEnd);
-          socket.removeListener("error", this._onSocketError);
-          socket.removeListener("error", this._onConnectionSocketError);
-          socket.on("error", TEARDOWN_NOOP);
-          socket[closeMethod]();
-        } catch (_E) {
+          i.setTimeout(0), i.removeListener("data", this._onSocketData), i.removeListener("timeout", this._onSocketTimeout), i.removeListener("close", this._onSocketClose), i.removeListener("end", this._onSocketEnd), i.removeListener("error", this._onSocketError), i.removeListener("error", this._onConnectionSocketError), i.on("error", x), i[t]();
+        } catch {
         }
-      }
       this._destroy();
     }
     /**
      * Authenticate user
      */
-    login(authData, callback) {
-      const isDestroyedMessage = this._isDestroyedMessage("login");
-      if (isDestroyedMessage) {
-        return callback(this._formatError(isDestroyedMessage, "ECONNECTION", false, "API"));
-      }
-      this._auth = authData || {};
-      this._authMethod = (this._auth.method || "").toString().trim().toUpperCase() || false;
-      if (!this._authMethod && this._auth.oauth2 && !this._auth.credentials) {
-        this._authMethod = "XOAUTH2";
-      } else if (!this._authMethod || this._authMethod === "XOAUTH2" && !this._auth.oauth2) {
-        this._authMethod = (this._supportedAuth[0] || "PLAIN").toUpperCase().trim();
-      }
-      if (this._authMethod !== "XOAUTH2" && (!this._auth.credentials || !this._auth.credentials.user || !this._auth.credentials.pass)) {
-        if (this._auth.user && this._auth.pass || this.customAuth.has(this._authMethod)) {
+    login(t, i) {
+      const d = this._isDestroyedMessage("login");
+      if (d)
+        return i(this._formatError(d, "ECONNECTION", !1, "API"));
+      if (this._auth = t || {}, this._authMethod = (this._auth.method || "").toString().trim().toUpperCase() || !1, !this._authMethod && this._auth.oauth2 && !this._auth.credentials ? this._authMethod = "XOAUTH2" : (!this._authMethod || this._authMethod === "XOAUTH2" && !this._auth.oauth2) && (this._authMethod = (this._supportedAuth[0] || "PLAIN").toUpperCase().trim()), this._authMethod !== "XOAUTH2" && (!this._auth.credentials || !this._auth.credentials.user || !this._auth.credentials.pass))
+        if (this._auth.user && this._auth.pass || this.customAuth.has(this._authMethod))
           this._auth.credentials = {
             user: this._auth.user,
             pass: this._auth.pass,
             options: this._auth.options
           };
-        } else {
-          return callback(this._formatError('Missing credentials for "' + this._authMethod + '"', "EAUTH", false, "API"));
-        }
-      }
+        else
+          return i(this._formatError('Missing credentials for "' + this._authMethod + '"', "EAUTH", !1, "API"));
       if (this.customAuth.has(this._authMethod)) {
-        let handler = this.customAuth.get(this._authMethod);
-        let lastResponse;
-        let returned = false;
-        let resolve = () => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          this.logger.info(
+        let a = this.customAuth.get(this._authMethod), h, u = !1, _ = () => {
+          u || (u = !0, this.logger.info(
             {
               tnx: "smtp",
               username: this._auth.user,
@@ -7772,75 +5347,47 @@ function requireSmtpConnection() {
             },
             "User %s authenticated",
             JSON.stringify(this._auth.user)
-          );
-          this.authenticated = true;
-          callback(null, true);
-        };
-        let reject = (err) => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          callback(this._formatError(err, "EAUTH", lastResponse, "AUTH " + this._authMethod));
-        };
-        let handlerResponse = handler({
+          ), this.authenticated = !0, i(null, !0));
+        }, w = (S) => {
+          u || (u = !0, i(this._formatError(S, "EAUTH", h, "AUTH " + this._authMethod)));
+        }, E = a({
           auth: this._auth,
           method: this._authMethod,
           extensions: [].concat(this._supportedExtensions),
           authMethods: [].concat(this._supportedAuth),
-          maxAllowedSize: this._maxAllowedSize || false,
-          sendCommand: (cmd, done) => {
-            let promise;
-            if (!done) {
-              promise = new Promise((resolve2, reject2) => {
-                done = shared2.callbackPromise(resolve2, reject2);
-              });
-            }
-            this._responseActions.push((str) => {
-              lastResponse = str;
-              let codes = str.match(/^(\d+)(?:\s(\d+\.\d+\.\d+))?\s/);
-              let data = {
-                command: cmd,
-                response: str
+          maxAllowedSize: this._maxAllowedSize || !1,
+          sendCommand: (S, A) => {
+            let C;
+            return A || (C = new Promise((j, T) => {
+              A = m.callbackPromise(j, T);
+            })), this._responseActions.push((j) => {
+              h = j;
+              let T = j.match(/^(\d+)(?:\s(\d+\.\d+\.\d+))?\s/), I = {
+                command: S,
+                response: j
               };
-              if (codes) {
-                data.status = Number(codes[1]) || 0;
-                if (codes[2]) {
-                  data.code = codes[2];
-                }
-                data.text = str.substr(codes[0].length);
-              } else {
-                data.text = str;
-                data.status = 0;
-              }
-              done(null, data);
-            });
-            setImmediate(() => this._sendCommand(cmd));
-            return promise;
+              T ? (I.status = Number(T[1]) || 0, T[2] && (I.code = T[2]), I.text = j.substr(T[0].length)) : (I.text = j, I.status = 0), A(null, I);
+            }), setImmediate(() => this._sendCommand(S)), C;
           },
-          resolve,
-          reject
+          resolve: _,
+          reject: w
         });
-        if (handlerResponse && typeof handlerResponse.catch === "function") {
-          handlerResponse.then(resolve).catch(reject);
-        }
+        E && typeof E.catch == "function" && E.then(_).catch(w);
         return;
       }
       switch (this._authMethod) {
         case "XOAUTH2":
-          this._handleXOauth2Token(false, callback);
+          this._handleXOauth2Token(!1, i);
           return;
         case "LOGIN":
-          this._responseActions.push((str) => {
-            this._actionAUTH_LOGIN_USER(str, callback);
-          });
-          this._sendCommand("AUTH LOGIN");
+          this._responseActions.push((a) => {
+            this._actionAUTH_LOGIN_USER(a, i);
+          }), this._sendCommand("AUTH LOGIN");
           return;
         case "PLAIN":
-          this._responseActions.push((str) => {
-            this._actionAUTHComplete(str, callback);
-          });
-          this._sendCommand(
+          this._responseActions.push((a) => {
+            this._actionAUTHComplete(a, i);
+          }), this._sendCommand(
             "AUTH PLAIN " + Buffer.from(
               //this._auth.user+'\u0000'+
               "\0" + // skip authorization identity as it causes problems with some servers
@@ -7857,13 +5404,12 @@ function requireSmtpConnection() {
           );
           return;
         case "CRAM-MD5":
-          this._responseActions.push((str) => {
-            this._actionAUTH_CRAM_MD5(str, callback);
-          });
-          this._sendCommand("AUTH CRAM-MD5");
+          this._responseActions.push((a) => {
+            this._actionAUTH_CRAM_MD5(a, i);
+          }), this._sendCommand("AUTH CRAM-MD5");
           return;
       }
-      return callback(this._formatError('Unknown authentication method "' + this._authMethod + '"', "EAUTH", false, "API"));
+      return i(this._formatError('Unknown authentication method "' + this._authMethod + '"', "EAUTH", !1, "API"));
     }
     /**
      * Sends a message
@@ -7872,59 +5418,28 @@ function requireSmtpConnection() {
      * @param {Object} message String, Buffer or a Stream
      * @param {Function} callback Callback to return once sending is completed
      */
-    send(envelope, message, done) {
-      if (!message) {
-        return done(this._formatError("Empty message", "EMESSAGE", false, "API"));
-      }
-      const isDestroyedMessage = this._isDestroyedMessage("send message");
-      if (isDestroyedMessage) {
-        return done(this._formatError(isDestroyedMessage, "ECONNECTION", false, "API"));
-      }
-      if (this._maxAllowedSize && envelope.size > this._maxAllowedSize) {
+    send(t, i, d) {
+      if (!i)
+        return d(this._formatError("Empty message", "EMESSAGE", !1, "API"));
+      const a = this._isDestroyedMessage("send message");
+      if (a)
+        return d(this._formatError(a, "ECONNECTION", !1, "API"));
+      if (this._maxAllowedSize && t.size > this._maxAllowedSize)
         return setImmediate(() => {
-          done(this._formatError("Message size larger than allowed " + this._maxAllowedSize, "EMESSAGE", false, "MAIL FROM"));
+          d(this._formatError("Message size larger than allowed " + this._maxAllowedSize, "EMESSAGE", !1, "MAIL FROM"));
         });
-      }
-      let returned = false;
-      let callback = function() {
-        if (returned) {
-          return;
-        }
-        returned = true;
-        done(...arguments);
+      let h = !1, u = function() {
+        h || (h = !0, d(...arguments));
       };
-      if (typeof message.on === "function") {
-        message.on("error", (err) => callback(this._formatError(err, "ESTREAM", false, "API")));
-      }
-      let startTime = Date.now();
-      this._setEnvelope(envelope, (err, info) => {
-        if (err) {
-          let stream2 = new PassThrough();
-          if (typeof message.pipe === "function") {
-            message.pipe(stream2);
-          } else {
-            stream2.write(message);
-            stream2.end();
-          }
-          return callback(err);
+      typeof i.on == "function" && i.on("error", (w) => u(this._formatError(w, "ESTREAM", !1, "API")));
+      let _ = Date.now();
+      this._setEnvelope(t, (w, E) => {
+        if (w) {
+          let C = new o();
+          return typeof i.pipe == "function" ? i.pipe(C) : (C.write(i), C.end()), u(w);
         }
-        let envelopeTime = Date.now();
-        let stream = this._createSendStream((err2, str) => {
-          if (err2) {
-            return callback(err2);
-          }
-          info.envelopeTime = envelopeTime - startTime;
-          info.messageTime = Date.now() - envelopeTime;
-          info.messageSize = stream.outByteCount;
-          info.response = str;
-          return callback(null, info);
-        });
-        if (typeof message.pipe === "function") {
-          message.pipe(stream);
-        } else {
-          stream.write(message);
-          stream.end();
-        }
+        let S = Date.now(), A = this._createSendStream((C, j) => C ? u(C) : (E.envelopeTime = S - _, E.messageTime = Date.now() - S, E.messageSize = A.outByteCount, E.response = j, u(null, E)));
+        typeof i.pipe == "function" ? i.pipe(A) : (A.write(i), A.end());
       });
     }
     /**
@@ -7932,15 +5447,8 @@ function requireSmtpConnection() {
      *
      * @param {Function} callback Callback to return once connection is reset
      */
-    reset(callback) {
-      this._sendCommand("RSET");
-      this._responseActions.push((str) => {
-        if (str.charAt(0) !== "2") {
-          return callback(this._formatError("Could not reset session state. response=" + str, "EPROTOCOL", str, "RSET"));
-        }
-        this._envelope = false;
-        return callback(null, true);
-      });
+    reset(t) {
+      this._sendCommand("RSET"), this._responseActions.push((i) => i.charAt(0) !== "2" ? t(this._formatError("Could not reset session state. response=" + i, "EPROTOCOL", i, "RSET")) : (this._envelope = !1, t(null, !0)));
     }
     /**
      * Connection listener that is run when the connection to
@@ -7949,8 +5457,7 @@ function requireSmtpConnection() {
      * @event
      */
     _onConnect() {
-      clearTimeout(this._connectionTimeout);
-      this.logger.info(
+      if (clearTimeout(this._connectionTimeout), this.logger.info(
         {
           tnx: "network",
           localAddress: this._socket.localAddress,
@@ -7962,30 +5469,13 @@ function requireSmtpConnection() {
         this.secure ? "Secure connection" : "Connection",
         this._socket.remoteAddress,
         this._socket.remotePort
-      );
-      if (this._destroyed) {
+      ), this._destroyed) {
         this.close();
         return;
       }
-      this.stage = "connected";
-      this._socket.removeListener("data", this._onSocketData);
-      this._socket.removeListener("timeout", this._onSocketTimeout);
-      this._socket.removeListener("close", this._onSocketClose);
-      this._socket.removeListener("end", this._onSocketEnd);
-      this._socket.removeListener("error", this._onConnectionSocketError);
-      this._socket.on("error", this._onSocketError);
-      this._socket.on("data", this._onSocketData);
-      this._socket.once("close", this._onSocketClose);
-      this._socket.once("end", this._onSocketEnd);
-      this._socket.setTimeout(this.options.socketTimeout || SOCKET_TIMEOUT);
-      this._socket.on("timeout", this._onSocketTimeout);
-      this._greetingTimeout = setTimeout(() => {
-        if (this._socket && !this._destroyed && this._responseActions[0] === this._actionGreeting) {
-          this._onError("Greeting never received", "ETIMEDOUT", false, "CONN");
-        }
-      }, this.options.greetingTimeout || GREETING_TIMEOUT);
-      this._responseActions.push(this._actionGreeting);
-      this._socket.resume();
+      this.stage = "connected", this._socket.removeListener("data", this._onSocketData), this._socket.removeListener("timeout", this._onSocketTimeout), this._socket.removeListener("close", this._onSocketClose), this._socket.removeListener("end", this._onSocketEnd), this._socket.removeListener("error", this._onConnectionSocketError), this._socket.on("error", this._onSocketError), this._socket.on("data", this._onSocketData), this._socket.once("close", this._onSocketClose), this._socket.once("end", this._onSocketEnd), this._socket.setTimeout(this.options.socketTimeout || l), this._socket.on("timeout", this._onSocketTimeout), this._greetingTimeout = setTimeout(() => {
+        this._socket && !this._destroyed && this._responseActions[0] === this._actionGreeting && this._onError("Greeting never received", "ETIMEDOUT", !1, "CONN");
+      }, this.options.greetingTimeout || c), this._responseActions.push(this._actionGreeting), this._socket.resume();
     }
     /**
      * 'data' listener for data coming from the server
@@ -7993,31 +5483,22 @@ function requireSmtpConnection() {
      * @event
      * @param {Buffer} chunk Data chunk coming from the server
      */
-    _onData(chunk) {
-      if (this._destroyed || !chunk || !chunk.length) {
+    _onData(t) {
+      if (this._destroyed || !t || !t.length)
         return;
-      }
-      let data = (chunk || "").toString("binary");
-      let lines = (this._remainder + data).split(/\r?\n/);
-      let lastline;
-      this._remainder = lines.pop();
-      for (let i = 0, len = lines.length; i < len; i++) {
-        if (this._responseQueue.length) {
-          lastline = this._responseQueue[this._responseQueue.length - 1];
-          if (/^\d+-/.test(lastline.split("\n").pop())) {
-            this._responseQueue[this._responseQueue.length - 1] += "\n" + lines[i];
-            continue;
-          }
+      let i = (t || "").toString("binary"), d = (this._remainder + i).split(/\r?\n/), a;
+      this._remainder = d.pop();
+      for (let h = 0, u = d.length; h < u; h++) {
+        if (this._responseQueue.length && (a = this._responseQueue[this._responseQueue.length - 1], /^\d+-/.test(a.split(`
+`).pop()))) {
+          this._responseQueue[this._responseQueue.length - 1] += `
+` + d[h];
+          continue;
         }
-        this._responseQueue.push(lines[i]);
+        this._responseQueue.push(d[h]);
       }
-      if (this._responseQueue.length) {
-        lastline = this._responseQueue[this._responseQueue.length - 1];
-        if (/^\d+-/.test(lastline.split("\n").pop())) {
-          return;
-        }
-      }
-      this._processResponse();
+      this._responseQueue.length && (a = this._responseQueue[this._responseQueue.length - 1], /^\d+-/.test(a.split(`
+`).pop())) || this._processResponse();
     }
     /**
      * 'error' listener for the socket
@@ -8026,44 +5507,16 @@ function requireSmtpConnection() {
      * @param {Error} err Error object
      * @param {String} type Error name
      */
-    _onError(err, type, data, command) {
-      clearTimeout(this._connectionTimeout);
-      clearTimeout(this._greetingTimeout);
-      if (this._destroyed) {
+    _onError(t, i, d, a) {
+      if (clearTimeout(this._connectionTimeout), clearTimeout(this._greetingTimeout), this._destroyed)
         return;
-      }
-      err = this._formatError(err, type, data, command);
-      const transientCodes = ["ETIMEDOUT", "ESOCKET", "ECONNECTION"];
-      if (transientCodes.includes(err.code)) {
-        this.logger.warn(data, err.message);
-      } else {
-        this.logger.error(data, err.message);
-      }
-      this.emit("error", err);
-      this.close();
+      t = this._formatError(t, i, d, a), ["ETIMEDOUT", "ESOCKET", "ECONNECTION"].includes(t.code) ? this.logger.warn(d, t.message) : this.logger.error(d, t.message), this.emit("error", t), this.close();
     }
-    _formatError(message, type, response, command) {
-      let err;
-      if (/Error\]$/i.test(Object.prototype.toString.call(message))) {
-        err = message;
-      } else {
-        err = new Error(message);
-      }
-      if (type && type !== "Error") {
-        err.code = type;
-      }
-      if (response) {
-        err.response = response;
-        err.message += ": " + response;
-      }
-      let responseCode = typeof response === "string" && Number((response.match(/^\d+/) || [])[0]) || false;
-      if (responseCode) {
-        err.responseCode = responseCode;
-      }
-      if (command) {
-        err.command = command;
-      }
-      return err;
+    _formatError(t, i, d, a) {
+      let h;
+      /Error\]$/i.test(Object.prototype.toString.call(t)) ? h = t : h = new Error(t), i && i !== "Error" && (h.code = i), d && (h.response = d, h.message += ": " + d);
+      let u = typeof d == "string" && Number((d.match(/^\d+/) || [])[0]) || !1;
+      return u && (h.responseCode = u), a && (h.command = a), h;
     }
     /**
      * 'close' listener for the socket
@@ -8071,31 +5524,23 @@ function requireSmtpConnection() {
      * @event
      */
     _onClose() {
-      let serverResponse = false;
-      if (this._remainder && this._remainder.trim()) {
-        if (this.options.debug || this.options.transactionLog) {
-          this.logger.debug(
-            {
-              tnx: "server"
-            },
-            this._remainder.replace(/\r?\n$/, "")
-          );
-        }
-        this.lastServerResponse = serverResponse = this._remainder.trim();
-      }
-      this.logger.info(
+      let t = !1;
+      if (this._remainder && this._remainder.trim() && ((this.options.debug || this.options.transactionLog) && this.logger.debug(
+        {
+          tnx: "server"
+        },
+        this._remainder.replace(/\r?\n$/, "")
+      ), this.lastServerResponse = t = this._remainder.trim()), this.logger.info(
         {
           tnx: "network"
         },
         "Connection closed"
-      );
-      if (this.upgrading && !this._destroyed) {
-        return this._onError(new Error("Connection closed unexpectedly"), "ETLS", serverResponse, "CONN");
-      } else if (![this._actionGreeting, this.close].includes(this._responseActions[0]) && !this._destroyed) {
-        return this._onError(new Error("Connection closed unexpectedly"), "ECONNECTION", serverResponse, "CONN");
-      } else if (/^[45]\d{2}\b/.test(serverResponse)) {
-        return this._onError(new Error("Connection closed unexpectedly"), "ECONNECTION", serverResponse, "CONN");
-      }
+      ), this.upgrading && !this._destroyed)
+        return this._onError(new Error("Connection closed unexpectedly"), "ETLS", t, "CONN");
+      if (![this._actionGreeting, this.close].includes(this._responseActions[0]) && !this._destroyed)
+        return this._onError(new Error("Connection closed unexpectedly"), "ECONNECTION", t, "CONN");
+      if (/^[45]\d{2}\b/.test(t))
+        return this._onError(new Error("Connection closed unexpectedly"), "ECONNECTION", t, "CONN");
       this._destroy();
     }
     /**
@@ -8104,9 +5549,7 @@ function requireSmtpConnection() {
      * @event
      */
     _onEnd() {
-      if (this._socket && !this._socket.destroyed) {
-        this._socket.destroy();
-      }
+      this._socket && !this._socket.destroyed && this._socket.destroy();
     }
     /**
      * 'timeout' listener for the socket
@@ -8114,17 +5557,13 @@ function requireSmtpConnection() {
      * @event
      */
     _onTimeout() {
-      return this._onError(new Error("Timeout"), "ETIMEDOUT", false, "CONN");
+      return this._onError(new Error("Timeout"), "ETIMEDOUT", !1, "CONN");
     }
     /**
      * Destroys the client, emits 'end'
      */
     _destroy() {
-      if (this._destroyed) {
-        return;
-      }
-      this._destroyed = true;
-      this.emit("end");
+      this._destroyed || (this._destroyed = !0, this.emit("end"));
     }
     /**
      * Upgrades the connection to TLS
@@ -8132,40 +5571,21 @@ function requireSmtpConnection() {
      * @param {Function} callback Callback function to run when the connection
      *        has been secured
      */
-    _upgradeConnection(callback) {
-      this._socket.removeListener("data", this._onSocketData);
-      this._socket.removeListener("timeout", this._onSocketTimeout);
-      let socketPlain = this._socket;
-      let opts = {
+    _upgradeConnection(t) {
+      this._socket.removeListener("data", this._onSocketData), this._socket.removeListener("timeout", this._onSocketTimeout);
+      let i = this._socket, d = {
         socket: this._socket,
         host: this.host
       };
-      Object.keys(this.options.tls || {}).forEach((key) => {
-        opts[key] = this.options.tls[key];
-      });
-      if (this.servername && !opts.servername) {
-        opts.servername = this.servername;
-      }
-      this.upgrading = true;
+      Object.keys(this.options.tls || {}).forEach((a) => {
+        d[a] = this.options.tls[a];
+      }), this.servername && !d.servername && (d.servername = this.servername), this.upgrading = !0;
       try {
-        this._socket = tls.connect(opts, () => {
-          this.secure = true;
-          this.upgrading = false;
-          this._socket.on("data", this._onSocketData);
-          socketPlain.removeListener("close", this._onSocketClose);
-          socketPlain.removeListener("end", this._onSocketEnd);
-          socketPlain.removeListener("error", this._onSocketError);
-          return callback(null, true);
-        });
-      } catch (err) {
-        return callback(err);
+        this._socket = f.connect(d, () => (this.secure = !0, this.upgrading = !1, this._socket.on("data", this._onSocketData), i.removeListener("close", this._onSocketClose), i.removeListener("end", this._onSocketEnd), i.removeListener("error", this._onSocketError), t(null, !0)));
+      } catch (a) {
+        return t(a);
       }
-      this._socket.on("error", this._onSocketError);
-      this._socket.once("close", this._onSocketClose);
-      this._socket.once("end", this._onSocketEnd);
-      this._socket.setTimeout(this.options.socketTimeout || SOCKET_TIMEOUT);
-      this._socket.on("timeout", this._onSocketTimeout);
-      socketPlain.resume();
+      this._socket.on("error", this._onSocketError), this._socket.once("close", this._onSocketClose), this._socket.once("end", this._onSocketEnd), this._socket.setTimeout(this.options.socketTimeout || l), this._socket.on("timeout", this._onSocketTimeout), i.resume();
     }
     /**
      * Processes queued responses from the server
@@ -8173,31 +5593,23 @@ function requireSmtpConnection() {
      * @param {Boolean} force If true, ignores _processing flag
      */
     _processResponse() {
-      if (!this._responseQueue.length) {
-        return false;
-      }
-      let str = this.lastServerResponse = (this._responseQueue.shift() || "").toString();
-      if (/^\d+-/.test(str.split("\n").pop())) {
+      if (!this._responseQueue.length)
+        return !1;
+      let t = this.lastServerResponse = (this._responseQueue.shift() || "").toString();
+      if (/^\d+-/.test(t.split(`
+`).pop()))
         return;
-      }
-      if (this.options.debug || this.options.transactionLog) {
-        this.logger.debug(
-          {
-            tnx: "server"
-          },
-          str.replace(/\r?\n$/, "")
-        );
-      }
-      if (!str.trim()) {
-        setImmediate(() => this._processResponse());
-      }
-      let action = this._responseActions.shift();
-      if (typeof action === "function") {
-        action.call(this, str);
-        setImmediate(() => this._processResponse());
-      } else {
-        return this._onError(new Error("Unexpected Response"), "EPROTOCOL", str, "CONN");
-      }
+      (this.options.debug || this.options.transactionLog) && this.logger.debug(
+        {
+          tnx: "server"
+        },
+        t.replace(/\r?\n$/, "")
+      ), t.trim() || setImmediate(() => this._processResponse());
+      let i = this._responseActions.shift();
+      if (typeof i == "function")
+        i.call(this, t), setImmediate(() => this._processResponse());
+      else
+        return this._onError(new Error("Unexpected Response"), "EPROTOCOL", t, "CONN");
     }
     /**
      * Send a command to the server, append \r\n
@@ -8205,22 +5617,18 @@ function requireSmtpConnection() {
      * @param {String} str String to be sent to the server
      * @param {String} logStr Optional string to be used for logging instead of the actual string
      */
-    _sendCommand(str, logStr) {
-      if (this._destroyed) {
-        return;
-      }
-      if (this._socket.destroyed) {
-        return this.close();
-      }
-      if (this.options.debug || this.options.transactionLog) {
-        this.logger.debug(
+    _sendCommand(t, i) {
+      if (!this._destroyed) {
+        if (this._socket.destroyed)
+          return this.close();
+        (this.options.debug || this.options.transactionLog) && this.logger.debug(
           {
             tnx: "client"
           },
-          (logStr || str || "").toString().replace(/\r?\n$/, "")
-        );
+          (i || t || "").toString().replace(/\r?\n$/, "")
+        ), this._socket.write(Buffer.from(t + `\r
+`, "utf-8"));
       }
-      this._socket.write(Buffer.from(str + "\r\n", "utf-8"));
     }
     /**
      * Initiates a new message by submitting envelope data, starting with
@@ -8231,177 +5639,106 @@ function requireSmtpConnection() {
      *        or
      *        {from:{address:'...',name:'...'}, to:[address:'...',name:'...']}
      */
-    _setEnvelope(envelope, callback) {
-      let args = [];
-      let useSmtpUtf8 = false;
-      this._envelope = envelope || {};
-      this._envelope.from = (this._envelope.from && this._envelope.from.address || this._envelope.from || "").toString().trim();
-      this._envelope.to = [].concat(this._envelope.to || []).map((to) => (to && to.address || to || "").toString().trim());
-      if (!this._envelope.to.length) {
-        return callback(this._formatError("No recipients defined", "EENVELOPE", false, "API"));
+    _setEnvelope(t, i) {
+      let d = [], a = !1;
+      if (this._envelope = t || {}, this._envelope.from = (this._envelope.from && this._envelope.from.address || this._envelope.from || "").toString().trim(), this._envelope.to = [].concat(this._envelope.to || []).map((h) => (h && h.address || h || "").toString().trim()), !this._envelope.to.length)
+        return i(this._formatError("No recipients defined", "EENVELOPE", !1, "API"));
+      if (this._envelope.from && /[\r\n<>]/.test(this._envelope.from))
+        return i(this._formatError("Invalid sender " + JSON.stringify(this._envelope.from), "EENVELOPE", !1, "API"));
+      /[\x80-\uFFFF]/.test(this._envelope.from) && (a = !0);
+      for (let h = 0, u = this._envelope.to.length; h < u; h++) {
+        if (!this._envelope.to[h] || /[\r\n<>]/.test(this._envelope.to[h]))
+          return i(this._formatError("Invalid recipient " + JSON.stringify(this._envelope.to[h]), "EENVELOPE", !1, "API"));
+        /[\x80-\uFFFF]/.test(this._envelope.to[h]) && (a = !0);
       }
-      if (this._envelope.from && /[\r\n<>]/.test(this._envelope.from)) {
-        return callback(this._formatError("Invalid sender " + JSON.stringify(this._envelope.from), "EENVELOPE", false, "API"));
-      }
-      if (/[\x80-\uFFFF]/.test(this._envelope.from)) {
-        useSmtpUtf8 = true;
-      }
-      for (let i = 0, len = this._envelope.to.length; i < len; i++) {
-        if (!this._envelope.to[i] || /[\r\n<>]/.test(this._envelope.to[i])) {
-          return callback(this._formatError("Invalid recipient " + JSON.stringify(this._envelope.to[i]), "EENVELOPE", false, "API"));
-        }
-        if (/[\x80-\uFFFF]/.test(this._envelope.to[i])) {
-          useSmtpUtf8 = true;
-        }
-      }
-      this._envelope.rcptQueue = JSON.parse(JSON.stringify(this._envelope.to || []));
-      this._envelope.rejected = [];
-      this._envelope.rejectedErrors = [];
-      this._envelope.accepted = [];
-      if (this._envelope.dsn) {
+      if (this._envelope.rcptQueue = JSON.parse(JSON.stringify(this._envelope.to || [])), this._envelope.rejected = [], this._envelope.rejectedErrors = [], this._envelope.accepted = [], this._envelope.dsn)
         try {
           this._envelope.dsn = this._setDsnEnvelope(this._envelope.dsn);
-        } catch (err) {
-          return callback(this._formatError("Invalid DSN " + err.message, "EENVELOPE", false, "API"));
+        } catch (h) {
+          return i(this._formatError("Invalid DSN " + h.message, "EENVELOPE", !1, "API"));
         }
-      }
-      this._responseActions.push((str) => {
-        this._actionMAIL(str, callback);
-      });
-      if (useSmtpUtf8 && this._supportedExtensions.includes("SMTPUTF8")) {
-        args.push("SMTPUTF8");
-        this._usingSmtpUtf8 = true;
-      }
-      if (this._envelope.use8BitMime && this._supportedExtensions.includes("8BITMIME")) {
-        args.push("BODY=8BITMIME");
-        this._using8BitMime = true;
-      }
-      if (this._envelope.size && this._supportedExtensions.includes("SIZE")) {
-        args.push("SIZE=" + this._envelope.size);
-      }
-      if (this._envelope.dsn && this._supportedExtensions.includes("DSN")) {
-        if (this._envelope.dsn.ret) {
-          args.push("RET=" + shared2.encodeXText(this._envelope.dsn.ret));
-        }
-        if (this._envelope.dsn.envid) {
-          args.push("ENVID=" + shared2.encodeXText(this._envelope.dsn.envid));
-        }
-      }
-      if (this._envelope.requireTLSExtensionEnabled) {
-        if (!this.secure) {
-          return callback(
-            this._formatError("REQUIRETLS can only be used over TLS connections (RFC 8689)", "EREQUIRETLS", false, "MAIL FROM")
+      if (this._responseActions.push((h) => {
+        this._actionMAIL(h, i);
+      }), a && this._supportedExtensions.includes("SMTPUTF8") && (d.push("SMTPUTF8"), this._usingSmtpUtf8 = !0), this._envelope.use8BitMime && this._supportedExtensions.includes("8BITMIME") && (d.push("BODY=8BITMIME"), this._using8BitMime = !0), this._envelope.size && this._supportedExtensions.includes("SIZE") && d.push("SIZE=" + this._envelope.size), this._envelope.dsn && this._supportedExtensions.includes("DSN") && (this._envelope.dsn.ret && d.push("RET=" + m.encodeXText(this._envelope.dsn.ret)), this._envelope.dsn.envid && d.push("ENVID=" + m.encodeXText(this._envelope.dsn.envid))), this._envelope.requireTLSExtensionEnabled) {
+        if (!this.secure)
+          return i(
+            this._formatError("REQUIRETLS can only be used over TLS connections (RFC 8689)", "EREQUIRETLS", !1, "MAIL FROM")
           );
-        }
-        if (!this._supportedExtensions.includes("REQUIRETLS")) {
-          return callback(
-            this._formatError("Server does not support REQUIRETLS extension (RFC 8689)", "EREQUIRETLS", false, "MAIL FROM")
+        if (!this._supportedExtensions.includes("REQUIRETLS"))
+          return i(
+            this._formatError("Server does not support REQUIRETLS extension (RFC 8689)", "EREQUIRETLS", !1, "MAIL FROM")
           );
-        }
-        args.push("REQUIRETLS");
+        d.push("REQUIRETLS");
       }
-      this._sendCommand("MAIL FROM:<" + this._envelope.from + ">" + (args.length ? " " + args.join(" ") : ""));
+      this._sendCommand("MAIL FROM:<" + this._envelope.from + ">" + (d.length ? " " + d.join(" ") : ""));
     }
-    _setDsnEnvelope(params) {
-      let ret = (params.ret || params.return || "").toString().toUpperCase() || null;
-      if (ret) {
-        switch (ret) {
+    _setDsnEnvelope(t) {
+      let i = (t.ret || t.return || "").toString().toUpperCase() || null;
+      if (i)
+        switch (i) {
           case "HDRS":
           case "HEADERS":
-            ret = "HDRS";
+            i = "HDRS";
             break;
           case "FULL":
           case "BODY":
-            ret = "FULL";
+            i = "FULL";
             break;
         }
+      if (i && !["FULL", "HDRS"].includes(i))
+        throw new Error("ret: " + JSON.stringify(i));
+      let d = (t.envid || t.id || "").toString() || null, a = t.notify || null;
+      if (a) {
+        typeof a == "string" && (a = a.split(",")), a = a.map((w) => w.trim().toUpperCase());
+        let u = ["NEVER", "SUCCESS", "FAILURE", "DELAY"];
+        if (a.filter((w) => !u.includes(w)).length || a.length > 1 && a.includes("NEVER"))
+          throw new Error("notify: " + JSON.stringify(a.join(",")));
+        a = a.join(",");
       }
-      if (ret && !["FULL", "HDRS"].includes(ret)) {
-        throw new Error("ret: " + JSON.stringify(ret));
-      }
-      let envid = (params.envid || params.id || "").toString() || null;
-      let notify = params.notify || null;
-      if (notify) {
-        if (typeof notify === "string") {
-          notify = notify.split(",");
-        }
-        notify = notify.map((n) => n.trim().toUpperCase());
-        let validNotify = ["NEVER", "SUCCESS", "FAILURE", "DELAY"];
-        let invalidNotify = notify.filter((n) => !validNotify.includes(n));
-        if (invalidNotify.length || notify.length > 1 && notify.includes("NEVER")) {
-          throw new Error("notify: " + JSON.stringify(notify.join(",")));
-        }
-        notify = notify.join(",");
-      }
-      let orcpt = (params.recipient || params.orcpt || "").toString() || null;
-      if (orcpt && orcpt.indexOf(";") < 0) {
-        orcpt = "rfc822;" + orcpt;
-      }
-      return {
-        ret,
-        envid,
-        notify,
-        orcpt
+      let h = (t.recipient || t.orcpt || "").toString() || null;
+      return h && h.indexOf(";") < 0 && (h = "rfc822;" + h), {
+        ret: i,
+        envid: d,
+        notify: a,
+        orcpt: h
       };
     }
     _getDsnRcptToArgs() {
-      let args = [];
-      if (this._envelope.dsn && this._supportedExtensions.includes("DSN")) {
-        if (this._envelope.dsn.notify) {
-          args.push("NOTIFY=" + shared2.encodeXText(this._envelope.dsn.notify));
-        }
-        if (this._envelope.dsn.orcpt) {
-          args.push("ORCPT=" + shared2.encodeXText(this._envelope.dsn.orcpt));
-        }
-      }
-      return args.length ? " " + args.join(" ") : "";
+      let t = [];
+      return this._envelope.dsn && this._supportedExtensions.includes("DSN") && (this._envelope.dsn.notify && t.push("NOTIFY=" + m.encodeXText(this._envelope.dsn.notify)), this._envelope.dsn.orcpt && t.push("ORCPT=" + m.encodeXText(this._envelope.dsn.orcpt))), t.length ? " " + t.join(" ") : "";
     }
-    _createSendStream(callback) {
-      let dataStream2 = new DataStream();
-      let logStream;
-      if (this.options.lmtp) {
-        this._envelope.accepted.forEach((recipient, i) => {
-          let final = i === this._envelope.accepted.length - 1;
-          this._responseActions.push((str) => {
-            this._actionLMTPStream(recipient, final, str, callback);
-          });
+    _createSendStream(t) {
+      let i = new r(), d;
+      return this.options.lmtp ? this._envelope.accepted.forEach((a, h) => {
+        let u = h === this._envelope.accepted.length - 1;
+        this._responseActions.push((_) => {
+          this._actionLMTPStream(a, u, _, t);
         });
-      } else {
-        this._responseActions.push((str) => {
-          this._actionSMTPStream(str, callback);
-        });
-      }
-      dataStream2.pipe(this._socket, {
-        end: false
-      });
-      if (this.options.debug) {
-        logStream = new PassThrough();
-        logStream.on("readable", () => {
-          let chunk;
-          while (chunk = logStream.read()) {
-            this.logger.debug(
-              {
-                tnx: "message"
-              },
-              chunk.toString("binary").replace(/\r?\n$/, "")
-            );
-          }
-        });
-        dataStream2.pipe(logStream);
-      }
-      dataStream2.once("end", () => {
+      }) : this._responseActions.push((a) => {
+        this._actionSMTPStream(a, t);
+      }), i.pipe(this._socket, {
+        end: !1
+      }), this.options.debug && (d = new o(), d.on("readable", () => {
+        let a;
+        for (; a = d.read(); )
+          this.logger.debug(
+            {
+              tnx: "message"
+            },
+            a.toString("binary").replace(/\r?\n$/, "")
+          );
+      }), i.pipe(d)), i.once("end", () => {
         this.logger.info(
           {
             tnx: "message",
-            inByteCount: dataStream2.inByteCount,
-            outByteCount: dataStream2.outByteCount
+            inByteCount: i.inByteCount,
+            outByteCount: i.outByteCount
           },
           "<%s bytes encoded mime message (source size %s bytes)>",
-          dataStream2.outByteCount,
-          dataStream2.inByteCount
+          i.outByteCount,
+          i.inByteCount
         );
-      });
-      return dataStream2;
+      }), i;
     }
     /** ACTIONS **/
     /**
@@ -8411,19 +5748,12 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionGreeting(str) {
-      clearTimeout(this._greetingTimeout);
-      if (str.substr(0, 3) !== "220") {
-        this._onError(new Error("Invalid greeting. response=" + str), "EPROTOCOL", str, "CONN");
+    _actionGreeting(t) {
+      if (clearTimeout(this._greetingTimeout), t.substr(0, 3) !== "220") {
+        this._onError(new Error("Invalid greeting. response=" + t), "EPROTOCOL", t, "CONN");
         return;
       }
-      if (this.options.lmtp) {
-        this._responseActions.push(this._actionLHLO);
-        this._sendCommand("LHLO " + this.name);
-      } else {
-        this._responseActions.push(this._actionEHLO);
-        this._sendCommand("EHLO " + this.name);
-      }
+      this.options.lmtp ? (this._responseActions.push(this._actionLHLO), this._sendCommand("LHLO " + this.name)) : (this._responseActions.push(this._actionEHLO), this._sendCommand("EHLO " + this.name));
     }
     /**
      * Handles server response for LHLO command. If it yielded in
@@ -8431,12 +5761,12 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionLHLO(str) {
-      if (str.charAt(0) !== "2") {
-        this._onError(new Error("Invalid LHLO. response=" + str), "EPROTOCOL", str, "LHLO");
+    _actionLHLO(t) {
+      if (t.charAt(0) !== "2") {
+        this._onError(new Error("Invalid LHLO. response=" + t), "EPROTOCOL", t, "LHLO");
         return;
       }
-      this._actionEHLO(str);
+      this._actionEHLO(t);
     }
     /**
      * Handles server response for EHLO command. If it yielded in
@@ -8446,67 +5776,30 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionEHLO(str) {
-      let match;
-      if (str.substr(0, 3) === "421") {
-        this._onError(new Error("Server terminates connection. response=" + str), "ECONNECTION", str, "EHLO");
+    _actionEHLO(t) {
+      let i;
+      if (t.substr(0, 3) === "421") {
+        this._onError(new Error("Server terminates connection. response=" + t), "ECONNECTION", t, "EHLO");
         return;
       }
-      if (str.charAt(0) !== "2") {
+      if (t.charAt(0) !== "2") {
         if (this.options.requireTLS) {
           this._onError(
-            new Error("EHLO failed but HELO does not support required STARTTLS. response=" + str),
+            new Error("EHLO failed but HELO does not support required STARTTLS. response=" + t),
             "ECONNECTION",
-            str,
+            t,
             "EHLO"
           );
           return;
         }
-        this._responseActions.push(this._actionHELO);
-        this._sendCommand("HELO " + this.name);
+        this._responseActions.push(this._actionHELO), this._sendCommand("HELO " + this.name);
         return;
       }
-      this._ehloLines = str.split(/\r?\n/).map((line) => line.replace(/^\d+[ -]/, "").trim()).filter((line) => line).slice(1);
-      if (!this.secure && !this.options.ignoreTLS && (/[ -]STARTTLS\b/im.test(str) || this.options.requireTLS)) {
-        this._sendCommand("STARTTLS");
-        this._responseActions.push(this._actionSTARTTLS);
+      if (this._ehloLines = t.split(/\r?\n/).map((d) => d.replace(/^\d+[ -]/, "").trim()).filter((d) => d).slice(1), !this.secure && !this.options.ignoreTLS && (/[ -]STARTTLS\b/im.test(t) || this.options.requireTLS)) {
+        this._sendCommand("STARTTLS"), this._responseActions.push(this._actionSTARTTLS);
         return;
       }
-      if (/[ -]SMTPUTF8\b/im.test(str)) {
-        this._supportedExtensions.push("SMTPUTF8");
-      }
-      if (/[ -]DSN\b/im.test(str)) {
-        this._supportedExtensions.push("DSN");
-      }
-      if (/[ -]8BITMIME\b/im.test(str)) {
-        this._supportedExtensions.push("8BITMIME");
-      }
-      if (/[ -]REQUIRETLS\b/im.test(str)) {
-        this._supportedExtensions.push("REQUIRETLS");
-      }
-      if (/[ -]PIPELINING\b/im.test(str)) {
-        this._supportedExtensions.push("PIPELINING");
-      }
-      if (/[ -]AUTH\b/i.test(str)) {
-        this.allowsAuth = true;
-      }
-      if (/[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)PLAIN/i.test(str)) {
-        this._supportedAuth.push("PLAIN");
-      }
-      if (/[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)LOGIN/i.test(str)) {
-        this._supportedAuth.push("LOGIN");
-      }
-      if (/[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)CRAM-MD5/i.test(str)) {
-        this._supportedAuth.push("CRAM-MD5");
-      }
-      if (/[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)XOAUTH2/i.test(str)) {
-        this._supportedAuth.push("XOAUTH2");
-      }
-      if (match = str.match(/[ -]SIZE(?:[ \t]+(\d+))?/im)) {
-        this._supportedExtensions.push("SIZE");
-        this._maxAllowedSize = Number(match[1]) || 0;
-      }
-      this.emit("connect");
+      /[ -]SMTPUTF8\b/im.test(t) && this._supportedExtensions.push("SMTPUTF8"), /[ -]DSN\b/im.test(t) && this._supportedExtensions.push("DSN"), /[ -]8BITMIME\b/im.test(t) && this._supportedExtensions.push("8BITMIME"), /[ -]REQUIRETLS\b/im.test(t) && this._supportedExtensions.push("REQUIRETLS"), /[ -]PIPELINING\b/im.test(t) && this._supportedExtensions.push("PIPELINING"), /[ -]AUTH\b/i.test(t) && (this.allowsAuth = !0), /[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)PLAIN/i.test(t) && this._supportedAuth.push("PLAIN"), /[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)LOGIN/i.test(t) && this._supportedAuth.push("LOGIN"), /[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)CRAM-MD5/i.test(t) && this._supportedAuth.push("CRAM-MD5"), /[ -]AUTH(?:(\s+|=)[^\n]*\s+|\s+|=)XOAUTH2/i.test(t) && this._supportedAuth.push("XOAUTH2"), (i = t.match(/[ -]SIZE(?:[ \t]+(\d+))?/im)) && (this._supportedExtensions.push("SIZE"), this._maxAllowedSize = Number(i[1]) || 0), this.emit("connect");
     }
     /**
      * Handles server response for HELO command. If it yielded in
@@ -8514,13 +5807,12 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionHELO(str) {
-      if (str.charAt(0) !== "2") {
-        this._onError(new Error("Invalid HELO. response=" + str), "EPROTOCOL", str, "HELO");
+    _actionHELO(t) {
+      if (t.charAt(0) !== "2") {
+        this._onError(new Error("Invalid HELO. response=" + t), "EPROTOCOL", t, "HELO");
         return;
       }
-      this.allowsAuth = true;
-      this.emit("connect");
+      this.allowsAuth = !0, this.emit("connect");
     }
     /**
      * Handles server response for STARTTLS command. If there's an error
@@ -8529,23 +5821,21 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionSTARTTLS(str) {
-      if (str.charAt(0) !== "2") {
-        if (this.options.opportunisticTLS) {
-          this.logger.info(
+    _actionSTARTTLS(t) {
+      if (t.charAt(0) !== "2") {
+        if (this.options.opportunisticTLS)
+          return this.logger.info(
             {
               tnx: "smtp"
             },
             "Failed STARTTLS upgrade, continuing unencrypted"
-          );
-          return this.emit("connect");
-        }
-        this._onError(new Error("Error upgrading connection with STARTTLS"), "ETLS", str, "STARTTLS");
+          ), this.emit("connect");
+        this._onError(new Error("Error upgrading connection with STARTTLS"), "ETLS", t, "STARTTLS");
         return;
       }
-      this._upgradeConnection((err, secured) => {
-        if (err) {
-          this._onError(new Error("Error initiating TLS - " + (err.message || err)), "ETLS", false, "STARTTLS");
+      this._upgradeConnection((i, d) => {
+        if (i) {
+          this._onError(new Error("Error initiating TLS - " + (i.message || i)), "ETLS", !1, "STARTTLS");
           return;
         }
         this.logger.info(
@@ -8553,18 +5843,7 @@ function requireSmtpConnection() {
             tnx: "smtp"
           },
           "Connection upgraded with STARTTLS"
-        );
-        if (secured) {
-          if (this.options.lmtp) {
-            this._responseActions.push(this._actionLHLO);
-            this._sendCommand("LHLO " + this.name);
-          } else {
-            this._responseActions.push(this._actionEHLO);
-            this._sendCommand("EHLO " + this.name);
-          }
-        } else {
-          this.emit("connect");
-        }
+        ), d ? this.options.lmtp ? (this._responseActions.push(this._actionLHLO), this._sendCommand("LHLO " + this.name)) : (this._responseActions.push(this._actionEHLO), this._sendCommand("EHLO " + this.name)) : this.emit("connect");
       });
     }
     /**
@@ -8576,15 +5855,14 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionAUTH_LOGIN_USER(str, callback) {
-      if (!/^334[ -]/.test(str)) {
-        callback(this._formatError('Invalid login sequence while waiting for "334 VXNlcm5hbWU6"', "EAUTH", str, "AUTH LOGIN"));
+    _actionAUTH_LOGIN_USER(t, i) {
+      if (!/^334[ -]/.test(t)) {
+        i(this._formatError('Invalid login sequence while waiting for "334 VXNlcm5hbWU6"', "EAUTH", t, "AUTH LOGIN"));
         return;
       }
-      this._responseActions.push((str2) => {
-        this._actionAUTH_LOGIN_PASS(str2, callback);
-      });
-      this._sendCommand(Buffer.from(this._auth.credentials.user + "", "utf-8").toString("base64"));
+      this._responseActions.push((d) => {
+        this._actionAUTH_LOGIN_PASS(d, i);
+      }), this._sendCommand(Buffer.from(this._auth.credentials.user + "", "utf-8").toString("base64"));
     }
     /**
      * Handle the response for AUTH CRAM-MD5 command. We are expecting
@@ -8595,24 +5873,21 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionAUTH_CRAM_MD5(str, callback) {
-      let challengeMatch = str.match(/^334\s+(.+)$/);
-      let challengeString = "";
-      if (!challengeMatch) {
-        return callback(
-          this._formatError("Invalid login sequence while waiting for server challenge string", "EAUTH", str, "AUTH CRAM-MD5")
+    _actionAUTH_CRAM_MD5(t, i) {
+      let d = t.match(/^334\s+(.+)$/), a = "";
+      if (d)
+        a = d[1];
+      else
+        return i(
+          this._formatError("Invalid login sequence while waiting for server challenge string", "EAUTH", t, "AUTH CRAM-MD5")
         );
-      } else {
-        challengeString = challengeMatch[1];
-      }
-      let base64decoded = Buffer.from(challengeString, "base64").toString("ascii"), hmacMD5 = crypto.createHmac("md5", this._auth.credentials.pass);
-      hmacMD5.update(base64decoded);
-      let prepended = this._auth.credentials.user + " " + hmacMD5.digest("hex");
-      this._responseActions.push((str2) => {
-        this._actionAUTH_CRAM_MD5_PASS(str2, callback);
-      });
-      this._sendCommand(
-        Buffer.from(prepended).toString("base64"),
+      let h = Buffer.from(a, "base64").toString("ascii"), u = n.createHmac("md5", this._auth.credentials.pass);
+      u.update(h);
+      let _ = this._auth.credentials.user + " " + u.digest("hex");
+      this._responseActions.push((w) => {
+        this._actionAUTH_CRAM_MD5_PASS(w, i);
+      }), this._sendCommand(
+        Buffer.from(_).toString("base64"),
         // hidden hash for logs
         Buffer.from(this._auth.credentials.user + " /* secret */").toString("base64")
       );
@@ -8623,10 +5898,9 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionAUTH_CRAM_MD5_PASS(str, callback) {
-      if (!str.match(/^235\s+/)) {
-        return callback(this._formatError('Invalid login sequence while waiting for "235"', "EAUTH", str, "AUTH CRAM-MD5"));
-      }
+    _actionAUTH_CRAM_MD5_PASS(t, i) {
+      if (!t.match(/^235\s+/))
+        return i(this._formatError('Invalid login sequence while waiting for "235"', "EAUTH", t, "AUTH CRAM-MD5"));
       this.logger.info(
         {
           tnx: "smtp",
@@ -8636,9 +5910,7 @@ function requireSmtpConnection() {
         },
         "User %s authenticated",
         JSON.stringify(this._auth.user)
-      );
-      this.authenticated = true;
-      callback(null, true);
+      ), this.authenticated = !0, i(null, !0);
     }
     /**
      * Handle the response for AUTH LOGIN command. We are expecting
@@ -8647,14 +5919,12 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionAUTH_LOGIN_PASS(str, callback) {
-      if (!/^334[ -]/.test(str)) {
-        return callback(this._formatError('Invalid login sequence while waiting for "334 UGFzc3dvcmQ6"', "EAUTH", str, "AUTH LOGIN"));
-      }
-      this._responseActions.push((str2) => {
-        this._actionAUTHComplete(str2, callback);
-      });
-      this._sendCommand(
+    _actionAUTH_LOGIN_PASS(t, i) {
+      if (!/^334[ -]/.test(t))
+        return i(this._formatError('Invalid login sequence while waiting for "334 UGFzc3dvcmQ6"', "EAUTH", t, "AUTH LOGIN"));
+      this._responseActions.push((d) => {
+        this._actionAUTHComplete(d, i);
+      }), this._sendCommand(
         Buffer.from((this._auth.credentials.pass || "").toString(), "utf-8").toString("base64"),
         // Hidden pass for logs
         Buffer.from("/* secret */", "utf-8").toString("base64")
@@ -8666,24 +5936,15 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionAUTHComplete(str, isRetry, callback) {
-      if (!callback && typeof isRetry === "function") {
-        callback = isRetry;
-        isRetry = false;
-      }
-      if (str.substr(0, 3) === "334") {
-        this._responseActions.push((str2) => {
-          if (isRetry || this._authMethod !== "XOAUTH2") {
-            this._actionAUTHComplete(str2, true, callback);
-          } else {
-            setImmediate(() => this._handleXOauth2Token(true, callback));
-          }
-        });
-        this._sendCommand("");
+    _actionAUTHComplete(t, i, d) {
+      if (!d && typeof i == "function" && (d = i, i = !1), t.substr(0, 3) === "334") {
+        this._responseActions.push((a) => {
+          i || this._authMethod !== "XOAUTH2" ? this._actionAUTHComplete(a, !0, d) : setImmediate(() => this._handleXOauth2Token(!0, d));
+        }), this._sendCommand("");
         return;
       }
-      if (str.charAt(0) !== "2") {
-        this.logger.info(
+      if (t.charAt(0) !== "2")
+        return this.logger.info(
           {
             tnx: "smtp",
             username: this._auth.user,
@@ -8692,9 +5953,7 @@ function requireSmtpConnection() {
           },
           "User %s failed to authenticate",
           JSON.stringify(this._auth.user)
-        );
-        return callback(this._formatError("Invalid login", "EAUTH", str, "AUTH " + this._authMethod));
-      }
+        ), d(this._formatError("Invalid login", "EAUTH", t, "AUTH " + this._authMethod));
       this.logger.info(
         {
           tnx: "smtp",
@@ -8704,109 +5963,61 @@ function requireSmtpConnection() {
         },
         "User %s authenticated",
         JSON.stringify(this._auth.user)
-      );
-      this.authenticated = true;
-      callback(null, true);
+      ), this.authenticated = !0, d(null, !0);
     }
     /**
      * Handle response for a MAIL FROM: command
      *
      * @param {String} str Message from the server
      */
-    _actionMAIL(str, callback) {
-      let message, curRecipient;
-      if (Number(str.charAt(0)) !== 2) {
-        if (this._usingSmtpUtf8 && /^550 /.test(str) && /[\x80-\uFFFF]/.test(this._envelope.from)) {
-          message = "Internationalized mailbox name not allowed";
-        } else {
-          message = "Mail command failed";
-        }
-        return callback(this._formatError(message, "EENVELOPE", str, "MAIL FROM"));
-      }
-      if (!this._envelope.rcptQueue.length) {
-        return callback(this._formatError("Can't send mail - no recipients defined", "EENVELOPE", false, "API"));
-      } else {
-        this._recipientQueue = [];
-        if (this._supportedExtensions.includes("PIPELINING")) {
-          while (this._envelope.rcptQueue.length) {
-            curRecipient = this._envelope.rcptQueue.shift();
-            this._recipientQueue.push(curRecipient);
-            this._responseActions.push((str2) => {
-              this._actionRCPT(str2, callback);
-            });
-            this._sendCommand("RCPT TO:<" + curRecipient + ">" + this._getDsnRcptToArgs());
-          }
-        } else {
-          curRecipient = this._envelope.rcptQueue.shift();
-          this._recipientQueue.push(curRecipient);
-          this._responseActions.push((str2) => {
-            this._actionRCPT(str2, callback);
-          });
-          this._sendCommand("RCPT TO:<" + curRecipient + ">" + this._getDsnRcptToArgs());
-        }
-      }
+    _actionMAIL(t, i) {
+      let d, a;
+      if (Number(t.charAt(0)) !== 2)
+        return this._usingSmtpUtf8 && /^550 /.test(t) && /[\x80-\uFFFF]/.test(this._envelope.from) ? d = "Internationalized mailbox name not allowed" : d = "Mail command failed", i(this._formatError(d, "EENVELOPE", t, "MAIL FROM"));
+      if (this._envelope.rcptQueue.length)
+        if (this._recipientQueue = [], this._supportedExtensions.includes("PIPELINING"))
+          for (; this._envelope.rcptQueue.length; )
+            a = this._envelope.rcptQueue.shift(), this._recipientQueue.push(a), this._responseActions.push((h) => {
+              this._actionRCPT(h, i);
+            }), this._sendCommand("RCPT TO:<" + a + ">" + this._getDsnRcptToArgs());
+        else
+          a = this._envelope.rcptQueue.shift(), this._recipientQueue.push(a), this._responseActions.push((h) => {
+            this._actionRCPT(h, i);
+          }), this._sendCommand("RCPT TO:<" + a + ">" + this._getDsnRcptToArgs());
+      else
+        return i(this._formatError("Can't send mail - no recipients defined", "EENVELOPE", !1, "API"));
     }
     /**
      * Handle response for a RCPT TO: command
      *
      * @param {String} str Message from the server
      */
-    _actionRCPT(str, callback) {
-      let message, err, curRecipient = this._recipientQueue.shift();
-      if (Number(str.charAt(0)) !== 2) {
-        if (this._usingSmtpUtf8 && /^553 /.test(str) && /[\x80-\uFFFF]/.test(curRecipient)) {
-          message = "Internationalized mailbox name not allowed";
-        } else {
-          message = "Recipient command failed";
-        }
-        this._envelope.rejected.push(curRecipient);
-        err = this._formatError(message, "EENVELOPE", str, "RCPT TO");
-        err.recipient = curRecipient;
-        this._envelope.rejectedErrors.push(err);
-      } else {
-        this._envelope.accepted.push(curRecipient);
-      }
-      if (!this._envelope.rcptQueue.length && !this._recipientQueue.length) {
-        if (this._envelope.rejected.length < this._envelope.to.length) {
-          this._responseActions.push((str2) => {
-            this._actionDATA(str2, callback);
-          });
-          this._sendCommand("DATA");
-        } else {
-          err = this._formatError("Can't send mail - all recipients were rejected", "EENVELOPE", str, "RCPT TO");
-          err.rejected = this._envelope.rejected;
-          err.rejectedErrors = this._envelope.rejectedErrors;
-          return callback(err);
-        }
-      } else if (this._envelope.rcptQueue.length) {
-        curRecipient = this._envelope.rcptQueue.shift();
-        this._recipientQueue.push(curRecipient);
-        this._responseActions.push((str2) => {
-          this._actionRCPT(str2, callback);
-        });
-        this._sendCommand("RCPT TO:<" + curRecipient + ">" + this._getDsnRcptToArgs());
-      }
+    _actionRCPT(t, i) {
+      let d, a, h = this._recipientQueue.shift();
+      if (Number(t.charAt(0)) !== 2 ? (this._usingSmtpUtf8 && /^553 /.test(t) && /[\x80-\uFFFF]/.test(h) ? d = "Internationalized mailbox name not allowed" : d = "Recipient command failed", this._envelope.rejected.push(h), a = this._formatError(d, "EENVELOPE", t, "RCPT TO"), a.recipient = h, this._envelope.rejectedErrors.push(a)) : this._envelope.accepted.push(h), !this._envelope.rcptQueue.length && !this._recipientQueue.length)
+        if (this._envelope.rejected.length < this._envelope.to.length)
+          this._responseActions.push((u) => {
+            this._actionDATA(u, i);
+          }), this._sendCommand("DATA");
+        else
+          return a = this._formatError("Can't send mail - all recipients were rejected", "EENVELOPE", t, "RCPT TO"), a.rejected = this._envelope.rejected, a.rejectedErrors = this._envelope.rejectedErrors, i(a);
+      else this._envelope.rcptQueue.length && (h = this._envelope.rcptQueue.shift(), this._recipientQueue.push(h), this._responseActions.push((u) => {
+        this._actionRCPT(u, i);
+      }), this._sendCommand("RCPT TO:<" + h + ">" + this._getDsnRcptToArgs()));
     }
     /**
      * Handle response for a DATA command
      *
      * @param {String} str Message from the server
      */
-    _actionDATA(str, callback) {
-      if (!/^[23]/.test(str)) {
-        return callback(this._formatError("Data command failed", "EENVELOPE", str, "DATA"));
-      }
-      let response = {
+    _actionDATA(t, i) {
+      if (!/^[23]/.test(t))
+        return i(this._formatError("Data command failed", "EENVELOPE", t, "DATA"));
+      let d = {
         accepted: this._envelope.accepted,
         rejected: this._envelope.rejected
       };
-      if (this._ehloLines && this._ehloLines.length) {
-        response.ehlo = this._ehloLines;
-      }
-      if (this._envelope.rejectedErrors.length) {
-        response.rejectedErrors = this._envelope.rejectedErrors;
-      }
-      callback(null, response);
+      this._ehloLines && this._ehloLines.length && (d.ehlo = this._ehloLines), this._envelope.rejectedErrors.length && (d.rejectedErrors = this._envelope.rejectedErrors), i(null, d);
     }
     /**
      * Handle response for a DATA stream when using SMTP
@@ -8814,12 +6025,8 @@ function requireSmtpConnection() {
      *
      * @param {String} str Message from the server
      */
-    _actionSMTPStream(str, callback) {
-      if (Number(str.charAt(0)) !== 2) {
-        return callback(this._formatError("Message failed", "EMESSAGE", str, "DATA"));
-      } else {
-        return callback(null, str);
-      }
+    _actionSMTPStream(t, i) {
+      return Number(t.charAt(0)) !== 2 ? i(this._formatError("Message failed", "EMESSAGE", t, "DATA")) : i(null, t);
     }
     /**
      * Handle response for a DATA stream
@@ -8830,27 +6037,20 @@ function requireSmtpConnection() {
      * @param {Boolean} final Is this the final recipient?
      * @param {String} str Message from the server
      */
-    _actionLMTPStream(recipient, final, str, callback) {
-      let err;
-      if (Number(str.charAt(0)) !== 2) {
-        err = this._formatError("Message failed for recipient " + recipient, "EMESSAGE", str, "DATA");
-        err.recipient = recipient;
-        this._envelope.rejected.push(recipient);
-        this._envelope.rejectedErrors.push(err);
-        for (let i = 0, len = this._envelope.accepted.length; i < len; i++) {
-          if (this._envelope.accepted[i] === recipient) {
-            this._envelope.accepted.splice(i, 1);
-          }
-        }
+    _actionLMTPStream(t, i, d, a) {
+      let h;
+      if (Number(d.charAt(0)) !== 2) {
+        h = this._formatError("Message failed for recipient " + t, "EMESSAGE", d, "DATA"), h.recipient = t, this._envelope.rejected.push(t), this._envelope.rejectedErrors.push(h);
+        for (let u = 0, _ = this._envelope.accepted.length; u < _; u++)
+          this._envelope.accepted[u] === t && this._envelope.accepted.splice(u, 1);
       }
-      if (final) {
-        return callback(null, str);
-      }
+      if (i)
+        return a(null, d);
     }
-    _handleXOauth2Token(isRetry, callback) {
-      this._auth.oauth2.getToken(isRetry, (err, accessToken) => {
-        if (err) {
-          this.logger.info(
+    _handleXOauth2Token(t, i) {
+      this._auth.oauth2.getToken(t, (d, a) => {
+        if (d)
+          return this.logger.info(
             {
               tnx: "smtp",
               username: this._auth.user,
@@ -8859,14 +6059,11 @@ function requireSmtpConnection() {
             },
             "User %s failed to authenticate",
             JSON.stringify(this._auth.user)
-          );
-          return callback(this._formatError(err, "EAUTH", false, "AUTH XOAUTH2"));
-        }
-        this._responseActions.push((str) => {
-          this._actionAUTHComplete(str, isRetry, callback);
-        });
-        this._sendCommand(
-          "AUTH XOAUTH2 " + this._auth.oauth2.buildXOAuth2Token(accessToken),
+          ), i(this._formatError(d, "EAUTH", !1, "AUTH XOAUTH2"));
+        this._responseActions.push((h) => {
+          this._actionAUTHComplete(h, t, i);
+        }), this._sendCommand(
+          "AUTH XOAUTH2 " + this._auth.oauth2.buildXOAuth2Token(a),
           //  Hidden for logs
           "AUTH XOAUTH2 " + this._auth.oauth2.buildXOAuth2Token("/* secret */")
         );
@@ -8877,83 +6074,58 @@ function requireSmtpConnection() {
      * @param {string} command
      * @private
      */
-    _isDestroyedMessage(command) {
-      if (this._destroyed) {
-        return "Cannot " + command + " - smtp connection is already destroyed.";
-      }
+    _isDestroyedMessage(t) {
+      if (this._destroyed)
+        return "Cannot " + t + " - smtp connection is already destroyed.";
       if (this._socket) {
-        if (this._socket.destroyed) {
-          return "Cannot " + command + " - smtp connection socket is already destroyed.";
-        }
-        if (!this._socket.writable) {
-          return "Cannot " + command + " - smtp connection socket is already half-closed.";
-        }
+        if (this._socket.destroyed)
+          return "Cannot " + t + " - smtp connection socket is already destroyed.";
+        if (!this._socket.writable)
+          return "Cannot " + t + " - smtp connection socket is already half-closed.";
       }
     }
     _getHostname() {
-      let defaultHostname;
+      let t;
       try {
-        defaultHostname = os.hostname() || "";
-      } catch (_err) {
-        defaultHostname = "localhost";
+        t = p.hostname() || "";
+      } catch {
+        t = "localhost";
       }
-      if (!defaultHostname || defaultHostname.indexOf(".") < 0) {
-        defaultHostname = "[127.0.0.1]";
-      }
-      if (defaultHostname.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
-        defaultHostname = "[" + defaultHostname + "]";
-      }
-      return defaultHostname;
+      return (!t || t.indexOf(".") < 0) && (t = "[127.0.0.1]"), t.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/) && (t = "[" + t + "]"), t;
     }
   }
-  smtpConnection = SMTPConnection;
-  return smtpConnection;
+  return Ce = g, Ce;
 }
-var xoauth2;
-var hasRequiredXoauth2;
-function requireXoauth2() {
-  if (hasRequiredXoauth2) return xoauth2;
-  hasRequiredXoauth2 = 1;
-  const Stream = require$$0$2.Stream;
-  const nmfetch = requireFetch();
-  const crypto = require$$2$1;
-  const shared2 = requireShared();
-  const errors2 = requireErrors();
-  class XOAuth2 extends Stream {
-    constructor(options, logger) {
-      super();
-      this.options = options || {};
-      if (options && options.serviceClient) {
-        if (!options.privateKey || !options.user) {
-          let err = new Error('Options "privateKey" and "user" are required for service account!');
-          err.code = errors2.EOAUTH2;
-          setImmediate(() => this.emit("error", err));
+var Ie, xt;
+function Rt() {
+  if (xt) return Ie;
+  xt = 1;
+  const b = P.Stream, y = ne(), k = K, f = q(), p = F();
+  class n extends b {
+    constructor(o, m) {
+      if (super(), this.options = o || {}, o && o.serviceClient) {
+        if (!o.privateKey || !o.user) {
+          let l = new Error('Options "privateKey" and "user" are required for service account!');
+          l.code = p.EOAUTH2, setImmediate(() => this.emit("error", l));
           return;
         }
-        let serviceRequestTimeout = Math.min(Math.max(Number(this.options.serviceRequestTimeout) || 0, 0), 3600);
-        this.options.serviceRequestTimeout = serviceRequestTimeout || 5 * 60;
+        let e = Math.min(Math.max(Number(this.options.serviceRequestTimeout) || 0, 0), 3600);
+        this.options.serviceRequestTimeout = e || 300;
       }
-      this.logger = shared2.getLogger(
+      if (this.logger = f.getLogger(
         {
-          logger
+          logger: m
         },
         {
           component: this.options.component || "OAuth2"
         }
-      );
-      this.provisionCallback = typeof this.options.provisionCallback === "function" ? this.options.provisionCallback : false;
-      this.options.accessUrl = this.options.accessUrl || "https://accounts.google.com/o/oauth2/token";
-      this.options.customHeaders = this.options.customHeaders || {};
-      this.options.customParams = this.options.customParams || {};
-      this.accessToken = this.options.accessToken || false;
-      if (this.options.expires && Number(this.options.expires)) {
+      ), this.provisionCallback = typeof this.options.provisionCallback == "function" ? this.options.provisionCallback : !1, this.options.accessUrl = this.options.accessUrl || "https://accounts.google.com/o/oauth2/token", this.options.customHeaders = this.options.customHeaders || {}, this.options.customParams = this.options.customParams || {}, this.accessToken = this.options.accessToken || !1, this.options.expires && Number(this.options.expires))
         this.expires = this.options.expires;
-      } else {
-        let timeout = Math.max(Number(this.options.timeout) || 0, 0);
-        this.expires = timeout && Date.now() + timeout * 1e3 || 0;
+      else {
+        let e = Math.max(Number(this.options.timeout) || 0, 0);
+        this.expires = e && Date.now() + e * 1e3 || 0;
       }
-      this.renewing = false;
-      this.renewalQueue = [];
+      this.renewing = !1, this.renewalQueue = [];
     }
     /**
      * Returns or generates (if previous has expired) a XOAuth2 token
@@ -8961,9 +6133,9 @@ function requireXoauth2() {
      * @param {Boolean} renew If false then use cached access token (if available)
      * @param {Function} callback Callback function with error object and token string
      */
-    getToken(renew, callback) {
-      if (!renew && this.accessToken && (!this.expires || this.expires > Date.now())) {
-        this.logger.debug(
+    getToken(o, m) {
+      if (!o && this.accessToken && (!this.expires || this.expires > Date.now()))
+        return this.logger.debug(
           {
             tnx: "OAUTH2",
             user: this.options.user,
@@ -8971,12 +6143,10 @@ function requireXoauth2() {
           },
           "Reusing existing access token for %s",
           this.options.user
-        );
-        return callback(null, this.accessToken);
-      }
+        ), m(null, this.accessToken);
       if (!this.provisionCallback && !this.options.refreshToken && !this.options.serviceClient) {
-        if (this.accessToken) {
-          this.logger.debug(
+        if (this.accessToken)
+          return this.logger.debug(
             {
               tnx: "OAUTH2",
               user: this.options.user,
@@ -8984,9 +6154,7 @@ function requireXoauth2() {
             },
             "Reusing existing access token (no refresh capability) for %s",
             this.options.user
-          );
-          return callback(null, this.accessToken);
-        }
+          ), m(null, this.accessToken);
         this.logger.error(
           {
             tnx: "OAUTH2",
@@ -8996,53 +6164,35 @@ function requireXoauth2() {
           "Cannot renew access token for %s: No refresh mechanism available",
           this.options.user
         );
-        let err = new Error("Can't create new access token for user");
-        err.code = errors2.EOAUTH2;
-        return callback(err);
+        let l = new Error("Can't create new access token for user");
+        return l.code = p.EOAUTH2, m(l);
       }
-      if (this.renewing) {
-        return this.renewalQueue.push({ renew, callback });
-      }
-      this.renewing = true;
-      const generateCallback = (err, accessToken) => {
-        this.renewalQueue.forEach((item) => item.callback(err, accessToken));
-        this.renewalQueue = [];
-        this.renewing = false;
-        if (err) {
-          this.logger.error(
-            {
-              err,
-              tnx: "OAUTH2",
-              user: this.options.user,
-              action: "renew"
-            },
-            "Failed generating new Access Token for %s",
-            this.options.user
-          );
-        } else {
-          this.logger.info(
-            {
-              tnx: "OAUTH2",
-              user: this.options.user,
-              action: "renew"
-            },
-            "Generated new Access Token for %s",
-            this.options.user
-          );
-        }
-        callback(err, accessToken);
+      if (this.renewing)
+        return this.renewalQueue.push({ renew: o, callback: m });
+      this.renewing = !0;
+      const e = (l, c) => {
+        this.renewalQueue.forEach((s) => s.callback(l, c)), this.renewalQueue = [], this.renewing = !1, l ? this.logger.error(
+          {
+            err: l,
+            tnx: "OAUTH2",
+            user: this.options.user,
+            action: "renew"
+          },
+          "Failed generating new Access Token for %s",
+          this.options.user
+        ) : this.logger.info(
+          {
+            tnx: "OAUTH2",
+            user: this.options.user,
+            action: "renew"
+          },
+          "Generated new Access Token for %s",
+          this.options.user
+        ), m(l, c);
       };
-      if (this.provisionCallback) {
-        this.provisionCallback(this.options.user, !!renew, (err, accessToken, expires) => {
-          if (!err && accessToken) {
-            this.accessToken = accessToken;
-            this.expires = expires || 0;
-          }
-          generateCallback(err, accessToken);
-        });
-      } else {
-        this.generateToken(generateCallback);
-      }
+      this.provisionCallback ? this.provisionCallback(this.options.user, !!o, (l, c, s) => {
+        !l && c && (this.accessToken = c, this.expires = s || 0), e(l, c);
+      }) : this.generateToken(e);
     }
     /**
      * Updates token values
@@ -9052,13 +6202,10 @@ function requireXoauth2() {
      *
      * Emits 'token': { user: User email-address, accessToken: the new accessToken, timeout: TTL in seconds}
      */
-    updateToken(accessToken, timeout) {
-      this.accessToken = accessToken;
-      timeout = Math.max(Number(timeout) || 0, 0);
-      this.expires = timeout && Date.now() + timeout * 1e3 || 0;
-      this.emit("token", {
+    updateToken(o, m) {
+      this.accessToken = o, m = Math.max(Number(m) || 0, 0), this.expires = m && Date.now() + m * 1e3 || 0, this.emit("token", {
         user: this.options.user,
-        accessToken: accessToken || "",
+        accessToken: o || "",
         expires: this.expires
       });
     }
@@ -9067,78 +6214,67 @@ function requireXoauth2() {
      *
      * @param {Function} callback Callback function with error object and token string
      */
-    generateToken(callback) {
-      let urlOptions;
-      let loggedUrlOptions;
+    generateToken(o) {
+      let m, e;
       if (this.options.serviceClient) {
-        let iat = Math.floor(Date.now() / 1e3);
-        let tokenData = {
+        let l = Math.floor(Date.now() / 1e3), c = {
           iss: this.options.serviceClient,
           scope: this.options.scope || "https://mail.google.com/",
           sub: this.options.user,
           aud: this.options.accessUrl,
-          iat,
-          exp: iat + this.options.serviceRequestTimeout
-        };
-        let token;
+          iat: l,
+          exp: l + this.options.serviceRequestTimeout
+        }, s;
         try {
-          token = this.jwtSignRS256(tokenData);
-        } catch (_err) {
-          let err = new Error("Can't generate token. Check your auth options");
-          err.code = errors2.EOAUTH2;
-          return callback(err);
+          s = this.jwtSignRS256(c);
+        } catch {
+          let g = new Error("Can't generate token. Check your auth options");
+          return g.code = p.EOAUTH2, o(g);
         }
-        urlOptions = {
+        m = {
           grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-          assertion: token
-        };
-        loggedUrlOptions = {
+          assertion: s
+        }, e = {
           grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-          assertion: tokenData
+          assertion: c
         };
       } else {
         if (!this.options.refreshToken) {
-          let err = new Error("Can't create new access token for user");
-          err.code = errors2.EOAUTH2;
-          return callback(err);
+          let l = new Error("Can't create new access token for user");
+          return l.code = p.EOAUTH2, o(l);
         }
-        urlOptions = {
+        m = {
           client_id: this.options.clientId || "",
           client_secret: this.options.clientSecret || "",
           refresh_token: this.options.refreshToken,
           grant_type: "refresh_token"
-        };
-        loggedUrlOptions = {
+        }, e = {
           client_id: this.options.clientId || "",
           client_secret: (this.options.clientSecret || "").substr(0, 6) + "...",
           refresh_token: (this.options.refreshToken || "").substr(0, 6) + "...",
           grant_type: "refresh_token"
         };
       }
-      Object.keys(this.options.customParams).forEach((key) => {
-        urlOptions[key] = this.options.customParams[key];
-        loggedUrlOptions[key] = this.options.customParams[key];
-      });
-      this.logger.debug(
+      Object.keys(this.options.customParams).forEach((l) => {
+        m[l] = this.options.customParams[l], e[l] = this.options.customParams[l];
+      }), this.logger.debug(
         {
           tnx: "OAUTH2",
           user: this.options.user,
           action: "generate"
         },
         "Requesting token using: %s",
-        JSON.stringify(loggedUrlOptions)
-      );
-      this.postRequest(this.options.accessUrl, urlOptions, this.options, (error, body) => {
-        let data;
-        if (error) {
-          return callback(error);
-        }
+        JSON.stringify(e)
+      ), this.postRequest(this.options.accessUrl, m, this.options, (l, c) => {
+        let s;
+        if (l)
+          return o(l);
         try {
-          data = JSON.parse(body.toString());
-        } catch (E) {
-          return callback(E);
+          s = JSON.parse(c.toString());
+        } catch (v) {
+          return o(v);
         }
-        if (!data || typeof data !== "object") {
+        if (!s || typeof s != "object") {
           this.logger.debug(
             {
               tnx: "OAUTH2",
@@ -9146,48 +6282,32 @@ function requireXoauth2() {
               action: "post"
             },
             "Response: %s",
-            (body || "").toString()
+            (c || "").toString()
           );
-          let err2 = new Error("Invalid authentication response");
-          err2.code = errors2.EOAUTH2;
-          return callback(err2);
+          let v = new Error("Invalid authentication response");
+          return v.code = p.EOAUTH2, o(v);
         }
-        let logData = {};
-        Object.keys(data).forEach((key) => {
-          if (key !== "access_token") {
-            logData[key] = data[key];
-          } else {
-            logData[key] = (data[key] || "").toString().substr(0, 6) + "...";
-          }
-        });
-        this.logger.debug(
+        let x = {};
+        if (Object.keys(s).forEach((v) => {
+          v !== "access_token" ? x[v] = s[v] : x[v] = (s[v] || "").toString().substr(0, 6) + "...";
+        }), this.logger.debug(
           {
             tnx: "OAUTH2",
             user: this.options.user,
             action: "post"
           },
           "Response: %s",
-          JSON.stringify(logData)
-        );
-        if (data.error) {
-          let errorMessage = data.error;
-          if (data.error_description) {
-            errorMessage += ": " + data.error_description;
-          }
-          if (data.error_uri) {
-            errorMessage += " (" + data.error_uri + ")";
-          }
-          let err2 = new Error(errorMessage);
-          err2.code = errors2.EOAUTH2;
-          return callback(err2);
+          JSON.stringify(x)
+        ), s.error) {
+          let v = s.error;
+          s.error_description && (v += ": " + s.error_description), s.error_uri && (v += " (" + s.error_uri + ")");
+          let t = new Error(v);
+          return t.code = p.EOAUTH2, o(t);
         }
-        if (data.access_token) {
-          this.updateToken(data.access_token, data.expires_in);
-          return callback(null, this.accessToken);
-        }
-        let err = new Error("No access token");
-        err.code = errors2.EOAUTH2;
-        return callback(err);
+        if (s.access_token)
+          return this.updateToken(s.access_token, s.expires_in), o(null, this.accessToken);
+        let g = new Error("No access token");
+        return g.code = p.EOAUTH2, o(g);
       });
     }
     /**
@@ -9196,9 +6316,9 @@ function requireXoauth2() {
      * @param {String} [accessToken] Access token string
      * @return {String} Base64 encoded token for IMAP or SMTP login
      */
-    buildXOAuth2Token(accessToken) {
-      let authData = ["user=" + (this.options.user || ""), "auth=Bearer " + (accessToken || this.accessToken), "", ""];
-      return Buffer.from(authData.join(""), "utf-8").toString("base64");
+    buildXOAuth2Token(o) {
+      let m = ["user=" + (this.options.user || ""), "auth=Bearer " + (o || this.accessToken), "", ""];
+      return Buffer.from(m.join(""), "utf-8").toString("base64");
     }
     /**
      * Custom POST request handler.
@@ -9212,36 +6332,23 @@ function requireXoauth2() {
      * @param {String|Buffer} payload Payload to POST
      * @param {Function} callback Callback function with (err, buff)
      */
-    postRequest(url, payload, params, callback) {
-      let returned = false;
-      let chunks = [];
-      let chunklen = 0;
-      let req = nmfetch(url, {
+    postRequest(o, m, e, l) {
+      let c = !1, s = [], x = 0, g = y(o, {
         method: "post",
-        headers: params.customHeaders,
-        body: payload,
-        allowErrorResponse: true
+        headers: e.customHeaders,
+        body: m,
+        allowErrorResponse: !0
       });
-      req.on("readable", () => {
-        let chunk;
-        while ((chunk = req.read()) !== null) {
-          chunks.push(chunk);
-          chunklen += chunk.length;
-        }
-      });
-      req.once("error", (err) => {
-        if (returned) {
-          return;
-        }
-        returned = true;
-        return callback(err);
-      });
-      req.once("end", () => {
-        if (returned) {
-          return;
-        }
-        returned = true;
-        return callback(null, Buffer.concat(chunks, chunklen));
+      g.on("readable", () => {
+        let v;
+        for (; (v = g.read()) !== null; )
+          s.push(v), x += v.length;
+      }), g.once("error", (v) => {
+        if (!c)
+          return c = !0, l(v);
+      }), g.once("end", () => {
+        if (!c)
+          return c = !0, l(null, Buffer.concat(s, x));
       });
     }
     /**
@@ -9250,11 +6357,8 @@ function requireXoauth2() {
      * @param {Buffer|String} data The data to convert
      * @return {String} The encoded string
      */
-    toBase64URL(data) {
-      if (typeof data === "string") {
-        data = Buffer.from(data);
-      }
-      return data.toString("base64").replace(/[=]+/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    toBase64URL(o) {
+      return typeof o == "string" && (o = Buffer.from(o)), o.toString("base64").replace(/[=]+/g, "").replace(/\+/g, "-").replace(/\//g, "_");
     }
     /**
      * Creates a JSON Web Token signed with RS256 (SHA256 + RSA)
@@ -9262,50 +6366,36 @@ function requireXoauth2() {
      * @param {Object} payload The payload to include in the generated token
      * @return {String} The generated and signed token
      */
-    jwtSignRS256(payload) {
-      payload = ['{"alg":"RS256","typ":"JWT"}', JSON.stringify(payload)].map((val) => this.toBase64URL(val)).join(".");
-      let signature = crypto.createSign("RSA-SHA256").update(payload).sign(this.options.privateKey);
-      return payload + "." + this.toBase64URL(signature);
+    jwtSignRS256(o) {
+      o = ['{"alg":"RS256","typ":"JWT"}', JSON.stringify(o)].map((e) => this.toBase64URL(e)).join(".");
+      let m = k.createSign("RSA-SHA256").update(o).sign(this.options.privateKey);
+      return o + "." + this.toBase64URL(m);
     }
   }
-  xoauth2 = XOAuth2;
-  return xoauth2;
+  return Ie = n, Ie;
 }
-var poolResource;
-var hasRequiredPoolResource;
-function requirePoolResource() {
-  if (hasRequiredPoolResource) return poolResource;
-  hasRequiredPoolResource = 1;
-  const SMTPConnection = requireSmtpConnection();
-  const assign = requireShared().assign;
-  const XOAuth2 = requireXoauth2();
-  const errors2 = requireErrors();
-  const EventEmitter = require$$0$5;
-  class PoolResource extends EventEmitter {
-    constructor(pool) {
-      super();
-      this.pool = pool;
-      this.options = pool.options;
-      this.logger = this.pool.logger;
-      if (this.options.auth) {
+var je, gt;
+function hi() {
+  if (gt) return je;
+  gt = 1;
+  const b = $e(), y = q().assign, k = Rt(), f = F(), p = V;
+  class n extends p {
+    constructor(o) {
+      if (super(), this.pool = o, this.options = o.options, this.logger = this.pool.logger, this.options.auth)
         switch ((this.options.auth.type || "").toString().toUpperCase()) {
           case "OAUTH2": {
-            let oauth2 = new XOAuth2(this.options.auth, this.logger);
-            oauth2.provisionCallback = this.pool.mailer && this.pool.mailer.get("oauth2_provision_cb") || oauth2.provisionCallback;
-            this.auth = {
+            let m = new k(this.options.auth, this.logger);
+            m.provisionCallback = this.pool.mailer && this.pool.mailer.get("oauth2_provision_cb") || m.provisionCallback, this.auth = {
               type: "OAUTH2",
               user: this.options.auth.user,
-              oauth2,
+              oauth2: m,
               method: "XOAUTH2"
-            };
-            oauth2.on("token", (token) => this.pool.mailer.emit("token", token));
-            oauth2.on("error", (err) => this.emit("error", err));
+            }, m.on("token", (e) => this.pool.mailer.emit("token", e)), m.on("error", (e) => this.emit("error", e));
             break;
           }
           default:
-            if (!this.options.auth.user && !this.options.auth.pass) {
+            if (!this.options.auth.user && !this.options.auth.pass)
               break;
-            }
             this.auth = {
               type: (this.options.auth.type || "").toString().toUpperCase() || "LOGIN",
               user: this.options.auth.user,
@@ -9314,101 +6404,66 @@ function requirePoolResource() {
                 pass: this.options.auth.pass,
                 options: this.options.auth.options
               },
-              method: (this.options.auth.method || "").trim().toUpperCase() || this.options.authMethod || false
+              method: (this.options.auth.method || "").trim().toUpperCase() || this.options.authMethod || !1
             };
         }
-      }
-      this._connection = false;
-      this._connected = false;
-      this.messages = 0;
-      this.available = true;
+      this._connection = !1, this._connected = !1, this.messages = 0, this.available = !0;
     }
     /**
      * Initiates a connection to the SMTP server
      *
      * @param {Function} callback Callback function to run once the connection is established or failed
      */
-    connect(callback) {
-      this.pool.getSocket(this.options, (err, socketOptions) => {
-        if (err) {
-          return callback(err);
-        }
-        let returned = false;
-        let options = this.options;
-        if (socketOptions && socketOptions.connection) {
-          this.logger.info(
-            {
-              tnx: "proxy",
-              remoteAddress: socketOptions.connection.remoteAddress,
-              remotePort: socketOptions.connection.remotePort,
-              destHost: options.host || "",
-              destPort: options.port || "",
-              action: "connected"
-            },
-            "Using proxied socket from %s:%s to %s:%s",
-            socketOptions.connection.remoteAddress,
-            socketOptions.connection.remotePort,
-            options.host || "",
-            options.port || ""
-          );
-          options = assign(false, options);
-          Object.keys(socketOptions).forEach((key) => {
-            options[key] = socketOptions[key];
-          });
-        }
-        this.connection = new SMTPConnection(options);
-        this.connection.once("error", (err2) => {
-          this.emit("error", err2);
-          if (returned) {
+    connect(o) {
+      this.pool.getSocket(this.options, (m, e) => {
+        if (m)
+          return o(m);
+        let l = !1, c = this.options;
+        e && e.connection && (this.logger.info(
+          {
+            tnx: "proxy",
+            remoteAddress: e.connection.remoteAddress,
+            remotePort: e.connection.remotePort,
+            destHost: c.host || "",
+            destPort: c.port || "",
+            action: "connected"
+          },
+          "Using proxied socket from %s:%s to %s:%s",
+          e.connection.remoteAddress,
+          e.connection.remotePort,
+          c.host || "",
+          c.port || ""
+        ), c = y(!1, c), Object.keys(e).forEach((s) => {
+          c[s] = e[s];
+        })), this.connection = new b(c), this.connection.once("error", (s) => {
+          if (this.emit("error", s), !l)
+            return l = !0, o(s);
+        }), this.connection.once("end", () => {
+          if (this.close(), l)
             return;
-          }
-          returned = true;
-          return callback(err2);
-        });
-        this.connection.once("end", () => {
-          this.close();
-          if (returned) {
-            return;
-          }
-          returned = true;
-          let timer = setTimeout(() => {
-            if (returned) {
+          l = !0;
+          let s = setTimeout(() => {
+            if (l)
               return;
-            }
-            let err2 = new Error("Unexpected socket close");
-            if (this.connection && this.connection._socket && this.connection._socket.upgrading) {
-              err2.code = errors2.ETLS;
-            }
-            callback(err2);
+            let x = new Error("Unexpected socket close");
+            this.connection && this.connection._socket && this.connection._socket.upgrading && (x.code = f.ETLS), o(x);
           }, 1e3);
           try {
-            timer.unref();
-          } catch (_E) {
+            s.unref();
+          } catch {
           }
-        });
-        this.connection.connect(() => {
-          if (returned) {
-            return;
-          }
-          if (this.auth && (this.connection.allowsAuth || options.forceAuth)) {
-            this.connection.login(this.auth, (err2) => {
-              if (returned) {
-                return;
-              }
-              returned = true;
-              if (err2) {
-                this.connection.close();
-                this.emit("error", err2);
-                return callback(err2);
-              }
-              this._connected = true;
-              callback(null, true);
-            });
-          } else {
-            returned = true;
-            this._connected = true;
-            return callback(null, true);
-          }
+        }), this.connection.connect(() => {
+          if (!l)
+            if (this.auth && (this.connection.allowsAuth || c.forceAuth))
+              this.connection.login(this.auth, (s) => {
+                if (!l) {
+                  if (l = !0, s)
+                    return this.connection.close(), this.emit("error", s), o(s);
+                  this._connected = !0, o(null, !0);
+                }
+              });
+            else
+              return l = !0, this._connected = !0, o(null, !0);
         });
       });
     }
@@ -9418,330 +6473,190 @@ function requirePoolResource() {
      * @param {Object} mail Mail object
      * @param {Function} callback Callback function
      */
-    send(mail, callback) {
-      if (!this._connected) {
-        return this.connect((err) => {
-          if (err) {
-            return callback(err);
-          }
-          return this.send(mail, callback);
-        });
-      }
-      let envelope = mail.message.getEnvelope();
-      let messageId = mail.message.messageId();
-      let recipients = [].concat(envelope.to || []);
-      if (recipients.length > 3) {
-        recipients.push("...and " + recipients.splice(2).length + " more");
-      }
-      this.logger.info(
+    send(o, m) {
+      if (!this._connected)
+        return this.connect((s) => s ? m(s) : this.send(o, m));
+      let e = o.message.getEnvelope(), l = o.message.messageId(), c = [].concat(e.to || []);
+      c.length > 3 && c.push("...and " + c.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
-          messageId,
+          messageId: l,
           cid: this.id
         },
         "Sending message %s using #%s to <%s>",
-        messageId,
+        l,
         this.id,
-        recipients.join(", ")
-      );
-      if (mail.data.dsn) {
-        envelope.dsn = mail.data.dsn;
-      }
-      if (mail.data.requireTLSExtensionEnabled) {
-        envelope.requireTLSExtensionEnabled = mail.data.requireTLSExtensionEnabled;
-      }
-      this.connection.send(envelope, mail.message.createReadStream(), (err, info) => {
-        this.messages++;
-        if (err) {
-          this.connection.close();
-          this.emit("error", err);
-          return callback(err);
-        }
-        info.envelope = {
-          from: envelope.from,
-          to: envelope.to
-        };
-        info.messageId = messageId;
-        setImmediate(() => {
-          let err2;
-          if (this.messages >= this.options.maxMessages) {
-            err2 = new Error("Resource exhausted");
-            err2.code = errors2.EMAXLIMIT;
-            this.connection.close();
-            this.emit("error", err2);
-          } else {
-            this.pool._checkRateLimit(() => {
-              this.available = true;
-              this.emit("available");
-            });
-          }
-        });
-        callback(null, info);
+        c.join(", ")
+      ), o.data.dsn && (e.dsn = o.data.dsn), o.data.requireTLSExtensionEnabled && (e.requireTLSExtensionEnabled = o.data.requireTLSExtensionEnabled), this.connection.send(e, o.message.createReadStream(), (s, x) => {
+        if (this.messages++, s)
+          return this.connection.close(), this.emit("error", s), m(s);
+        x.envelope = {
+          from: e.from,
+          to: e.to
+        }, x.messageId = l, setImmediate(() => {
+          let g;
+          this.messages >= this.options.maxMessages ? (g = new Error("Resource exhausted"), g.code = f.EMAXLIMIT, this.connection.close(), this.emit("error", g)) : this.pool._checkRateLimit(() => {
+            this.available = !0, this.emit("available");
+          });
+        }), m(null, x);
       });
     }
     /**
      * Closes the connection
      */
     close() {
-      this._connected = false;
-      if (this.auth && this.auth.oauth2) {
-        this.auth.oauth2.removeAllListeners();
-      }
-      if (this.connection) {
-        this.connection.close();
-      }
-      this.emit("close");
+      this._connected = !1, this.auth && this.auth.oauth2 && this.auth.oauth2.removeAllListeners(), this.connection && this.connection.close(), this.emit("close");
     }
   }
-  poolResource = PoolResource;
-  return poolResource;
+  return je = n, je;
 }
-const Aliyun = { "description": "Alibaba Cloud Mail", "domains": ["aliyun.com"], "host": "smtp.aliyun.com", "port": 465, "secure": true };
-const AliyunQiye = { "description": "Alibaba Cloud Enterprise Mail", "host": "smtp.qiye.aliyun.com", "port": 465, "secure": true };
-const AOL = { "description": "AOL Mail", "domains": ["aol.com"], "host": "smtp.aol.com", "port": 587 };
-const Aruba = { "description": "Aruba PEC (Italian email provider)", "domains": ["aruba.it", "pec.aruba.it"], "aliases": ["Aruba PEC"], "host": "smtps.aruba.it", "port": 465, "secure": true, "authMethod": "LOGIN" };
-const Bluewin = { "description": "Bluewin (Swiss email provider)", "host": "smtpauths.bluewin.ch", "domains": ["bluewin.ch"], "port": 465 };
-const BOL = { "description": "BOL Mail (Brazilian provider)", "domains": ["bol.com.br"], "host": "smtp.bol.com.br", "port": 587, "requireTLS": true };
-const DebugMail = { "description": "DebugMail (email testing service)", "host": "debugmail.io", "port": 25 };
-const Disroot = { "description": "Disroot (privacy-focused provider)", "domains": ["disroot.org"], "host": "disroot.org", "port": 587, "secure": false, "authMethod": "LOGIN" };
-const DynectEmail = { "description": "Dyn Email Delivery", "aliases": ["Dynect"], "host": "smtp.dynect.net", "port": 25 };
-const ElasticEmail = { "description": "Elastic Email", "aliases": ["Elastic Email"], "host": "smtp.elasticemail.com", "port": 465, "secure": true };
-const Ethereal = { "description": "Ethereal Email (email testing service)", "aliases": ["ethereal.email"], "host": "smtp.ethereal.email", "port": 587 };
-const FastMail = { "description": "FastMail", "domains": ["fastmail.fm"], "host": "smtp.fastmail.com", "port": 465, "secure": true };
-const GandiMail = { "description": "Gandi Mail", "aliases": ["Gandi", "Gandi Mail"], "host": "mail.gandi.net", "port": 587 };
-const Gmail = { "description": "Gmail", "aliases": ["Google Mail"], "domains": ["gmail.com", "googlemail.com"], "host": "smtp.gmail.com", "port": 465, "secure": true };
-const GmailWorkspace = { "description": "Gmail Workspace", "aliases": ["Google Workspace Mail"], "host": "smtp-relay.gmail.com", "port": 465, "secure": true };
-const GMX = { "description": "GMX Mail", "domains": ["gmx.com", "gmx.net", "gmx.de"], "host": "mail.gmx.com", "port": 587 };
-const Godaddy = { "description": "GoDaddy Email (US)", "host": "smtpout.secureserver.net", "port": 25 };
-const GodaddyAsia = { "description": "GoDaddy Email (Asia)", "host": "smtp.asia.secureserver.net", "port": 25 };
-const GodaddyEurope = { "description": "GoDaddy Email (Europe)", "host": "smtp.europe.secureserver.net", "port": 25 };
-const Hotmail = { "description": "Outlook.com / Hotmail", "aliases": ["Outlook", "Outlook.com", "Hotmail.com"], "domains": ["hotmail.com", "outlook.com"], "host": "smtp-mail.outlook.com", "port": 587 };
-const iCloud = { "description": "iCloud Mail", "aliases": ["Me", "Mac"], "domains": ["me.com", "mac.com"], "host": "smtp.mail.me.com", "port": 587 };
-const Infomaniak = { "description": "Infomaniak Mail (Swiss hosting provider)", "host": "mail.infomaniak.com", "domains": ["ik.me", "ikmail.com", "etik.com"], "port": 587 };
-const KolabNow = { "description": "KolabNow (secure email service)", "domains": ["kolabnow.com"], "aliases": ["Kolab"], "host": "smtp.kolabnow.com", "port": 465, "secure": true, "authMethod": "LOGIN" };
-const Loopia = { "description": "Loopia (Swedish hosting provider)", "host": "mailcluster.loopia.se", "port": 465 };
-const Loops = { "description": "Loops", "host": "smtp.loops.so", "port": 587 };
-const Maildev = { "description": "MailDev (local email testing)", "port": 1025, "ignoreTLS": true };
-const MailerSend = { "description": "MailerSend", "host": "smtp.mailersend.net", "port": 587 };
-const Mailgun = { "description": "Mailgun", "host": "smtp.mailgun.org", "port": 465, "secure": true };
-const Mailjet = { "description": "Mailjet", "host": "in.mailjet.com", "port": 587 };
-const Mailosaur = { "description": "Mailosaur (email testing service)", "host": "mailosaur.io", "port": 25 };
-const Mailtrap = { "description": "Mailtrap", "host": "live.smtp.mailtrap.io", "port": 587 };
-const Mandrill = { "description": "Mandrill (by Mailchimp)", "host": "smtp.mandrillapp.com", "port": 587 };
-const Naver = { "description": "Naver Mail (Korean email provider)", "host": "smtp.naver.com", "port": 587 };
-const OhMySMTP = { "description": "OhMySMTP (email delivery service)", "host": "smtp.ohmysmtp.com", "port": 587, "secure": false };
-const One = { "description": "One.com Email", "host": "send.one.com", "port": 465, "secure": true };
-const OpenMailBox = { "description": "OpenMailBox", "aliases": ["OMB", "openmailbox.org"], "host": "smtp.openmailbox.org", "port": 465, "secure": true };
-const Outlook365 = { "description": "Microsoft 365 / Office 365", "host": "smtp.office365.com", "port": 587, "secure": false };
-const Postmark = { "description": "Postmark", "aliases": ["PostmarkApp"], "host": "smtp.postmarkapp.com", "port": 2525 };
-const Proton = { "description": "Proton Mail", "aliases": ["ProtonMail", "Proton.me", "Protonmail.com", "Protonmail.ch"], "domains": ["proton.me", "protonmail.com", "pm.me", "protonmail.ch"], "host": "smtp.protonmail.ch", "port": 587, "requireTLS": true };
-const QQ = { "description": "QQ Mail", "domains": ["qq.com"], "host": "smtp.qq.com", "port": 465, "secure": true };
-const QQex = { "description": "QQ Enterprise Mail", "aliases": ["QQ Enterprise"], "domains": ["exmail.qq.com"], "host": "smtp.exmail.qq.com", "port": 465, "secure": true };
-const Resend = { "description": "Resend", "host": "smtp.resend.com", "port": 465, "secure": true };
-const Runbox = { "description": "Runbox (Norwegian email provider)", "domains": ["runbox.com"], "host": "smtp.runbox.com", "port": 465, "secure": true };
-const SendCloud = { "description": "SendCloud (Chinese email delivery)", "host": "smtp.sendcloud.net", "port": 2525 };
-const SendGrid = { "description": "SendGrid", "host": "smtp.sendgrid.net", "port": 587 };
-const SendinBlue = { "description": "Brevo (formerly Sendinblue)", "aliases": ["Brevo"], "host": "smtp-relay.brevo.com", "port": 587 };
-const SendPulse = { "description": "SendPulse", "host": "smtp-pulse.com", "port": 465, "secure": true };
-const SES = { "description": "AWS SES US East (N. Virginia)", "host": "email-smtp.us-east-1.amazonaws.com", "port": 465, "secure": true };
-const Seznam = { "description": "Seznam Email (Czech email provider)", "aliases": ["Seznam Email"], "domains": ["seznam.cz", "email.cz", "post.cz", "spoluzaci.cz"], "host": "smtp.seznam.cz", "port": 465, "secure": true };
-const SMTP2GO = { "description": "SMTP2GO", "host": "mail.smtp2go.com", "port": 2525 };
-const Sparkpost = { "description": "SparkPost", "aliases": ["SparkPost", "SparkPost Mail"], "domains": ["sparkpost.com"], "host": "smtp.sparkpostmail.com", "port": 587, "secure": false };
-const Tipimail = { "description": "Tipimail (email delivery service)", "host": "smtp.tipimail.com", "port": 587 };
-const Tutanota = { "description": "Tutanota (Tuta Mail)", "domains": ["tutanota.com", "tuta.com", "tutanota.de", "tuta.io"], "host": "smtp.tutanota.com", "port": 465, "secure": true };
-const Yahoo = { "description": "Yahoo Mail", "domains": ["yahoo.com"], "host": "smtp.mail.yahoo.com", "port": 465, "secure": true };
-const Yandex = { "description": "Yandex Mail", "domains": ["yandex.ru"], "host": "smtp.yandex.ru", "port": 465, "secure": true };
-const Zimbra = { "description": "Zimbra Mail Server", "aliases": ["Zimbra Collaboration"], "host": "smtp.zimbra.com", "port": 587, "requireTLS": true };
-const Zoho = { "description": "Zoho Mail", "host": "smtp.zoho.com", "port": 465, "secure": true, "authMethod": "LOGIN" };
-const require$$0 = {
-  "126": { "description": "126 Mail (NetEase)", "host": "smtp.126.com", "port": 465, "secure": true },
-  "163": { "description": "163 Mail (NetEase)", "host": "smtp.163.com", "port": 465, "secure": true },
-  "1und1": { "description": "1&1 Mail (German hosting provider)", "host": "smtp.1und1.de", "port": 465, "secure": true, "authMethod": "LOGIN" },
-  Aliyun,
-  AliyunQiye,
-  AOL,
-  Aruba,
-  Bluewin,
-  BOL,
-  DebugMail,
-  Disroot,
-  DynectEmail,
-  ElasticEmail,
-  Ethereal,
-  FastMail,
-  "Feishu Mail": { "description": "Feishu Mail (Lark)", "aliases": ["Feishu", "FeishuMail"], "domains": ["www.feishu.cn"], "host": "smtp.feishu.cn", "port": 465, "secure": true },
-  "Forward Email": { "description": "Forward Email (email forwarding service)", "aliases": ["FE", "ForwardEmail"], "domains": ["forwardemail.net"], "host": "smtp.forwardemail.net", "port": 465, "secure": true },
-  GandiMail,
-  Gmail,
-  GmailWorkspace,
-  GMX,
-  Godaddy,
-  GodaddyAsia,
-  GodaddyEurope,
-  "hot.ee": { "description": "Hot.ee (Estonian email provider)", "host": "mail.hot.ee" },
-  Hotmail,
-  iCloud,
-  Infomaniak,
-  KolabNow,
-  Loopia,
-  Loops,
-  "mail.ee": { "description": "Mail.ee (Estonian email provider)", "host": "smtp.mail.ee" },
-  "Mail.ru": { "description": "Mail.ru", "host": "smtp.mail.ru", "port": 465, "secure": true },
-  "Mailcatch.app": { "description": "Mailcatch (email testing service)", "host": "sandbox-smtp.mailcatch.app", "port": 2525 },
-  Maildev,
-  MailerSend,
-  Mailgun,
-  Mailjet,
-  Mailosaur,
-  Mailtrap,
-  Mandrill,
-  Naver,
-  OhMySMTP,
-  One,
-  OpenMailBox,
-  Outlook365,
-  Postmark,
-  Proton,
-  "qiye.aliyun": { "description": "Alibaba Mail Enterprise Edition", "host": "smtp.mxhichina.com", "port": "465", "secure": true },
-  QQ,
-  QQex,
-  Resend,
-  Runbox,
-  SendCloud,
-  SendGrid,
-  SendinBlue,
-  SendPulse,
-  SES,
-  "SES-AP-NORTHEAST-1": { "description": "AWS SES Asia Pacific (Tokyo)", "host": "email-smtp.ap-northeast-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-AP-NORTHEAST-2": { "description": "AWS SES Asia Pacific (Seoul)", "host": "email-smtp.ap-northeast-2.amazonaws.com", "port": 465, "secure": true },
-  "SES-AP-NORTHEAST-3": { "description": "AWS SES Asia Pacific (Osaka)", "host": "email-smtp.ap-northeast-3.amazonaws.com", "port": 465, "secure": true },
-  "SES-AP-SOUTH-1": { "description": "AWS SES Asia Pacific (Mumbai)", "host": "email-smtp.ap-south-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-AP-SOUTHEAST-1": { "description": "AWS SES Asia Pacific (Singapore)", "host": "email-smtp.ap-southeast-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-AP-SOUTHEAST-2": { "description": "AWS SES Asia Pacific (Sydney)", "host": "email-smtp.ap-southeast-2.amazonaws.com", "port": 465, "secure": true },
-  "SES-CA-CENTRAL-1": { "description": "AWS SES Canada (Central)", "host": "email-smtp.ca-central-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-EU-CENTRAL-1": { "description": "AWS SES Europe (Frankfurt)", "host": "email-smtp.eu-central-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-EU-NORTH-1": { "description": "AWS SES Europe (Stockholm)", "host": "email-smtp.eu-north-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-EU-WEST-1": { "description": "AWS SES Europe (Ireland)", "host": "email-smtp.eu-west-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-EU-WEST-2": { "description": "AWS SES Europe (London)", "host": "email-smtp.eu-west-2.amazonaws.com", "port": 465, "secure": true },
-  "SES-EU-WEST-3": { "description": "AWS SES Europe (Paris)", "host": "email-smtp.eu-west-3.amazonaws.com", "port": 465, "secure": true },
-  "SES-SA-EAST-1": { "description": "AWS SES South America (São Paulo)", "host": "email-smtp.sa-east-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-US-EAST-1": { "description": "AWS SES US East (N. Virginia)", "host": "email-smtp.us-east-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-US-EAST-2": { "description": "AWS SES US East (Ohio)", "host": "email-smtp.us-east-2.amazonaws.com", "port": 465, "secure": true },
-  "SES-US-GOV-EAST-1": { "description": "AWS SES GovCloud (US-East)", "host": "email-smtp.us-gov-east-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-US-GOV-WEST-1": { "description": "AWS SES GovCloud (US-West)", "host": "email-smtp.us-gov-west-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-US-WEST-1": { "description": "AWS SES US West (N. California)", "host": "email-smtp.us-west-1.amazonaws.com", "port": 465, "secure": true },
-  "SES-US-WEST-2": { "description": "AWS SES US West (Oregon)", "host": "email-smtp.us-west-2.amazonaws.com", "port": 465, "secure": true },
-  Seznam,
-  SMTP2GO,
-  Sparkpost,
-  Tipimail,
-  Tutanota,
-  Yahoo,
-  Yandex,
-  Zimbra,
-  Zoho
+const ui = { description: "Alibaba Cloud Mail", domains: ["aliyun.com"], host: "smtp.aliyun.com", port: 465, secure: !0 }, fi = { description: "Alibaba Cloud Enterprise Mail", host: "smtp.qiye.aliyun.com", port: 465, secure: !0 }, xi = { description: "AOL Mail", domains: ["aol.com"], host: "smtp.aol.com", port: 587 }, gi = { description: "Aruba PEC (Italian email provider)", domains: ["aruba.it", "pec.aruba.it"], aliases: ["Aruba PEC"], host: "smtps.aruba.it", port: 465, secure: !0, authMethod: "LOGIN" }, vi = { description: "Bluewin (Swiss email provider)", host: "smtpauths.bluewin.ch", domains: ["bluewin.ch"], port: 465 }, wi = { description: "BOL Mail (Brazilian provider)", domains: ["bol.com.br"], host: "smtp.bol.com.br", port: 587, requireTLS: !0 }, _i = { description: "DebugMail (email testing service)", host: "debugmail.io", port: 25 }, bi = { description: "Disroot (privacy-focused provider)", domains: ["disroot.org"], host: "disroot.org", port: 587, secure: !1, authMethod: "LOGIN" }, Ei = { description: "Dyn Email Delivery", aliases: ["Dynect"], host: "smtp.dynect.net", port: 25 }, yi = { description: "Elastic Email", aliases: ["Elastic Email"], host: "smtp.elasticemail.com", port: 465, secure: !0 }, Si = { description: "Ethereal Email (email testing service)", aliases: ["ethereal.email"], host: "smtp.ethereal.email", port: 587 }, Ti = { description: "FastMail", domains: ["fastmail.fm"], host: "smtp.fastmail.com", port: 465, secure: !0 }, ki = { description: "Gandi Mail", aliases: ["Gandi", "Gandi Mail"], host: "mail.gandi.net", port: 587 }, Ai = { description: "Gmail", aliases: ["Google Mail"], domains: ["gmail.com", "googlemail.com"], host: "smtp.gmail.com", port: 465, secure: !0 }, Ci = { description: "Gmail Workspace", aliases: ["Google Workspace Mail"], host: "smtp-relay.gmail.com", port: 465, secure: !0 }, Ii = { description: "GMX Mail", domains: ["gmx.com", "gmx.net", "gmx.de"], host: "mail.gmx.com", port: 587 }, ji = { description: "GoDaddy Email (US)", host: "smtpout.secureserver.net", port: 25 }, Mi = { description: "GoDaddy Email (Asia)", host: "smtp.asia.secureserver.net", port: 25 }, Li = { description: "GoDaddy Email (Europe)", host: "smtp.europe.secureserver.net", port: 25 }, Oi = { description: "Outlook.com / Hotmail", aliases: ["Outlook", "Outlook.com", "Hotmail.com"], domains: ["hotmail.com", "outlook.com"], host: "smtp-mail.outlook.com", port: 587 }, Ni = { description: "iCloud Mail", aliases: ["Me", "Mac"], domains: ["me.com", "mac.com"], host: "smtp.mail.me.com", port: 587 }, Hi = { description: "Infomaniak Mail (Swiss hosting provider)", host: "mail.infomaniak.com", domains: ["ik.me", "ikmail.com", "etik.com"], port: 587 }, qi = { description: "KolabNow (secure email service)", domains: ["kolabnow.com"], aliases: ["Kolab"], host: "smtp.kolabnow.com", port: 465, secure: !0, authMethod: "LOGIN" }, Ri = { description: "Loopia (Swedish hosting provider)", host: "mailcluster.loopia.se", port: 465 }, zi = { description: "Loops", host: "smtp.loops.so", port: 587 }, Pi = { description: "MailDev (local email testing)", port: 1025, ignoreTLS: !0 }, Ui = { description: "MailerSend", host: "smtp.mailersend.net", port: 587 }, Bi = { description: "Mailgun", host: "smtp.mailgun.org", port: 465, secure: !0 }, Di = { description: "Mailjet", host: "in.mailjet.com", port: 587 }, Fi = { description: "Mailosaur (email testing service)", host: "mailosaur.io", port: 25 }, $i = { description: "Mailtrap", host: "live.smtp.mailtrap.io", port: 587 }, Gi = { description: "Mandrill (by Mailchimp)", host: "smtp.mandrillapp.com", port: 587 }, Qi = { description: "Naver Mail (Korean email provider)", host: "smtp.naver.com", port: 587 }, Wi = { description: "OhMySMTP (email delivery service)", host: "smtp.ohmysmtp.com", port: 587, secure: !1 }, Ki = { description: "One.com Email", host: "send.one.com", port: 465, secure: !0 }, Vi = { description: "OpenMailBox", aliases: ["OMB", "openmailbox.org"], host: "smtp.openmailbox.org", port: 465, secure: !0 }, Xi = { description: "Microsoft 365 / Office 365", host: "smtp.office365.com", port: 587, secure: !1 }, Ji = { description: "Postmark", aliases: ["PostmarkApp"], host: "smtp.postmarkapp.com", port: 2525 }, Yi = { description: "Proton Mail", aliases: ["ProtonMail", "Proton.me", "Protonmail.com", "Protonmail.ch"], domains: ["proton.me", "protonmail.com", "pm.me", "protonmail.ch"], host: "smtp.protonmail.ch", port: 587, requireTLS: !0 }, Zi = { description: "QQ Mail", domains: ["qq.com"], host: "smtp.qq.com", port: 465, secure: !0 }, es = { description: "QQ Enterprise Mail", aliases: ["QQ Enterprise"], domains: ["exmail.qq.com"], host: "smtp.exmail.qq.com", port: 465, secure: !0 }, ts = { description: "Resend", host: "smtp.resend.com", port: 465, secure: !0 }, is = { description: "Runbox (Norwegian email provider)", domains: ["runbox.com"], host: "smtp.runbox.com", port: 465, secure: !0 }, ss = { description: "SendCloud (Chinese email delivery)", host: "smtp.sendcloud.net", port: 2525 }, as = { description: "SendGrid", host: "smtp.sendgrid.net", port: 587 }, ns = { description: "Brevo (formerly Sendinblue)", aliases: ["Brevo"], host: "smtp-relay.brevo.com", port: 587 }, os = { description: "SendPulse", host: "smtp-pulse.com", port: 465, secure: !0 }, rs = { description: "AWS SES US East (N. Virginia)", host: "email-smtp.us-east-1.amazonaws.com", port: 465, secure: !0 }, ps = { description: "Seznam Email (Czech email provider)", aliases: ["Seznam Email"], domains: ["seznam.cz", "email.cz", "post.cz", "spoluzaci.cz"], host: "smtp.seznam.cz", port: 465, secure: !0 }, ls = { description: "SMTP2GO", host: "mail.smtp2go.com", port: 2525 }, cs = { description: "SparkPost", aliases: ["SparkPost", "SparkPost Mail"], domains: ["sparkpost.com"], host: "smtp.sparkpostmail.com", port: 587, secure: !1 }, ds = { description: "Tipimail (email delivery service)", host: "smtp.tipimail.com", port: 587 }, ms = { description: "Tutanota (Tuta Mail)", domains: ["tutanota.com", "tuta.com", "tutanota.de", "tuta.io"], host: "smtp.tutanota.com", port: 465, secure: !0 }, hs = { description: "Yahoo Mail", domains: ["yahoo.com"], host: "smtp.mail.yahoo.com", port: 465, secure: !0 }, us = { description: "Yandex Mail", domains: ["yandex.ru"], host: "smtp.yandex.ru", port: 465, secure: !0 }, fs = { description: "Zimbra Mail Server", aliases: ["Zimbra Collaboration"], host: "smtp.zimbra.com", port: 587, requireTLS: !0 }, xs = { description: "Zoho Mail", host: "smtp.zoho.com", port: 465, secure: !0, authMethod: "LOGIN" }, gs = {
+  126: { description: "126 Mail (NetEase)", host: "smtp.126.com", port: 465, secure: !0 },
+  163: { description: "163 Mail (NetEase)", host: "smtp.163.com", port: 465, secure: !0 },
+  "1und1": { description: "1&1 Mail (German hosting provider)", host: "smtp.1und1.de", port: 465, secure: !0, authMethod: "LOGIN" },
+  Aliyun: ui,
+  AliyunQiye: fi,
+  AOL: xi,
+  Aruba: gi,
+  Bluewin: vi,
+  BOL: wi,
+  DebugMail: _i,
+  Disroot: bi,
+  DynectEmail: Ei,
+  ElasticEmail: yi,
+  Ethereal: Si,
+  FastMail: Ti,
+  "Feishu Mail": { description: "Feishu Mail (Lark)", aliases: ["Feishu", "FeishuMail"], domains: ["www.feishu.cn"], host: "smtp.feishu.cn", port: 465, secure: !0 },
+  "Forward Email": { description: "Forward Email (email forwarding service)", aliases: ["FE", "ForwardEmail"], domains: ["forwardemail.net"], host: "smtp.forwardemail.net", port: 465, secure: !0 },
+  GandiMail: ki,
+  Gmail: Ai,
+  GmailWorkspace: Ci,
+  GMX: Ii,
+  Godaddy: ji,
+  GodaddyAsia: Mi,
+  GodaddyEurope: Li,
+  "hot.ee": { description: "Hot.ee (Estonian email provider)", host: "mail.hot.ee" },
+  Hotmail: Oi,
+  iCloud: Ni,
+  Infomaniak: Hi,
+  KolabNow: qi,
+  Loopia: Ri,
+  Loops: zi,
+  "mail.ee": { description: "Mail.ee (Estonian email provider)", host: "smtp.mail.ee" },
+  "Mail.ru": { description: "Mail.ru", host: "smtp.mail.ru", port: 465, secure: !0 },
+  "Mailcatch.app": { description: "Mailcatch (email testing service)", host: "sandbox-smtp.mailcatch.app", port: 2525 },
+  Maildev: Pi,
+  MailerSend: Ui,
+  Mailgun: Bi,
+  Mailjet: Di,
+  Mailosaur: Fi,
+  Mailtrap: $i,
+  Mandrill: Gi,
+  Naver: Qi,
+  OhMySMTP: Wi,
+  One: Ki,
+  OpenMailBox: Vi,
+  Outlook365: Xi,
+  Postmark: Ji,
+  Proton: Yi,
+  "qiye.aliyun": { description: "Alibaba Mail Enterprise Edition", host: "smtp.mxhichina.com", port: "465", secure: !0 },
+  QQ: Zi,
+  QQex: es,
+  Resend: ts,
+  Runbox: is,
+  SendCloud: ss,
+  SendGrid: as,
+  SendinBlue: ns,
+  SendPulse: os,
+  SES: rs,
+  "SES-AP-NORTHEAST-1": { description: "AWS SES Asia Pacific (Tokyo)", host: "email-smtp.ap-northeast-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-AP-NORTHEAST-2": { description: "AWS SES Asia Pacific (Seoul)", host: "email-smtp.ap-northeast-2.amazonaws.com", port: 465, secure: !0 },
+  "SES-AP-NORTHEAST-3": { description: "AWS SES Asia Pacific (Osaka)", host: "email-smtp.ap-northeast-3.amazonaws.com", port: 465, secure: !0 },
+  "SES-AP-SOUTH-1": { description: "AWS SES Asia Pacific (Mumbai)", host: "email-smtp.ap-south-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-AP-SOUTHEAST-1": { description: "AWS SES Asia Pacific (Singapore)", host: "email-smtp.ap-southeast-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-AP-SOUTHEAST-2": { description: "AWS SES Asia Pacific (Sydney)", host: "email-smtp.ap-southeast-2.amazonaws.com", port: 465, secure: !0 },
+  "SES-CA-CENTRAL-1": { description: "AWS SES Canada (Central)", host: "email-smtp.ca-central-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-EU-CENTRAL-1": { description: "AWS SES Europe (Frankfurt)", host: "email-smtp.eu-central-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-EU-NORTH-1": { description: "AWS SES Europe (Stockholm)", host: "email-smtp.eu-north-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-EU-WEST-1": { description: "AWS SES Europe (Ireland)", host: "email-smtp.eu-west-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-EU-WEST-2": { description: "AWS SES Europe (London)", host: "email-smtp.eu-west-2.amazonaws.com", port: 465, secure: !0 },
+  "SES-EU-WEST-3": { description: "AWS SES Europe (Paris)", host: "email-smtp.eu-west-3.amazonaws.com", port: 465, secure: !0 },
+  "SES-SA-EAST-1": { description: "AWS SES South America (São Paulo)", host: "email-smtp.sa-east-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-US-EAST-1": { description: "AWS SES US East (N. Virginia)", host: "email-smtp.us-east-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-US-EAST-2": { description: "AWS SES US East (Ohio)", host: "email-smtp.us-east-2.amazonaws.com", port: 465, secure: !0 },
+  "SES-US-GOV-EAST-1": { description: "AWS SES GovCloud (US-East)", host: "email-smtp.us-gov-east-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-US-GOV-WEST-1": { description: "AWS SES GovCloud (US-West)", host: "email-smtp.us-gov-west-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-US-WEST-1": { description: "AWS SES US West (N. California)", host: "email-smtp.us-west-1.amazonaws.com", port: 465, secure: !0 },
+  "SES-US-WEST-2": { description: "AWS SES US West (Oregon)", host: "email-smtp.us-west-2.amazonaws.com", port: 465, secure: !0 },
+  Seznam: ps,
+  SMTP2GO: ls,
+  Sparkpost: cs,
+  Tipimail: ds,
+  Tutanota: ms,
+  Yahoo: hs,
+  Yandex: us,
+  Zimbra: fs,
+  Zoho: xs
 };
-var wellKnown;
-var hasRequiredWellKnown;
-function requireWellKnown() {
-  if (hasRequiredWellKnown) return wellKnown;
-  hasRequiredWellKnown = 1;
-  const services = require$$0;
-  const normalized = {};
-  Object.keys(services).forEach((key) => {
-    let service = services[key];
-    normalized[normalizeKey(key)] = normalizeService(service);
-    [].concat(service.aliases || []).forEach((alias) => {
-      normalized[normalizeKey(alias)] = normalizeService(service);
-    });
-    [].concat(service.domains || []).forEach((domain) => {
-      normalized[normalizeKey(domain)] = normalizeService(service);
+var Me, vt;
+function zt() {
+  if (vt) return Me;
+  vt = 1;
+  const b = gs, y = {};
+  Object.keys(b).forEach((p) => {
+    let n = b[p];
+    y[k(p)] = f(n), [].concat(n.aliases || []).forEach((r) => {
+      y[k(r)] = f(n);
+    }), [].concat(n.domains || []).forEach((r) => {
+      y[k(r)] = f(n);
     });
   });
-  function normalizeKey(key) {
-    return key.replace(/[^a-zA-Z0-9.-]/g, "").toLowerCase();
+  function k(p) {
+    return p.replace(/[^a-zA-Z0-9.-]/g, "").toLowerCase();
   }
-  function normalizeService(service) {
-    let filter = ["domains", "aliases"];
-    let response = {};
-    Object.keys(service).forEach((key) => {
-      if (filter.indexOf(key) < 0) {
-        response[key] = service[key];
-      }
-    });
-    return response;
+  function f(p) {
+    let n = ["domains", "aliases"], r = {};
+    return Object.keys(p).forEach((o) => {
+      n.indexOf(o) < 0 && (r[o] = p[o]);
+    }), r;
   }
-  wellKnown = function(key) {
-    key = normalizeKey(key.split("@").pop());
-    return normalized[key] || false;
-  };
-  return wellKnown;
+  return Me = function(p) {
+    return p = k(p.split("@").pop()), y[p] || !1;
+  }, Me;
 }
-var smtpPool;
-var hasRequiredSmtpPool;
-function requireSmtpPool() {
-  if (hasRequiredSmtpPool) return smtpPool;
-  hasRequiredSmtpPool = 1;
-  const EventEmitter = require$$0$5;
-  const PoolResource = requirePoolResource();
-  const SMTPConnection = requireSmtpConnection();
-  const wellKnown2 = requireWellKnown();
-  const shared2 = requireShared();
-  const errors2 = requireErrors();
-  const packageData = require$$10;
-  class SMTPPool extends EventEmitter {
-    constructor(options) {
-      super();
-      options = options || {};
-      if (typeof options === "string") {
-        options = {
-          url: options
-        };
-      }
-      let urlData;
-      let service = options.service;
-      if (typeof options.getSocket === "function") {
-        this.getSocket = options.getSocket;
-      }
-      if (options.url) {
-        urlData = shared2.parseConnectionUrl(options.url);
-        service = service || urlData.service;
-      }
-      this.options = shared2.assign(
-        false,
+var Le, wt;
+function vs() {
+  if (wt) return Le;
+  wt = 1;
+  const b = V, y = hi(), k = $e(), f = zt(), p = q(), n = F(), r = D;
+  class o extends b {
+    constructor(e) {
+      super(), e = e || {}, typeof e == "string" && (e = {
+        url: e
+      });
+      let l, c = e.service;
+      typeof e.getSocket == "function" && (this.getSocket = e.getSocket), e.url && (l = p.parseConnectionUrl(e.url), c = c || l.service), this.options = p.assign(
+        !1,
         // create new object
-        options,
+        e,
         // regular options
-        urlData,
+        l,
         // url options
-        service && wellKnown2(service)
+        c && f(c)
         // wellknown options
-      );
-      this.options.maxConnections = this.options.maxConnections || 5;
-      this.options.maxMessages = this.options.maxMessages || 100;
-      this.logger = shared2.getLogger(this.options, {
+      ), this.options.maxConnections = this.options.maxConnections || 5, this.options.maxMessages = this.options.maxMessages || 100, this.logger = p.getLogger(this.options, {
         component: this.options.component || "smtp-pool"
       });
-      let connection = new SMTPConnection(this.options);
-      this.name = "SMTP (pool)";
-      this.version = packageData.version + "[client:" + connection.version + "]";
-      this._rateLimit = {
+      let s = new k(this.options);
+      this.name = "SMTP (pool)", this.version = r.version + "[client:" + s.version + "]", this._rateLimit = {
         counter: 0,
         timeout: null,
         waiting: [],
-        checkpoint: false,
+        checkpoint: !1,
         delta: Number(this.options.rateDelta) || 1e3,
         limit: Number(this.options.rateLimit) || 0
-      };
-      this._closed = false;
-      this._queue = [];
-      this._connections = [];
-      this._connectionCounter = 0;
-      this.idling = true;
-      setImmediate(() => {
-        if (this.idling) {
-          this.emit("idle");
-        }
+      }, this._closed = !1, this._queue = [], this._connections = [], this._connectionCounter = 0, this.idling = !0, setImmediate(() => {
+        this.idling && this.emit("idle");
       });
     }
     /**
@@ -9751,8 +6666,8 @@ function requireSmtpPool() {
      * @param {Object} options Connection options
      * @param {Function} callback Callback function to run with the socket keys
      */
-    getSocket(options, callback) {
-      return setImmediate(() => callback(null, false));
+    getSocket(e, l) {
+      return setImmediate(() => l(null, !1));
     }
     /**
      * Queues an e-mail to be sent using the selected settings
@@ -9760,60 +6675,39 @@ function requireSmtpPool() {
      * @param {Object} mail Mail object
      * @param {Function} callback Callback function
      */
-    send(mail, callback) {
-      if (this._closed) {
-        return false;
-      }
-      this._queue.push({
-        mail,
+    send(e, l) {
+      return this._closed ? !1 : (this._queue.push({
+        mail: e,
         requeueAttempts: 0,
-        callback
-      });
-      if (this.idling && this._queue.length >= this.options.maxConnections) {
-        this.idling = false;
-      }
-      setImmediate(() => this._processMessages());
-      return true;
+        callback: l
+      }), this.idling && this._queue.length >= this.options.maxConnections && (this.idling = !1), setImmediate(() => this._processMessages()), !0);
     }
     /**
      * Closes all connections in the pool. If there is a message being sent, the connection
      * is closed later
      */
     close() {
-      let connection;
-      let len = this._connections.length;
-      this._closed = true;
-      clearTimeout(this._rateLimit.timeout);
-      if (!len && !this._queue.length) {
+      let e, l = this._connections.length;
+      if (this._closed = !0, clearTimeout(this._rateLimit.timeout), !l && !this._queue.length)
         return;
-      }
-      for (let i = len - 1; i >= 0; i--) {
-        if (this._connections[i] && this._connections[i].available) {
-          connection = this._connections[i];
-          connection.close();
-          this.logger.info(
-            {
-              tnx: "connection",
-              cid: connection.id,
-              action: "removed"
-            },
-            "Connection #%s removed",
-            connection.id
-          );
-        }
-      }
-      if (len && !this._connections.length) {
-        this.logger.debug(
+      for (let s = l - 1; s >= 0; s--)
+        this._connections[s] && this._connections[s].available && (e = this._connections[s], e.close(), this.logger.info(
           {
-            tnx: "connection"
+            tnx: "connection",
+            cid: e.id,
+            action: "removed"
           },
-          "All connections removed"
-        );
-      }
-      if (!this._queue.length) {
+          "Connection #%s removed",
+          e.id
+        ));
+      if (l && !this._connections.length && this.logger.debug(
+        {
+          tnx: "connection"
+        },
+        "All connections removed"
+      ), !this._queue.length)
         return;
-      }
-      let invokeCallbacks = () => {
+      let c = () => {
         if (!this._queue.length) {
           this.logger.debug(
             {
@@ -9823,99 +6717,77 @@ function requireSmtpPool() {
           );
           return;
         }
-        let entry = this._queue.shift();
-        if (entry && typeof entry.callback === "function") {
+        let s = this._queue.shift();
+        if (s && typeof s.callback == "function")
           try {
-            entry.callback(new Error("Connection pool was closed"));
-          } catch (E) {
+            s.callback(new Error("Connection pool was closed"));
+          } catch (x) {
             this.logger.error(
               {
-                err: E,
+                err: x,
                 tnx: "callback",
-                cid: connection.id
+                cid: e.id
               },
               "Callback error for #%s: %s",
-              connection.id,
-              E.message
+              e.id,
+              x.message
             );
           }
-        }
-        setImmediate(invokeCallbacks);
+        setImmediate(c);
       };
-      setImmediate(invokeCallbacks);
+      setImmediate(c);
     }
     /**
      * Check the queue and available connections. If there is a message to be sent and there is
      * an available connection, then use this connection to send the mail
      */
     _processMessages() {
-      let connection;
-      let i, len;
-      if (this._closed) {
+      let e, l, c;
+      if (this._closed)
         return;
-      }
       if (!this._queue.length) {
-        if (!this.idling) {
-          this.idling = true;
-          this.emit("idle");
-        }
+        this.idling || (this.idling = !0, this.emit("idle"));
         return;
       }
-      for (i = 0, len = this._connections.length; i < len; i++) {
-        if (this._connections[i].available) {
-          connection = this._connections[i];
+      for (l = 0, c = this._connections.length; l < c; l++)
+        if (this._connections[l].available) {
+          e = this._connections[l];
           break;
         }
-      }
-      if (!connection && this._connections.length < this.options.maxConnections) {
-        connection = this._createConnection();
-      }
-      if (!connection) {
-        this.idling = false;
+      if (!e && this._connections.length < this.options.maxConnections && (e = this._createConnection()), !e) {
+        this.idling = !1;
         return;
       }
-      if (!this.idling && this._queue.length < this.options.maxConnections) {
-        this.idling = true;
-        this.emit("idle");
-      }
-      let entry = connection.queueEntry = this._queue.shift();
-      entry.messageId = (connection.queueEntry.mail.message.getHeader("message-id") || "").replace(/[<>\s]/g, "");
-      connection.available = false;
-      this.logger.debug(
+      !this.idling && this._queue.length < this.options.maxConnections && (this.idling = !0, this.emit("idle"));
+      let s = e.queueEntry = this._queue.shift();
+      s.messageId = (e.queueEntry.mail.message.getHeader("message-id") || "").replace(/[<>\s]/g, ""), e.available = !1, this.logger.debug(
         {
           tnx: "pool",
-          cid: connection.id,
-          messageId: entry.messageId,
+          cid: e.id,
+          messageId: s.messageId,
           action: "assign"
         },
         "Assigned message <%s> to #%s (%s)",
-        entry.messageId,
-        connection.id,
-        connection.messages + 1
-      );
-      if (this._rateLimit.limit) {
-        this._rateLimit.counter++;
-        if (!this._rateLimit.checkpoint) {
-          this._rateLimit.checkpoint = Date.now();
-        }
-      }
-      connection.send(entry.mail, (err, info) => {
-        if (entry === connection.queueEntry) {
+        s.messageId,
+        e.id,
+        e.messages + 1
+      ), this._rateLimit.limit && (this._rateLimit.counter++, this._rateLimit.checkpoint || (this._rateLimit.checkpoint = Date.now())), e.send(s.mail, (x, g) => {
+        if (s === e.queueEntry) {
           try {
-            entry.callback(err, info);
-          } catch (E) {
+            s.callback(x, g);
+          } catch (v) {
             this.logger.error(
               {
-                err: E,
+                err: v,
                 tnx: "callback",
-                cid: connection.id
+                cid: e.id
               },
               "Callback error for #%s: %s",
-              connection.id,
-              E.message
+              e.id,
+              v.message
             );
           }
-          connection.queueEntry = false;
+          e.queueEntry = !1;
         }
       });
     }
@@ -9923,204 +6795,149 @@ function requireSmtpPool() {
      * Creates a new pool resource
      */
     _createConnection() {
-      let connection = new PoolResource(this);
-      connection.id = ++this._connectionCounter;
-      this.logger.info(
+      let e = new y(this);
+      return e.id = ++this._connectionCounter, this.logger.info(
         {
           tnx: "pool",
-          cid: connection.id,
+          cid: e.id,
           action: "conection"
         },
         "Created new pool resource #%s",
-        connection.id
-      );
-      connection.on("available", () => {
+        e.id
+      ), e.on("available", () => {
         this.logger.debug(
           {
             tnx: "connection",
-            cid: connection.id,
+            cid: e.id,
             action: "available"
           },
           "Connection #%s became available",
-          connection.id
-        );
-        if (this._closed) {
-          this.close();
-        } else {
-          this._processMessages();
-        }
-      });
-      connection.once("error", (err) => {
-        if (err.code !== "EMAXLIMIT") {
-          this.logger.warn(
-            {
-              err,
-              tnx: "pool",
-              cid: connection.id
-            },
-            "Pool Error for #%s: %s",
-            connection.id,
-            err.message
-          );
-        } else {
-          this.logger.debug(
-            {
-              tnx: "pool",
-              cid: connection.id,
-              action: "maxlimit"
-            },
-            "Max messages limit exchausted for #%s",
-            connection.id
-          );
-        }
-        if (connection.queueEntry) {
+          e.id
+        ), this._closed ? this.close() : this._processMessages();
+      }), e.once("error", (l) => {
+        if (l.code !== "EMAXLIMIT" ? this.logger.warn(
+          {
+            err: l,
+            tnx: "pool",
+            cid: e.id
+          },
+          "Pool Error for #%s: %s",
+          e.id,
+          l.message
+        ) : this.logger.debug(
+          {
+            tnx: "pool",
+            cid: e.id,
+            action: "maxlimit"
+          },
+          "Max messages limit exchausted for #%s",
+          e.id
+        ), e.queueEntry) {
           try {
-            connection.queueEntry.callback(err);
-          } catch (E) {
+            e.queueEntry.callback(l);
+          } catch (c) {
             this.logger.error(
               {
-                err: E,
+                err: c,
                 tnx: "callback",
-                cid: connection.id
+                cid: e.id
               },
               "Callback error for #%s: %s",
-              connection.id,
-              E.message
+              e.id,
+              c.message
             );
           }
-          connection.queueEntry = false;
+          e.queueEntry = !1;
         }
-        this._removeConnection(connection);
-        this._continueProcessing();
-      });
-      connection.once("close", () => {
+        this._removeConnection(e), this._continueProcessing();
+      }), e.once("close", () => {
         this.logger.info(
           {
             tnx: "connection",
-            cid: connection.id,
+            cid: e.id,
             action: "closed"
           },
           "Connection #%s was closed",
-          connection.id
-        );
-        this._removeConnection(connection);
-        if (connection.queueEntry) {
-          setTimeout(() => {
-            if (connection.queueEntry) {
-              if (this._shouldRequeuOnConnectionClose(connection.queueEntry)) {
-                this._requeueEntryOnConnectionClose(connection);
-              } else {
-                this._failDeliveryOnConnectionClose(connection);
-              }
-            }
-            this._continueProcessing();
-          }, 50);
-        } else {
-          if (!this._closed && this.idling && !this._connections.length) {
-            this.emit("clear");
-          }
-          this._continueProcessing();
-        }
-      });
-      this._connections.push(connection);
-      return connection;
+          e.id
+        ), this._removeConnection(e), e.queueEntry ? setTimeout(() => {
+          e.queueEntry && (this._shouldRequeuOnConnectionClose(e.queueEntry) ? this._requeueEntryOnConnectionClose(e) : this._failDeliveryOnConnectionClose(e)), this._continueProcessing();
+        }, 50) : (!this._closed && this.idling && !this._connections.length && this.emit("clear"), this._continueProcessing());
+      }), this._connections.push(e), e;
     }
-    _shouldRequeuOnConnectionClose(queueEntry) {
-      if (this.options.maxRequeues === void 0 || this.options.maxRequeues < 0) {
-        return true;
-      }
-      return queueEntry.requeueAttempts < this.options.maxRequeues;
+    _shouldRequeuOnConnectionClose(e) {
+      return this.options.maxRequeues === void 0 || this.options.maxRequeues < 0 ? !0 : e.requeueAttempts < this.options.maxRequeues;
     }
-    _failDeliveryOnConnectionClose(connection) {
-      if (connection.queueEntry && connection.queueEntry.callback) {
+    _failDeliveryOnConnectionClose(e) {
+      if (e.queueEntry && e.queueEntry.callback) {
         try {
-          connection.queueEntry.callback(new Error("Reached maximum number of retries after connection was closed"));
-        } catch (E) {
+          e.queueEntry.callback(new Error("Reached maximum number of retries after connection was closed"));
+        } catch (l) {
           this.logger.error(
             {
-              err: E,
+              err: l,
               tnx: "callback",
-              messageId: connection.queueEntry.messageId,
-              cid: connection.id
+              messageId: e.queueEntry.messageId,
+              cid: e.id
             },
             "Callback error for #%s: %s",
-            connection.id,
-            E.message
+            e.id,
+            l.message
           );
         }
-        connection.queueEntry = false;
+        e.queueEntry = !1;
       }
     }
-    _requeueEntryOnConnectionClose(connection) {
-      connection.queueEntry.requeueAttempts = connection.queueEntry.requeueAttempts + 1;
-      this.logger.debug(
+    _requeueEntryOnConnectionClose(e) {
+      e.queueEntry.requeueAttempts = e.queueEntry.requeueAttempts + 1, this.logger.debug(
         {
           tnx: "pool",
-          cid: connection.id,
-          messageId: connection.queueEntry.messageId,
+          cid: e.id,
+          messageId: e.queueEntry.messageId,
           action: "requeue"
         },
         "Re-queued message <%s> for #%s. Attempt: #%s",
-        connection.queueEntry.messageId,
-        connection.id,
-        connection.queueEntry.requeueAttempts
-      );
-      this._queue.unshift(connection.queueEntry);
-      connection.queueEntry = false;
+        e.queueEntry.messageId,
+        e.id,
+        e.queueEntry.requeueAttempts
+      ), this._queue.unshift(e.queueEntry), e.queueEntry = !1;
     }
     /**
      * Continue to process message if the pool hasn't closed
      */
     _continueProcessing() {
-      if (this._closed) {
-        this.close();
-      } else {
-        setTimeout(() => this._processMessages(), 100);
-      }
+      this._closed ? this.close() : setTimeout(() => this._processMessages(), 100);
     }
     /**
      * Remove resource from pool
      *
      * @param {Object} connection The PoolResource to remove
      */
-    _removeConnection(connection) {
-      let index = this._connections.indexOf(connection);
-      if (index !== -1) {
-        this._connections.splice(index, 1);
-      }
+    _removeConnection(e) {
+      let l = this._connections.indexOf(e);
+      l !== -1 && this._connections.splice(l, 1);
     }
     /**
      * Checks if connections have hit current rate limit and if so, queues the availability callback
      *
      * @param {Function} callback Callback function to run once rate limiter has been cleared
      */
-    _checkRateLimit(callback) {
-      if (!this._rateLimit.limit) {
-        return callback();
-      }
-      let now = Date.now();
-      if (this._rateLimit.counter < this._rateLimit.limit) {
-        return callback();
-      }
-      this._rateLimit.waiting.push(callback);
-      if (this._rateLimit.checkpoint <= now - this._rateLimit.delta) {
+    _checkRateLimit(e) {
+      if (!this._rateLimit.limit)
+        return e();
+      let l = Date.now();
+      if (this._rateLimit.counter < this._rateLimit.limit)
+        return e();
+      if (this._rateLimit.waiting.push(e), this._rateLimit.checkpoint <= l - this._rateLimit.delta)
         return this._clearRateLimit();
-      } else if (!this._rateLimit.timeout) {
-        this._rateLimit.timeout = setTimeout(() => this._clearRateLimit(), this._rateLimit.delta - (now - this._rateLimit.checkpoint));
-        this._rateLimit.checkpoint = now;
-      }
+      this._rateLimit.timeout || (this._rateLimit.timeout = setTimeout(() => this._clearRateLimit(), this._rateLimit.delta - (l - this._rateLimit.checkpoint)), this._rateLimit.checkpoint = l);
     }
     /**
      * Clears current rate limit limitation and runs paused callback
      */
     _clearRateLimit() {
-      clearTimeout(this._rateLimit.timeout);
-      this._rateLimit.timeout = null;
-      this._rateLimit.counter = 0;
-      this._rateLimit.checkpoint = false;
-      while (this._rateLimit.waiting.length) {
-        let cb = this._rateLimit.waiting.shift();
-        setImmediate(cb);
+      for (clearTimeout(this._rateLimit.timeout), this._rateLimit.timeout = null, this._rateLimit.counter = 0, this._rateLimit.checkpoint = !1; this._rateLimit.waiting.length; ) {
+        let e = this._rateLimit.waiting.shift();
+        setImmediate(e);
       }
     }
     /**
@@ -10134,147 +6951,91 @@ function requireSmtpPool() {
      *
      * @param {Function} callback Callback function
      */
-    verify(callback) {
-      let promise;
-      if (!callback) {
-        promise = new Promise((resolve, reject) => {
-          callback = shared2.callbackPromise(resolve, reject);
+    verify(e) {
+      let l;
+      e || (l = new Promise((s, x) => {
+        e = p.callbackPromise(s, x);
+      }));
+      let c = new y(this).auth;
+      return this.getSocket(this.options, (s, x) => {
+        if (s)
+          return e(s);
+        let g = this.options;
+        x && x.connection && (this.logger.info(
+          {
+            tnx: "proxy",
+            remoteAddress: x.connection.remoteAddress,
+            remotePort: x.connection.remotePort,
+            destHost: g.host || "",
+            destPort: g.port || "",
+            action: "connected"
+          },
+          "Using proxied socket from %s:%s to %s:%s",
+          x.connection.remoteAddress,
+          x.connection.remotePort,
+          g.host || "",
+          g.port || ""
+        ), g = p.assign(!1, g), Object.keys(x).forEach((d) => {
+          g[d] = x[d];
+        }));
+        let v = new k(g), t = !1;
+        v.once("error", (d) => {
+          if (!t)
+            return t = !0, v.close(), e(d);
+        }), v.once("end", () => {
+          if (!t)
+            return t = !0, e(new Error("Connection closed"));
         });
-      }
-      let auth = new PoolResource(this).auth;
-      this.getSocket(this.options, (err, socketOptions) => {
-        if (err) {
-          return callback(err);
-        }
-        let options = this.options;
-        if (socketOptions && socketOptions.connection) {
-          this.logger.info(
-            {
-              tnx: "proxy",
-              remoteAddress: socketOptions.connection.remoteAddress,
-              remotePort: socketOptions.connection.remotePort,
-              destHost: options.host || "",
-              destPort: options.port || "",
-              action: "connected"
-            },
-            "Using proxied socket from %s:%s to %s:%s",
-            socketOptions.connection.remoteAddress,
-            socketOptions.connection.remotePort,
-            options.host || "",
-            options.port || ""
-          );
-          options = shared2.assign(false, options);
-          Object.keys(socketOptions).forEach((key) => {
-            options[key] = socketOptions[key];
-          });
-        }
-        let connection = new SMTPConnection(options);
-        let returned = false;
-        connection.once("error", (err2) => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          connection.close();
-          return callback(err2);
-        });
-        connection.once("end", () => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          return callback(new Error("Connection closed"));
-        });
-        let finalize = () => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          connection.quit();
-          return callback(null, true);
+        let i = () => {
+          if (!t)
+            return t = !0, v.quit(), e(null, !0);
         };
-        connection.connect(() => {
-          if (returned) {
-            return;
-          }
-          if (auth && (connection.allowsAuth || options.forceAuth)) {
-            connection.login(auth, (err2) => {
-              if (returned) {
-                return;
-              }
-              if (err2) {
-                returned = true;
-                connection.close();
-                return callback(err2);
-              }
-              finalize();
-            });
-          } else if (!auth && connection.allowsAuth && options.forceAuth) {
-            let err2 = new Error("Authentication info was not provided");
-            err2.code = errors2.ENOAUTH;
-            returned = true;
-            connection.close();
-            return callback(err2);
-          } else {
-            finalize();
-          }
+        v.connect(() => {
+          if (!t)
+            if (c && (v.allowsAuth || g.forceAuth))
+              v.login(c, (d) => {
+                if (!t) {
+                  if (d)
+                    return t = !0, v.close(), e(d);
+                  i();
+                }
+              });
+            else if (!c && v.allowsAuth && g.forceAuth) {
+              let d = new Error("Authentication info was not provided");
+              return d.code = n.ENOAUTH, t = !0, v.close(), e(d);
+            } else
+              i();
         });
-      });
-      return promise;
+      }), l;
     }
   }
-  smtpPool = SMTPPool;
-  return smtpPool;
+  return Le = o, Le;
 }
-var smtpTransport;
-var hasRequiredSmtpTransport;
-function requireSmtpTransport() {
-  if (hasRequiredSmtpTransport) return smtpTransport;
-  hasRequiredSmtpTransport = 1;
-  const EventEmitter = require$$0$5;
-  const SMTPConnection = requireSmtpConnection();
-  const wellKnown2 = requireWellKnown();
-  const shared2 = requireShared();
-  const XOAuth2 = requireXoauth2();
-  const errors2 = requireErrors();
-  const packageData = require$$10;
-  class SMTPTransport extends EventEmitter {
-    constructor(options) {
-      super();
-      options = options || {};
-      if (typeof options === "string") {
-        options = {
-          url: options
-        };
-      }
-      let urlData;
-      let service = options.service;
-      if (typeof options.getSocket === "function") {
-        this.getSocket = options.getSocket;
-      }
-      if (options.url) {
-        urlData = shared2.parseConnectionUrl(options.url);
-        service = service || urlData.service;
-      }
-      this.options = shared2.assign(
-        false,
+var Oe, _t;
+function ws() {
+  if (_t) return Oe;
+  _t = 1;
+  const b = V, y = $e(), k = zt(), f = q(), p = Rt(), n = F(), r = D;
+  class o extends b {
+    constructor(e) {
+      super(), e = e || {}, typeof e == "string" && (e = {
+        url: e
+      });
+      let l, c = e.service;
+      typeof e.getSocket == "function" && (this.getSocket = e.getSocket), e.url && (l = f.parseConnectionUrl(e.url), c = c || l.service), this.options = f.assign(
+        !1,
         // create new object
-        options,
+        e,
         // regular options
-        urlData,
+        l,
         // url options
-        service && wellKnown2(service)
+        c && k(c)
         // wellknown options
-      );
-      this.logger = shared2.getLogger(this.options, {
+      ), this.logger = f.getLogger(this.options, {
         component: this.options.component || "smtp-transport"
       });
-      let connection = new SMTPConnection(this.options);
-      this.name = "SMTP";
-      this.version = packageData.version + "[client:" + connection.version + "]";
-      if (this.options.auth) {
-        this.auth = this.getAuth({});
-      }
+      let s = new y(this.options);
+      this.name = "SMTP", this.version = r.version + "[client:" + s.version + "]", this.options.auth && (this.auth = this.getAuth({}));
     }
     /**
      * Placeholder function for creating proxy sockets. This method immediatelly returns
@@ -10283,56 +7044,41 @@ function requireSmtpTransport() {
      * @param {Object} options Connection options
      * @param {Function} callback Callback function to run with the socket keys
      */
-    getSocket(options, callback) {
-      return setImmediate(() => callback(null, false));
+    getSocket(e, l) {
+      return setImmediate(() => l(null, !1));
     }
-    getAuth(authOpts) {
-      if (!authOpts) {
+    getAuth(e) {
+      if (!e)
         return this.auth;
-      }
-      let hasAuth = false;
-      let authData = {};
-      if (this.options.auth && typeof this.options.auth === "object") {
-        Object.keys(this.options.auth).forEach((key) => {
-          hasAuth = true;
-          authData[key] = this.options.auth[key];
-        });
-      }
-      if (authOpts && typeof authOpts === "object") {
-        Object.keys(authOpts).forEach((key) => {
-          hasAuth = true;
-          authData[key] = authOpts[key];
-        });
-      }
-      if (!hasAuth) {
-        return false;
-      }
-      switch ((authData.type || "").toString().toUpperCase()) {
+      let l = !1, c = {};
+      if (this.options.auth && typeof this.options.auth == "object" && Object.keys(this.options.auth).forEach((s) => {
+        l = !0, c[s] = this.options.auth[s];
+      }), e && typeof e == "object" && Object.keys(e).forEach((s) => {
+        l = !0, c[s] = e[s];
+      }), !l)
+        return !1;
+      switch ((c.type || "").toString().toUpperCase()) {
         case "OAUTH2": {
-          if (!authData.service && !authData.user) {
-            return false;
-          }
-          let oauth2 = new XOAuth2(authData, this.logger);
-          oauth2.provisionCallback = this.mailer && this.mailer.get("oauth2_provision_cb") || oauth2.provisionCallback;
-          oauth2.on("token", (token) => this.mailer.emit("token", token));
-          oauth2.on("error", (err) => this.emit("error", err));
-          return {
+          if (!c.service && !c.user)
+            return !1;
+          let s = new p(c, this.logger);
+          return s.provisionCallback = this.mailer && this.mailer.get("oauth2_provision_cb") || s.provisionCallback, s.on("token", (x) => this.mailer.emit("token", x)), s.on("error", (x) => this.emit("error", x)), {
             type: "OAUTH2",
-            user: authData.user,
-            oauth2,
+            user: c.user,
+            oauth2: s,
             method: "XOAUTH2"
           };
         }
         default:
           return {
-            type: (authData.type || "").toString().toUpperCase() || "LOGIN",
-            user: authData.user,
+            type: (c.type || "").toString().toUpperCase() || "LOGIN",
+            user: c.user,
             credentials: {
-              user: authData.user || "",
-              pass: authData.pass,
-              options: authData.options
+              user: c.user || "",
+              pass: c.pass,
+              options: c.options
             },
-            method: (authData.method || "").trim().toUpperCase() || this.options.authMethod || false
+            method: (c.method || "").trim().toUpperCase() || this.options.authMethod || !1
           };
       }
     }
@@ -10342,143 +7088,98 @@ function requireSmtpTransport() {
      * @param {Object} mail Mail object
      * @param {Function} callback Callback function
      */
-    send(mail, callback) {
-      this.getSocket(this.options, (err, socketOptions) => {
-        if (err) {
-          return callback(err);
-        }
-        let returned = false;
-        let options = this.options;
-        if (socketOptions && socketOptions.connection) {
-          this.logger.info(
-            {
-              tnx: "proxy",
-              remoteAddress: socketOptions.connection.remoteAddress,
-              remotePort: socketOptions.connection.remotePort,
-              destHost: options.host || "",
-              destPort: options.port || "",
-              action: "connected"
-            },
-            "Using proxied socket from %s:%s to %s:%s",
-            socketOptions.connection.remoteAddress,
-            socketOptions.connection.remotePort,
-            options.host || "",
-            options.port || ""
-          );
-          options = shared2.assign(false, options);
-          Object.keys(socketOptions).forEach((key) => {
-            options[key] = socketOptions[key];
-          });
-        }
-        let connection = new SMTPConnection(options);
-        connection.once("error", (err2) => {
-          if (returned) {
+    send(e, l) {
+      this.getSocket(this.options, (c, s) => {
+        if (c)
+          return l(c);
+        let x = !1, g = this.options;
+        s && s.connection && (this.logger.info(
+          {
+            tnx: "proxy",
+            remoteAddress: s.connection.remoteAddress,
+            remotePort: s.connection.remotePort,
+            destHost: g.host || "",
+            destPort: g.port || "",
+            action: "connected"
+          },
+          "Using proxied socket from %s:%s to %s:%s",
+          s.connection.remoteAddress,
+          s.connection.remotePort,
+          g.host || "",
+          g.port || ""
+        ), g = f.assign(!1, g), Object.keys(s).forEach((i) => {
+          g[i] = s[i];
+        }));
+        let v = new y(g);
+        v.once("error", (i) => {
+          if (!x)
+            return x = !0, v.close(), l(i);
+        }), v.once("end", () => {
+          if (x)
             return;
-          }
-          returned = true;
-          connection.close();
-          return callback(err2);
-        });
-        connection.once("end", () => {
-          if (returned) {
-            return;
-          }
-          let timer = setTimeout(() => {
-            if (returned) {
+          let i = setTimeout(() => {
+            if (x)
               return;
-            }
-            returned = true;
-            let err2 = new Error("Unexpected socket close");
-            if (connection && connection._socket && connection._socket.upgrading) {
-              err2.code = errors2.ETLS;
-            }
-            callback(err2);
+            x = !0;
+            let d = new Error("Unexpected socket close");
+            v && v._socket && v._socket.upgrading && (d.code = n.ETLS), l(d);
           }, 1e3);
           try {
-            timer.unref();
-          } catch (_E) {
+            i.unref();
+          } catch {
           }
         });
-        let sendMessage = () => {
-          let envelope = mail.message.getEnvelope();
-          let messageId = mail.message.messageId();
-          let recipients = [].concat(envelope.to || []);
-          if (recipients.length > 3) {
-            recipients.push("...and " + recipients.splice(2).length + " more");
-          }
-          if (mail.data.dsn) {
-            envelope.dsn = mail.data.dsn;
-          }
-          if (mail.data.requireTLSExtensionEnabled) {
-            envelope.requireTLSExtensionEnabled = mail.data.requireTLSExtensionEnabled;
-          }
-          this.logger.info(
+        let t = () => {
+          let i = e.message.getEnvelope(), d = e.message.messageId(), a = [].concat(i.to || []);
+          a.length > 3 && a.push("...and " + a.splice(2).length + " more"), e.data.dsn && (i.dsn = e.data.dsn), e.data.requireTLSExtensionEnabled && (i.requireTLSExtensionEnabled = e.data.requireTLSExtensionEnabled), this.logger.info(
             {
               tnx: "send",
-              messageId
+              messageId: d
             },
             "Sending message %s to <%s>",
-            messageId,
-            recipients.join(", ")
-          );
-          connection.send(envelope, mail.message.createReadStream(), (err2, info) => {
-            returned = true;
-            connection.close();
-            if (err2) {
-              this.logger.error(
+            d,
+            a.join(", ")
+          ), v.send(i, e.message.createReadStream(), (h, u) => {
+            if (x = !0, v.close(), h)
+              return this.logger.error(
                 {
-                  err: err2,
+                  err: h,
                   tnx: "send"
                 },
                 "Send error for %s: %s",
-                messageId,
-                err2.message
-              );
-              return callback(err2);
-            }
-            info.envelope = {
-              from: envelope.from,
-              to: envelope.to
-            };
-            info.messageId = messageId;
+                d,
+                h.message
+              ), l(h);
+            u.envelope = {
+              from: i.from,
+              to: i.to
+            }, u.messageId = d;
             try {
-              return callback(null, info);
-            } catch (E) {
+              return l(null, u);
+            } catch (_) {
               this.logger.error(
                 {
-                  err: E,
+                  err: _,
                   tnx: "callback"
                 },
                 "Callback error for %s: %s",
-                messageId,
-                E.message
+                d,
+                _.message
               );
             }
           });
         };
-        connection.connect(() => {
-          if (returned) {
+        v.connect(() => {
+          if (x)
             return;
-          }
-          let auth = this.getAuth(mail.data.auth);
-          if (auth && (connection.allowsAuth || options.forceAuth)) {
-            connection.login(auth, (err2) => {
-              if (auth && auth !== this.auth && auth.oauth2) {
-                auth.oauth2.removeAllListeners();
-              }
-              if (returned) {
-                return;
-              }
-              if (err2) {
-                returned = true;
-                connection.close();
-                return callback(err2);
-              }
-              sendMessage();
-            });
-          } else {
-            sendMessage();
-          }
+          let i = this.getAuth(e.data.auth);
+          i && (v.allowsAuth || g.forceAuth) ? v.login(i, (d) => {
+            if (i && i !== this.auth && i.oauth2 && i.oauth2.removeAllListeners(), !x) {
+              if (d)
+                return x = !0, v.close(), l(d);
+              t();
+            }
+          }) : t();
         });
       });
     }
@@ -10487,142 +7188,83 @@ function requireSmtpTransport() {
      *
      * @param {Function} callback Callback function
      */
-    verify(callback) {
-      let promise;
-      if (!callback) {
-        promise = new Promise((resolve, reject) => {
-          callback = shared2.callbackPromise(resolve, reject);
+    verify(e) {
+      let l;
+      return e || (l = new Promise((c, s) => {
+        e = f.callbackPromise(c, s);
+      })), this.getSocket(this.options, (c, s) => {
+        if (c)
+          return e(c);
+        let x = this.options;
+        s && s.connection && (this.logger.info(
+          {
+            tnx: "proxy",
+            remoteAddress: s.connection.remoteAddress,
+            remotePort: s.connection.remotePort,
+            destHost: x.host || "",
+            destPort: x.port || "",
+            action: "connected"
+          },
+          "Using proxied socket from %s:%s to %s:%s",
+          s.connection.remoteAddress,
+          s.connection.remotePort,
+          x.host || "",
+          x.port || ""
+        ), x = f.assign(!1, x), Object.keys(s).forEach((i) => {
+          x[i] = s[i];
+        }));
+        let g = new y(x), v = !1;
+        g.once("error", (i) => {
+          if (!v)
+            return v = !0, g.close(), e(i);
+        }), g.once("end", () => {
+          if (!v)
+            return v = !0, e(new Error("Connection closed"));
         });
-      }
-      this.getSocket(this.options, (err, socketOptions) => {
-        if (err) {
-          return callback(err);
-        }
-        let options = this.options;
-        if (socketOptions && socketOptions.connection) {
-          this.logger.info(
-            {
-              tnx: "proxy",
-              remoteAddress: socketOptions.connection.remoteAddress,
-              remotePort: socketOptions.connection.remotePort,
-              destHost: options.host || "",
-              destPort: options.port || "",
-              action: "connected"
-            },
-            "Using proxied socket from %s:%s to %s:%s",
-            socketOptions.connection.remoteAddress,
-            socketOptions.connection.remotePort,
-            options.host || "",
-            options.port || ""
-          );
-          options = shared2.assign(false, options);
-          Object.keys(socketOptions).forEach((key) => {
-            options[key] = socketOptions[key];
-          });
-        }
-        let connection = new SMTPConnection(options);
-        let returned = false;
-        connection.once("error", (err2) => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          connection.close();
-          return callback(err2);
-        });
-        connection.once("end", () => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          return callback(new Error("Connection closed"));
-        });
-        let finalize = () => {
-          if (returned) {
-            return;
-          }
-          returned = true;
-          connection.quit();
-          return callback(null, true);
+        let t = () => {
+          if (!v)
+            return v = !0, g.quit(), e(null, !0);
         };
-        connection.connect(() => {
-          if (returned) {
+        g.connect(() => {
+          if (v)
             return;
-          }
-          let authData = this.getAuth({});
-          if (authData && (connection.allowsAuth || options.forceAuth)) {
-            connection.login(authData, (err2) => {
-              if (returned) {
-                return;
+          let i = this.getAuth({});
+          if (i && (g.allowsAuth || x.forceAuth))
+            g.login(i, (d) => {
+              if (!v) {
+                if (d)
+                  return v = !0, g.close(), e(d);
+                t();
               }
-              if (err2) {
-                returned = true;
-                connection.close();
-                return callback(err2);
-              }
-              finalize();
             });
-          } else if (!authData && connection.allowsAuth && options.forceAuth) {
-            let err2 = new Error("Authentication info was not provided");
-            err2.code = errors2.ENOAUTH;
-            returned = true;
-            connection.close();
-            return callback(err2);
-          } else {
-            finalize();
-          }
+          else if (!i && g.allowsAuth && x.forceAuth) {
+            let d = new Error("Authentication info was not provided");
+            return d.code = n.ENOAUTH, v = !0, g.close(), e(d);
+          } else
+            t();
         });
-      });
-      return promise;
+      }), l;
     }
     /**
      * Releases resources
      */
     close() {
-      if (this.auth && this.auth.oauth2) {
-        this.auth.oauth2.removeAllListeners();
-      }
-      this.emit("close");
+      this.auth && this.auth.oauth2 && this.auth.oauth2.removeAllListeners(), this.emit("close");
     }
   }
-  smtpTransport = SMTPTransport;
-  return smtpTransport;
+  return Oe = o, Oe;
 }
-var sendmailTransport;
-var hasRequiredSendmailTransport;
-function requireSendmailTransport() {
-  if (hasRequiredSendmailTransport) return sendmailTransport;
-  hasRequiredSendmailTransport = 1;
-  const spawn = require$$0$6.spawn;
-  const packageData = require$$10;
-  const shared2 = requireShared();
-  const errors2 = requireErrors();
-  class SendmailTransport {
-    constructor(options) {
-      options = options || {};
-      this._spawn = spawn;
-      this.options = options || {};
-      this.name = "Sendmail";
-      this.version = packageData.version;
-      this.path = "sendmail";
-      this.args = false;
-      this.winbreak = false;
-      this.logger = shared2.getLogger(this.options, {
+var Ne, bt;
+function _s() {
+  if (bt) return Ne;
+  bt = 1;
+  const b = Vt.spawn, y = D, k = q(), f = F();
+  class p {
+    constructor(r) {
+      r = r || {}, this._spawn = b, this.options = r || {}, this.name = "Sendmail", this.version = y.version, this.path = "sendmail", this.args = !1, this.winbreak = !1, this.logger = k.getLogger(this.options, {
         component: this.options.component || "sendmail"
-      });
-      if (options) {
-        if (typeof options === "string") {
-          this.path = options;
-        } else if (typeof options === "object") {
-          if (options.path) {
-            this.path = options.path;
-          }
-          if (Array.isArray(options.args)) {
-            this.args = options.args;
-          }
-          this.winbreak = ["win", "windows", "dos", "\r\n"].includes((options.newline || "").toString().toLowerCase());
-        }
-      }
+      }), r && (typeof r == "string" ? this.path = r : typeof r == "object" && (r.path && (this.path = r.path), Array.isArray(r.args) && (this.args = r.args), this.winbreak = ["win", "windows", "dos", `\r
+`].includes((r.newline || "").toString().toLowerCase())));
     }
     /**
      * <p>Compiles a mailcomposer message and forwards it to handler that sends it.</p>
@@ -10630,162 +7272,115 @@ function requireSendmailTransport() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(mail, done) {
-      mail.message.keepBcc = true;
-      let envelope = mail.data.envelope || mail.message.getEnvelope();
-      let messageId = mail.message.messageId();
-      let args;
-      let sendmail;
-      let returned;
-      const hasInvalidAddresses = [].concat(envelope.from || []).concat(envelope.to || []).some((addr) => /^-/.test(addr));
-      if (hasInvalidAddresses) {
-        let err = new Error("Can not send mail. Invalid envelope addresses.");
-        err.code = errors2.ESENDMAIL;
-        return done(err);
+    send(r, o) {
+      r.message.keepBcc = !0;
+      let m = r.data.envelope || r.message.getEnvelope(), e = r.message.messageId(), l, c, s;
+      if ([].concat(m.from || []).concat(m.to || []).some((v) => /^-/.test(v))) {
+        let v = new Error("Can not send mail. Invalid envelope addresses.");
+        return v.code = f.ESENDMAIL, o(v);
       }
-      if (this.args) {
-        args = ["-i"].concat(this.args).concat(envelope.to);
-      } else {
-        args = ["-i"].concat(envelope.from ? ["-f", envelope.from] : []).concat(envelope.to);
-      }
-      let callback = (err) => {
-        if (returned) {
-          return;
-        }
-        returned = true;
-        if (typeof done === "function") {
-          if (err) {
-            return done(err);
-          } else {
-            return done(null, {
-              envelope: mail.data.envelope || mail.message.getEnvelope(),
-              messageId,
-              response: "Messages queued for delivery"
-            });
-          }
-        }
+      this.args ? l = ["-i"].concat(this.args).concat(m.to) : l = ["-i"].concat(m.from ? ["-f", m.from] : []).concat(m.to);
+      let g = (v) => {
+        if (!s && (s = !0, typeof o == "function"))
+          return v ? o(v) : o(null, {
+            envelope: r.data.envelope || r.message.getEnvelope(),
+            messageId: e,
+            response: "Messages queued for delivery"
+          });
       };
       try {
-        sendmail = this._spawn(this.path, args);
-      } catch (E) {
-        this.logger.error(
+        c = this._spawn(this.path, l);
+      } catch (v) {
+        return this.logger.error(
           {
-            err: E,
+            err: v,
             tnx: "spawn",
-            messageId
+            messageId: e
           },
           "Error occurred while spawning sendmail. %s",
-          E.message
-        );
-        return callback(E);
+          v.message
+        ), g(v);
       }
-      if (sendmail) {
-        sendmail.on("error", (err) => {
+      if (c) {
+        c.on("error", (i) => {
           this.logger.error(
             {
-              err,
+              err: i,
               tnx: "spawn",
-              messageId
+              messageId: e
             },
             "Error occurred when sending message %s. %s",
-            messageId,
-            err.message
-          );
-          callback(err);
-        });
-        sendmail.once("exit", (code) => {
-          if (!code) {
-            return callback();
-          }
-          let err;
-          if (code === 127) {
-            err = new Error("Sendmail command not found, process exited with code " + code);
-          } else {
-            err = new Error("Sendmail exited with code " + code);
-          }
-          err.code = errors2.ESENDMAIL;
-          this.logger.error(
+            e,
+            i.message
+          ), g(i);
+        }), c.once("exit", (i) => {
+          if (!i)
+            return g();
+          let d;
+          i === 127 ? d = new Error("Sendmail command not found, process exited with code " + i) : d = new Error("Sendmail exited with code " + i), d.code = f.ESENDMAIL, this.logger.error(
             {
-              err,
+              err: d,
               tnx: "stdin",
-              messageId
+              messageId: e
             },
             "Error sending message %s to sendmail. %s",
-            messageId,
-            err.message
-          );
-          callback(err);
-        });
-        sendmail.once("close", callback);
-        sendmail.stdin.on("error", (err) => {
+            e,
+            d.message
+          ), g(d);
+        }), c.once("close", g), c.stdin.on("error", (i) => {
           this.logger.error(
             {
-              err,
+              err: i,
               tnx: "stdin",
-              messageId
+              messageId: e
             },
             "Error occurred when piping message %s to sendmail. %s",
-            messageId,
-            err.message
-          );
-          callback(err);
+            e,
+            i.message
+          ), g(i);
         });
-        let recipients = [].concat(envelope.to || []);
-        if (recipients.length > 3) {
-          recipients.push("...and " + recipients.splice(2).length + " more");
-        }
-        this.logger.info(
+        let v = [].concat(m.to || []);
+        v.length > 3 && v.push("...and " + v.splice(2).length + " more"), this.logger.info(
           {
             tnx: "send",
-            messageId
+            messageId: e
           },
           "Sending message %s to <%s>",
-          messageId,
-          recipients.join(", ")
+          e,
+          v.join(", ")
         );
-        let sourceStream = mail.message.createReadStream();
-        sourceStream.once("error", (err) => {
+        let t = r.message.createReadStream();
+        t.once("error", (i) => {
           this.logger.error(
             {
-              err,
+              err: i,
               tnx: "stdin",
-              messageId
+              messageId: e
             },
             "Error occurred when generating message %s. %s",
-            messageId,
-            err.message
-          );
-          sendmail.kill("SIGINT");
-          callback(err);
-        });
-        sourceStream.pipe(sendmail.stdin);
+            e,
+            i.message
+          ), c.kill("SIGINT"), g(i);
+        }), t.pipe(c.stdin);
       } else {
-        let err = new Error("sendmail was not found");
-        err.code = errors2.ESENDMAIL;
-        return callback(err);
+        let v = new Error("sendmail was not found");
+        return v.code = f.ESENDMAIL, g(v);
       }
     }
   }
-  sendmailTransport = SendmailTransport;
-  return sendmailTransport;
+  return Ne = p, Ne;
 }
-var streamTransport;
-var hasRequiredStreamTransport;
-function requireStreamTransport() {
-  if (hasRequiredStreamTransport) return streamTransport;
-  hasRequiredStreamTransport = 1;
-  const packageData = require$$10;
-  const shared2 = requireShared();
-  class StreamTransport {
-    constructor(options) {
-      options = options || {};
-      this.options = options || {};
-      this.name = "StreamTransport";
-      this.version = packageData.version;
-      this.logger = shared2.getLogger(this.options, {
+var He, Et;
+function bs() {
+  if (Et) return He;
+  Et = 1;
+  const b = D, y = q();
+  class k {
+    constructor(p) {
+      p = p || {}, this.options = p || {}, this.name = "StreamTransport", this.version = b.version, this.logger = y.getLogger(this.options, {
         component: this.options.component || "stream-transport"
-      });
-      this.winbreak = ["win", "windows", "dos", "\r\n"].includes((options.newline || "").toString().toLowerCase());
+      }), this.winbreak = ["win", "windows", "dos", `\r
+`].includes((p.newline || "").toString().toLowerCase());
     }
     /**
      * Compiles a mailcomposer message and forwards it to handler that sends it
@@ -10793,110 +7388,86 @@ function requireStreamTransport() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(mail, done) {
-      mail.message.keepBcc = true;
-      let envelope = mail.data.envelope || mail.message.getEnvelope();
-      let messageId = mail.message.messageId();
-      let recipients = [].concat(envelope.to || []);
-      if (recipients.length > 3) {
-        recipients.push("...and " + recipients.splice(2).length + " more");
-      }
-      this.logger.info(
+    send(p, n) {
+      p.message.keepBcc = !0;
+      let r = p.data.envelope || p.message.getEnvelope(), o = p.message.messageId(), m = [].concat(r.to || []);
+      m.length > 3 && m.push("...and " + m.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
-          messageId
+          messageId: o
         },
         "Sending message %s to <%s> using %s line breaks",
-        messageId,
-        recipients.join(", "),
+        o,
+        m.join(", "),
         this.winbreak ? "<CR><LF>" : "<LF>"
-      );
-      setImmediate(() => {
-        let stream;
+      ), setImmediate(() => {
+        let e;
         try {
-          stream = mail.message.createReadStream();
-        } catch (E) {
-          this.logger.error(
+          e = p.message.createReadStream();
+        } catch (s) {
+          return this.logger.error(
             {
-              err: E,
+              err: s,
               tnx: "send",
-              messageId
+              messageId: o
             },
             "Creating send stream failed for %s. %s",
-            messageId,
-            E.message
-          );
-          return done(E);
+            o,
+            s.message
+          ), n(s);
         }
-        if (!this.options.buffer) {
-          stream.once("error", (err) => {
+        if (!this.options.buffer)
+          return e.once("error", (s) => {
             this.logger.error(
               {
-                err,
+                err: s,
                 tnx: "send",
-                messageId
+                messageId: o
               },
               "Failed creating message for %s. %s",
-              messageId,
-              err.message
+              o,
+              s.message
             );
+          }), n(null, {
+            envelope: p.data.envelope || p.message.getEnvelope(),
+            messageId: o,
+            message: e
           });
-          return done(null, {
-            envelope: mail.data.envelope || mail.message.getEnvelope(),
-            messageId,
-            message: stream
-          });
-        }
-        let chunks = [];
-        let chunklen = 0;
-        stream.on("readable", () => {
-          let chunk;
-          while ((chunk = stream.read()) !== null) {
-            chunks.push(chunk);
-            chunklen += chunk.length;
-          }
-        });
-        stream.once("error", (err) => {
-          this.logger.error(
-            {
-              err,
-              tnx: "send",
-              messageId
-            },
-            "Failed creating message for %s. %s",
-            messageId,
-            err.message
-          );
-          return done(err);
-        });
-        stream.on(
+        let l = [], c = 0;
+        e.on("readable", () => {
+          let s;
+          for (; (s = e.read()) !== null; )
+            l.push(s), c += s.length;
+        }), e.once("error", (s) => (this.logger.error(
+          {
+            err: s,
+            tnx: "send",
+            messageId: o
+          },
+          "Failed creating message for %s. %s",
+          o,
+          s.message
+        ), n(s))), e.on(
           "end",
-          () => done(null, {
-            envelope: mail.data.envelope || mail.message.getEnvelope(),
-            messageId,
-            message: Buffer.concat(chunks, chunklen)
+          () => n(null, {
+            envelope: p.data.envelope || p.message.getEnvelope(),
+            messageId: o,
+            message: Buffer.concat(l, c)
           })
         );
       });
     }
   }
-  streamTransport = StreamTransport;
-  return streamTransport;
+  return He = k, He;
 }
-var jsonTransport;
-var hasRequiredJsonTransport;
-function requireJsonTransport() {
-  if (hasRequiredJsonTransport) return jsonTransport;
-  hasRequiredJsonTransport = 1;
-  const packageData = require$$10;
-  const shared2 = requireShared();
-  class JSONTransport {
-    constructor(options) {
-      options = options || {};
-      this.options = options || {};
-      this.name = "JSONTransport";
-      this.version = packageData.version;
-      this.logger = shared2.getLogger(this.options, {
+var qe, yt;
+function Es() {
+  if (yt) return qe;
+  yt = 1;
+  const b = D, y = q();
+  class k {
+    constructor(p) {
+      p = p || {}, this.options = p || {}, this.name = "JSONTransport", this.version = b.version, this.logger = y.getLogger(this.options, {
         component: this.options.component || "json-transport"
       });
     }
@@ -10906,79 +7477,50 @@ function requireJsonTransport() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(mail, done) {
-      mail.message.keepBcc = true;
-      let envelope = mail.data.envelope || mail.message.getEnvelope();
-      let messageId = mail.message.messageId();
-      let recipients = [].concat(envelope.to || []);
-      if (recipients.length > 3) {
-        recipients.push("...and " + recipients.splice(2).length + " more");
-      }
-      this.logger.info(
+    send(p, n) {
+      p.message.keepBcc = !0;
+      let r = p.data.envelope || p.message.getEnvelope(), o = p.message.messageId(), m = [].concat(r.to || []);
+      m.length > 3 && m.push("...and " + m.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
-          messageId
+          messageId: o
         },
         "Composing JSON structure of %s to <%s>",
-        messageId,
-        recipients.join(", ")
-      );
-      setImmediate(() => {
-        mail.normalize((err, data) => {
-          if (err) {
-            this.logger.error(
-              {
-                err,
-                tnx: "send",
-                messageId
-              },
-              "Failed building JSON structure for %s. %s",
-              messageId,
-              err.message
-            );
-            return done(err);
-          }
-          delete data.envelope;
-          delete data.normalizedHeaders;
-          return done(null, {
-            envelope,
-            messageId,
-            message: this.options.skipEncoding ? data : JSON.stringify(data)
-          });
-        });
+        o,
+        m.join(", ")
+      ), setImmediate(() => {
+        p.normalize((e, l) => e ? (this.logger.error(
+          {
+            err: e,
+            tnx: "send",
+            messageId: o
+          },
+          "Failed building JSON structure for %s. %s",
+          o,
+          e.message
+        ), n(e)) : (delete l.envelope, delete l.normalizedHeaders, n(null, {
+          envelope: r,
+          messageId: o,
+          message: this.options.skipEncoding ? l : JSON.stringify(l)
+        })));
       });
     }
   }
-  jsonTransport = JSONTransport;
-  return jsonTransport;
+  return qe = k, qe;
 }
-var sesTransport;
-var hasRequiredSesTransport;
-function requireSesTransport() {
-  if (hasRequiredSesTransport) return sesTransport;
-  hasRequiredSesTransport = 1;
-  const EventEmitter = require$$0$5;
-  const packageData = require$$10;
-  const shared2 = requireShared();
-  const LeWindows = requireLeWindows();
-  const MimeNode = requireMimeNode();
-  class SESTransport extends EventEmitter {
-    constructor(options) {
-      super();
-      options = options || {};
-      this.options = options || {};
-      this.ses = this.options.SES;
-      this.name = "SESTransport";
-      this.version = packageData.version;
-      this.logger = shared2.getLogger(this.options, {
+var Re, St;
+function ys() {
+  if (St) return Re;
+  St = 1;
+  const b = V, y = D, k = q(), f = qt(), p = Fe();
+  class n extends b {
+    constructor(o) {
+      super(), o = o || {}, this.options = o || {}, this.ses = this.options.SES, this.name = "SESTransport", this.version = y.version, this.logger = k.getLogger(this.options, {
         component: this.options.component || "ses-transport"
       });
     }
-    getRegion(cb) {
-      if (this.ses.sesClient.config && typeof this.ses.sesClient.config.region === "function") {
-        return this.ses.sesClient.config.region().then((region) => cb(null, region)).catch((err) => cb(err));
-      }
-      return cb(null, false);
+    getRegion(o) {
+      return this.ses.sesClient.config && typeof this.ses.sesClient.config.region == "function" ? this.ses.sesClient.config.region().then((m) => o(null, m)).catch((m) => o(m)) : o(null, !1);
     }
     /**
      * Compiles a mailcomposer message and forwards it to SES
@@ -10986,114 +7528,84 @@ function requireSesTransport() {
      * @param {Object} emailMessage MailComposer object
      * @param {Function} callback Callback function to run when the sending is completed
      */
-    send(mail, callback) {
-      let fromHeader = mail.message._headers.find((header) => /^from$/i.test(header.key));
-      if (fromHeader) {
-        let mimeNode2 = new MimeNode("text/plain");
-        fromHeader = mimeNode2._convertAddresses(mimeNode2._parseAddresses(fromHeader.value));
+    send(o, m) {
+      let e = o.message._headers.find((g) => /^from$/i.test(g.key));
+      if (e) {
+        let g = new p("text/plain");
+        e = g._convertAddresses(g._parseAddresses(e.value));
       }
-      let envelope = mail.data.envelope || mail.message.getEnvelope();
-      let messageId = mail.message.messageId();
-      let recipients = [].concat(envelope.to || []);
-      if (recipients.length > 3) {
-        recipients.push("...and " + recipients.splice(2).length + " more");
-      }
-      this.logger.info(
+      let l = o.data.envelope || o.message.getEnvelope(), c = o.message.messageId(), s = [].concat(l.to || []);
+      s.length > 3 && s.push("...and " + s.splice(2).length + " more"), this.logger.info(
         {
           tnx: "send",
-          messageId
+          messageId: c
         },
         "Sending message %s to <%s>",
-        messageId,
-        recipients.join(", ")
+        c,
+        s.join(", ")
       );
-      let getRawMessage = (next) => {
-        if (!mail.data._dkim) {
-          mail.data._dkim = {};
-        }
-        if (mail.data._dkim.skipFields && typeof mail.data._dkim.skipFields === "string") {
-          mail.data._dkim.skipFields += ":date:message-id";
-        } else {
-          mail.data._dkim.skipFields = "date:message-id";
-        }
-        let sourceStream = mail.message.createReadStream();
-        let stream = sourceStream.pipe(new LeWindows());
-        let chunks = [];
-        let chunklen = 0;
-        stream.on("readable", () => {
-          let chunk;
-          while ((chunk = stream.read()) !== null) {
-            chunks.push(chunk);
-            chunklen += chunk.length;
-          }
-        });
-        sourceStream.once("error", (err) => stream.emit("error", err));
-        stream.once("error", (err) => {
-          next(err);
-        });
-        stream.once("end", () => next(null, Buffer.concat(chunks, chunklen)));
+      let x = (g) => {
+        o.data._dkim || (o.data._dkim = {}), o.data._dkim.skipFields && typeof o.data._dkim.skipFields == "string" ? o.data._dkim.skipFields += ":date:message-id" : o.data._dkim.skipFields = "date:message-id";
+        let v = o.message.createReadStream(), t = v.pipe(new f()), i = [], d = 0;
+        t.on("readable", () => {
+          let a;
+          for (; (a = t.read()) !== null; )
+            i.push(a), d += a.length;
+        }), v.once("error", (a) => t.emit("error", a)), t.once("error", (a) => {
+          g(a);
+        }), t.once("end", () => g(null, Buffer.concat(i, d)));
       };
       setImmediate(
-        () => getRawMessage((err, raw) => {
-          if (err) {
-            this.logger.error(
+        () => x((g, v) => {
+          if (g)
+            return this.logger.error(
               {
-                err,
+                err: g,
                 tnx: "send",
-                messageId
+                messageId: c
               },
               "Failed creating message for %s. %s",
-              messageId,
-              err.message
-            );
-            return callback(err);
-          }
-          let sesMessage = {
+              c,
+              g.message
+            ), m(g);
+          let t = {
             Content: {
               Raw: {
                 // required
-                Data: raw
+                Data: v
                 // required
               }
             },
-            FromEmailAddress: fromHeader ? fromHeader : envelope.from,
+            FromEmailAddress: e || l.from,
             Destination: {
-              ToAddresses: envelope.to
+              ToAddresses: l.to
             }
           };
-          Object.keys(mail.data.ses || {}).forEach((key) => {
-            sesMessage[key] = mail.data.ses[key];
-          });
-          this.getRegion((err2, region) => {
-            if (err2 || !region) {
-              region = "us-east-1";
-            }
-            const command = new this.ses.SendEmailCommand(sesMessage);
-            const sendPromise = this.ses.sesClient.send(command);
-            sendPromise.then((data) => {
-              if (region === "us-east-1") {
-                region = "email";
-              }
-              callback(null, {
+          Object.keys(o.data.ses || {}).forEach((i) => {
+            t[i] = o.data.ses[i];
+          }), this.getRegion((i, d) => {
+            (i || !d) && (d = "us-east-1");
+            const a = new this.ses.SendEmailCommand(t);
+            this.ses.sesClient.send(a).then((u) => {
+              d === "us-east-1" && (d = "email"), m(null, {
                 envelope: {
-                  from: envelope.from,
-                  to: envelope.to
+                  from: l.from,
+                  to: l.to
                 },
-                messageId: "<" + data.MessageId + (!/@/.test(data.MessageId) ? "@" + region + ".amazonses.com" : "") + ">",
-                response: data.MessageId,
-                raw
+                messageId: "<" + u.MessageId + (/@/.test(u.MessageId) ? "" : "@" + d + ".amazonses.com") + ">",
+                response: u.MessageId,
+                raw: v
               });
-            }).catch((err3) => {
+            }).catch((u) => {
               this.logger.error(
                 {
-                  err: err3,
+                  err: u,
                   tnx: "send"
                 },
                 "Send error for %s: %s",
-                messageId,
-                err3.message
-              );
-              callback(err3);
+                c,
+                u.message
+              ), m(u);
             });
           });
         })
@@ -11104,23 +7616,19 @@ function requireSesTransport() {
      *
      * @param {Function} callback Callback function
      */
-    verify(callback) {
-      let promise;
-      if (!callback) {
-        promise = new Promise((resolve, reject) => {
-          callback = shared2.callbackPromise(resolve, reject);
-        });
-      }
-      const cb = (err) => {
-        if (err && !["InvalidParameterValue", "MessageRejected"].includes(err.code || err.Code || err.name)) {
-          return callback(err);
-        }
-        return callback(null, true);
-      };
-      const sesMessage = {
+    verify(o) {
+      let m;
+      o || (m = new Promise((c, s) => {
+        o = k.callbackPromise(c, s);
+      }));
+      const e = (c) => c && !["InvalidParameterValue", "MessageRejected"].includes(c.code || c.Code || c.name) ? o(c) : o(null, !0), l = {
         Content: {
           Raw: {
-            Data: Buffer.from("From: <invalid@invalid>\r\nTo: <invalid@invalid>\r\n Subject: Invalid\r\n\r\nInvalid")
+            Data: Buffer.from(`From: <invalid@invalid>\r
+To: <invalid@invalid>\r
+ Subject: Invalid\r
+\r
+Invalid`)
           }
         },
         FromEmailAddress: "invalid@invalid",
@@ -11128,287 +7636,176 @@ function requireSesTransport() {
           ToAddresses: ["invalid@invalid"]
         }
       };
-      this.getRegion((err, region) => {
-        const command = new this.ses.SendEmailCommand(sesMessage);
-        const sendPromise = this.ses.sesClient.send(command);
-        sendPromise.then((data) => cb(null)).catch((err2) => cb(err2));
-      });
-      return promise;
+      return this.getRegion((c, s) => {
+        const x = new this.ses.SendEmailCommand(l);
+        this.ses.sesClient.send(x).then((v) => e(null)).catch((v) => e(v));
+      }), m;
     }
   }
-  sesTransport = SESTransport;
-  return sesTransport;
+  return Re = n, Re;
 }
-var hasRequiredNodemailer;
-function requireNodemailer() {
-  if (hasRequiredNodemailer) return nodemailer$1;
-  hasRequiredNodemailer = 1;
-  const Mailer = requireMailer();
-  const shared2 = requireShared();
-  const SMTPPool = requireSmtpPool();
-  const SMTPTransport = requireSmtpTransport();
-  const SendmailTransport = requireSendmailTransport();
-  const StreamTransport = requireStreamTransport();
-  const JSONTransport = requireJsonTransport();
-  const SESTransport = requireSesTransport();
-  const errors2 = requireErrors();
-  const nmfetch = requireFetch();
-  const packageData = require$$10;
-  const ETHEREAL_API = (process.env.ETHEREAL_API || "https://api.nodemailer.com").replace(/\/+$/, "");
-  const ETHEREAL_WEB = (process.env.ETHEREAL_WEB || "https://ethereal.email").replace(/\/+$/, "");
-  const ETHEREAL_API_KEY = (process.env.ETHEREAL_API_KEY || "").replace(/\s*/g, "") || null;
-  const ETHEREAL_CACHE = ["true", "yes", "y", "1"].includes((process.env.ETHEREAL_CACHE || "yes").toString().trim().toLowerCase());
-  let testAccount = false;
-  nodemailer$1.createTransport = function(transporter, defaults) {
-    let urlConfig;
-    let options;
-    let mailer2;
+var Tt;
+function Ss() {
+  if (Tt) return J;
+  Tt = 1;
+  const b = di(), y = q(), k = vs(), f = ws(), p = _s(), n = bs(), r = Es(), o = ys(), m = F(), e = ne(), l = D, c = (process.env.ETHEREAL_API || "https://api.nodemailer.com").replace(/\/+$/, ""), s = (process.env.ETHEREAL_WEB || "https://ethereal.email").replace(/\/+$/, ""), x = (process.env.ETHEREAL_API_KEY || "").replace(/\s*/g, "") || null, g = ["true", "yes", "y", "1"].includes((process.env.ETHEREAL_CACHE || "yes").toString().trim().toLowerCase());
+  let v = !1;
+  return J.createTransport = function(t, i) {
+    let d, a, h;
     if (
       // provided transporter is a configuration object, not transporter plugin
-      typeof transporter === "object" && typeof transporter.send !== "function" || // provided transporter looks like a connection url
-      typeof transporter === "string" && /^(smtps?|direct):/i.test(transporter)
-    ) {
-      if (urlConfig = typeof transporter === "string" ? transporter : transporter.url) {
-        options = shared2.parseConnectionUrl(urlConfig);
-      } else {
-        options = transporter;
-      }
-      if (options.pool) {
-        transporter = new SMTPPool(options);
-      } else if (options.sendmail) {
-        transporter = new SendmailTransport(options);
-      } else if (options.streamTransport) {
-        transporter = new StreamTransport(options);
-      } else if (options.jsonTransport) {
-        transporter = new JSONTransport(options);
-      } else if (options.SES) {
-        if (options.SES.ses && options.SES.aws) {
-          let error = new Error(
+      typeof t == "object" && typeof t.send != "function" || // provided transporter looks like a connection url
+      typeof t == "string" && /^(smtps?|direct):/i.test(t)
+    )
+      if ((d = typeof t == "string" ? t : t.url) ? a = y.parseConnectionUrl(d) : a = t, a.pool)
+        t = new k(a);
+      else if (a.sendmail)
+        t = new p(a);
+      else if (a.streamTransport)
+        t = new n(a);
+      else if (a.jsonTransport)
+        t = new r(a);
+      else if (a.SES) {
+        if (a.SES.ses && a.SES.aws) {
+          let u = new Error(
             "Using legacy SES configuration, expecting @aws-sdk/client-sesv2, see https://nodemailer.com/transports/ses/"
           );
-          error.code = errors2.ECONFIG;
-          throw error;
+          throw u.code = m.ECONFIG, u;
         }
-        transporter = new SESTransport(options);
-      } else {
-        transporter = new SMTPTransport(options);
-      }
-    }
-    mailer2 = new Mailer(transporter, options, defaults);
-    return mailer2;
-  };
-  nodemailer$1.createTestAccount = function(apiUrl, callback) {
-    let promise;
-    if (!callback && typeof apiUrl === "function") {
-      callback = apiUrl;
-      apiUrl = false;
-    }
-    if (!callback) {
-      promise = new Promise((resolve, reject) => {
-        callback = shared2.callbackPromise(resolve, reject);
-      });
-    }
-    if (ETHEREAL_CACHE && testAccount) {
-      setImmediate(() => callback(null, testAccount));
-      return promise;
-    }
-    apiUrl = apiUrl || ETHEREAL_API;
-    let chunks = [];
-    let chunklen = 0;
-    let requestHeaders = {};
-    let requestBody = {
-      requestor: packageData.name,
-      version: packageData.version
+        t = new o(a);
+      } else
+        t = new f(a);
+    return h = new b(t, a, i), h;
+  }, J.createTestAccount = function(t, i) {
+    let d;
+    if (!i && typeof t == "function" && (i = t, t = !1), i || (d = new Promise((E, S) => {
+      i = y.callbackPromise(E, S);
+    })), g && v)
+      return setImmediate(() => i(null, v)), d;
+    t = t || c;
+    let a = [], h = 0, u = {}, _ = {
+      requestor: l.name,
+      version: l.version
     };
-    if (ETHEREAL_API_KEY) {
-      requestHeaders.Authorization = "Bearer " + ETHEREAL_API_KEY;
-    }
-    let req = nmfetch(apiUrl + "/user", {
+    x && (u.Authorization = "Bearer " + x);
+    let w = e(t + "/user", {
       contentType: "application/json",
       method: "POST",
-      headers: requestHeaders,
-      body: Buffer.from(JSON.stringify(requestBody))
+      headers: u,
+      body: Buffer.from(JSON.stringify(_))
     });
-    req.on("readable", () => {
-      let chunk;
-      while ((chunk = req.read()) !== null) {
-        chunks.push(chunk);
-        chunklen += chunk.length;
-      }
-    });
-    req.once("error", (err) => callback(err));
-    req.once("end", () => {
-      let res = Buffer.concat(chunks, chunklen);
-      let data;
-      let err;
+    return w.on("readable", () => {
+      let E;
+      for (; (E = w.read()) !== null; )
+        a.push(E), h += E.length;
+    }), w.once("error", (E) => i(E)), w.once("end", () => {
+      let E = Buffer.concat(a, h), S, A;
       try {
-        data = JSON.parse(res.toString());
-      } catch (E) {
-        err = E;
+        S = JSON.parse(E.toString());
+      } catch (C) {
+        A = C;
       }
-      if (err) {
-        return callback(err);
-      }
-      if (data.status !== "success" || data.error) {
-        return callback(new Error(data.error || "Request failed"));
-      }
-      delete data.status;
-      testAccount = data;
-      callback(null, testAccount);
-    });
-    return promise;
-  };
-  nodemailer$1.getTestMessageUrl = function(info) {
-    if (!info || !info.response) {
-      return false;
-    }
-    let infoProps = /* @__PURE__ */ new Map();
-    info.response.replace(/\[([^\]]+)\]$/, (m, props) => {
-      props.replace(/\b([A-Z0-9]+)=([^\s]+)/g, (m2, key, value) => {
-        infoProps.set(key, value);
+      if (A)
+        return i(A);
+      if (S.status !== "success" || S.error)
+        return i(new Error(S.error || "Request failed"));
+      delete S.status, v = S, i(null, v);
+    }), d;
+  }, J.getTestMessageUrl = function(t) {
+    if (!t || !t.response)
+      return !1;
+    let i = /* @__PURE__ */ new Map();
+    return t.response.replace(/\[([^\]]+)\]$/, (d, a) => {
+      a.replace(/\b([A-Z0-9]+)=([^\s]+)/g, (h, u, _) => {
+        i.set(u, _);
       });
-    });
-    if (infoProps.has("STATUS") && infoProps.has("MSGID")) {
-      return (testAccount.web || ETHEREAL_WEB) + "/message/" + infoProps.get("MSGID");
-    }
-    return false;
-  };
-  return nodemailer$1;
+    }), i.has("STATUS") && i.has("MSGID") ? (v.web || s) + "/message/" + i.get("MSGID") : !1;
+  }, J;
 }
-var nodemailerExports = requireNodemailer();
-const nodemailer = /* @__PURE__ */ getDefaultExportFromCjs(nodemailerExports);
-const require$1 = createRequire(import.meta.url);
-const { app, BrowserWindow, ipcMain } = require$1("electron");
-const __filename$1 = fileURLToPath(import.meta.url);
-const __dirname$1 = dirname(__filename$1);
-const isDev = process.env.VITE_DEV_SERVER_URL !== void 0;
-const STATE_PATH = join(app.getPath("userData"), "window-state.json");
-if (isDev) {
-  process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
-}
-let mainWindow;
-function getSavedState() {
+var Ts = Ss();
+const ks = /* @__PURE__ */ Xt(Ts), As = Ut(import.meta.url), { app: Z, BrowserWindow: Pt, ipcMain: Y } = As("electron"), Cs = Dt(import.meta.url), ze = Bt(Cs), Ue = process.env.VITE_DEV_SERVER_URL !== void 0, Be = ae(Z.getPath("userData"), "window-state.json");
+Ue && (process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true");
+let H;
+function Is() {
   try {
-    if (existsSync(STATE_PATH)) {
-      return JSON.parse(readFileSync(STATE_PATH, "utf-8"));
+    if (Ft(Be))
+      return JSON.parse($t(Be, "utf-8"));
+  } catch (b) {
+    console.error("Failed to read window state", b);
+  }
+  return { width: 1400, height: 900, x: void 0, y: void 0, isMaximized: !1 };
+}
+function Pe() {
+  if (H)
+    try {
+      const y = {
+        ...H.getBounds(),
+        isMaximized: H.isMaximized()
+      };
+      Gt(Be, JSON.stringify(y));
+    } catch (b) {
+      console.error("Failed to save window state", b);
     }
-  } catch (e) {
-    console.error("Failed to read window state", e);
-  }
-  return { width: 1400, height: 900, x: void 0, y: void 0, isMaximized: false };
 }
-function saveState() {
-  if (!mainWindow) return;
-  try {
-    const bounds = mainWindow.getBounds();
-    const state = {
-      ...bounds,
-      isMaximized: mainWindow.isMaximized()
-    };
-    writeFileSync(STATE_PATH, JSON.stringify(state));
-  } catch (e) {
-    console.error("Failed to save window state", e);
-  }
-}
-function createWindow() {
-  const state = getSavedState();
-  mainWindow = new BrowserWindow({
-    width: state.width,
-    height: state.height,
-    x: state.x,
-    y: state.y,
+function kt() {
+  const b = Is();
+  H = new Pt({
+    width: b.width,
+    height: b.height,
+    x: b.x,
+    y: b.y,
     minWidth: 1024,
     minHeight: 768,
-    frame: false,
-    icon: join(__dirname$1, isDev ? "../public/appIcon.ico" : "../dist/appIcon.ico"),
+    frame: !1,
+    icon: ae(ze, Ue ? "../public/appIcon.ico" : "../dist/appIcon.ico"),
     backgroundColor: "#00000000",
     // Support transparency for glass feel
     webPreferences: {
-      preload: join(__dirname$1, "preload.mjs"),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true
+      preload: ae(ze, "preload.mjs"),
+      nodeIntegration: !1,
+      contextIsolation: !0,
+      sandbox: !0
     }
-  });
-  if (state.isMaximized) {
-    mainWindow.maximize();
-  }
-  if (isDev) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(join(__dirname$1, "../dist/index.html"));
-  }
-  mainWindow.on("close", saveState);
-  mainWindow.on("resize", saveState);
-  mainWindow.on("move", saveState);
-  ipcMain.on("window-minimize", () => mainWindow.minimize());
-  ipcMain.on("window-maximize", () => {
-    if (mainWindow.isMaximized()) {
-      mainWindow.restore();
-    } else {
-      mainWindow.maximize();
-    }
-  });
-  ipcMain.on("window-close", () => mainWindow.close());
-  ipcMain.removeHandler("mail-send");
-  ipcMain.handle("mail-send", async (_event, payload) => {
+  }), b.isMaximized && H.maximize(), Ue ? (H.loadURL(process.env.VITE_DEV_SERVER_URL), H.webContents.openDevTools()) : H.loadFile(ae(ze, "../dist/index.html")), H.on("close", Pe), H.on("resize", Pe), H.on("move", Pe), Y.on("window-minimize", () => H.minimize()), Y.on("window-maximize", () => {
+    H.isMaximized() ? H.restore() : H.maximize();
+  }), Y.on("window-close", () => H.close()), Y.removeHandler("mail-send"), Y.handle("mail-send", async (y, k) => {
     try {
-      const smtp = payload?.smtp || {};
-      const message = payload?.message || {};
-      const to = Array.isArray(message.to) ? message.to : [message.to].filter(Boolean);
-      if (!smtp.host || !smtp.port || !smtp.user || !smtp.pass) {
-        return { ok: false, error: "SMTP configuration is incomplete." };
-      }
-      if (!to.length) {
-        return { ok: false, error: "Recipient email is required." };
-      }
-      const transporter = nodemailer.createTransport({
-        host: String(smtp.host),
-        port: Number(smtp.port),
-        secure: Number(smtp.port) === 465,
+      const f = k?.smtp || {}, p = k?.message || {}, n = Array.isArray(p.to) ? p.to : [p.to].filter(Boolean);
+      if (!f.host || !f.port || !f.user || !f.pass)
+        return { ok: !1, error: "SMTP configuration is incomplete." };
+      if (!n.length)
+        return { ok: !1, error: "Recipient email is required." };
+      const r = ks.createTransport({
+        host: String(f.host),
+        port: Number(f.port),
+        secure: Number(f.port) === 465,
         auth: {
-          user: String(smtp.user),
-          pass: String(smtp.pass)
+          user: String(f.user),
+          pass: String(f.pass)
         }
-      });
-      const smtpUser = String(smtp.user || "").trim();
-      const preferredFromEmail = String(smtp.fromEmail || "").trim();
-      const fromName = String(smtp.fromName || "").trim();
-      const replyToEmail = String(smtp.replyTo || preferredFromEmail || "").trim();
-      const fromAddress = smtpUser;
-      const fromHeader = fromName ? `"${fromName}" <${fromAddress}>` : fromAddress;
-      await transporter.sendMail({
-        from: fromHeader,
-        replyTo: replyToEmail || void 0,
-        to,
-        subject: String(message.subject || ""),
-        html: String(message.html || ""),
-        text: String(message.text || "")
-      });
-      return { ok: true };
-    } catch (error) {
-      const rawMessage = String(error?.message || "Failed to send email.");
-      if (rawMessage.includes("550") && rawMessage.toLowerCase().includes("from address")) {
-        return {
-          ok: false,
-          error: "SMTP rejected sender address. Use SMTP User as sender mailbox, or authorize the From address at your mail provider."
-        };
-      }
-      return { ok: false, error: rawMessage };
+      }), o = String(f.user || "").trim(), m = String(f.fromEmail || "").trim(), e = String(f.fromName || "").trim(), l = String(f.replyTo || m || "").trim(), c = o, s = e ? `"${e}" <${c}>` : c;
+      return await r.sendMail({
+        from: s,
+        replyTo: l || void 0,
+        to: n,
+        subject: String(p.subject || ""),
+        html: String(p.html || ""),
+        text: String(p.text || "")
+      }), { ok: !0 };
+    } catch (f) {
+      const p = String(f?.message || "Failed to send email.");
+      return p.includes("550") && p.toLowerCase().includes("from address") ? {
+        ok: !1,
+        error: "SMTP rejected sender address. Use SMTP User as sender mailbox, or authorize the From address at your mail provider."
+      } : { ok: !1, error: p };
     }
   });
 }
-app.whenReady().then(() => {
-  createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+Z.whenReady().then(() => {
+  kt(), Z.on("activate", () => {
+    Pt.getAllWindows().length === 0 && kt();
   });
 });
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+Z.on("window-all-closed", () => {
+  process.platform !== "darwin" && Z.quit();
 });

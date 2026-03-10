@@ -22,6 +22,7 @@ import ClientDetailsPage from './pages/ClientDetailsPage';
 import DependentDetailsPage from './pages/DependentDetailsPage';
 import ModulePlaceholderPage from './pages/ModulePlaceholderPage';
 import DailyTransactionPage from './pages/DailyTransactionPage';
+import ChatHelpPage from './pages/ChatHelpPage';
 
 import TitleBar from './components/layout/TitleBar';
 
@@ -72,6 +73,7 @@ const App = () => {
                     <Route path="clients/:clientId" element={<ClientDetailsPage />} />
                     <Route path="favorites" element={<FavoritesPage />} />
                     <Route path="search" element={<SearchPage />} />
+                    <Route path="chat-help" element={<ChatHelpPage />} />
                   </Route>
                 </Route>
               </Route>

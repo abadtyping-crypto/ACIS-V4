@@ -7,6 +7,7 @@ import {
   FileText,
   House,
   Info,
+  LayoutGrid,
   ListChecks,
   ReceiptText,
   Search,
@@ -37,6 +38,7 @@ export const UserPlusIcon = withIcon(UserPlus, 'h-5 w-5');
 export const RecycleBinIcon = withIcon(Trash2, 'h-5 w-5');
 export const ReceiptIcon = withIcon(ReceiptText, 'h-5 w-5');
 export const TasksIcon = withIcon(ListChecks, 'h-5 w-5');
+export const LauncherIcon = withIcon(LayoutGrid, 'h-5 w-5');
 export const InvoiceIcon = withIcon(FileSpreadsheet, 'h-5 w-5');
 export const QuotationIcon = withIcon(FileText, 'h-5 w-5');
 export const ExpenseIcon = withIcon(CircleDollarSign, 'h-5 w-5');

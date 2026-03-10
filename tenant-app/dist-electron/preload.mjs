@@ -1,17 +1,1 @@
-"use strict";
-const electron = require("electron");
-electron.contextBridge.exposeInMainWorld(
-  "electron",
-  {
-    windowControls: {
-      minimize: () => electron.ipcRenderer.send("window-minimize"),
-      maximize: () => electron.ipcRenderer.send("window-maximize"),
-      close: () => electron.ipcRenderer.send("window-close")
-    },
-    mail: {
-      send: (payload) => electron.ipcRenderer.invoke("mail-send", payload)
-    },
-    // We can add specific event subscription methods here later
-    onSyncEvent: (callback) => electron.ipcRenderer.on("sync-event", (event, data) => callback(data))
-  }
-);
+"use strict";const e=require("electron");e.contextBridge.exposeInMainWorld("electron",{windowControls:{minimize:()=>e.ipcRenderer.send("window-minimize"),maximize:()=>e.ipcRenderer.send("window-maximize"),close:()=>e.ipcRenderer.send("window-close")},mail:{send:n=>e.ipcRenderer.invoke("mail-send",n)},onSyncEvent:n=>e.ipcRenderer.on("sync-event",(r,i)=>n(i))});

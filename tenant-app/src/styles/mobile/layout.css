@@ -266,3 +266,298 @@
     transform: translate3d(-10px, 10px, 0) scale(1.03);
   }
 }
+
+.mobile-bottom-3d {
+  position: relative;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--c-surface) 86%, transparent), color-mix(in srgb, var(--c-panel) 84%, transparent)),
+    radial-gradient(160% 130% at 50% -35%, color-mix(in srgb, #ffffff 28%, transparent), transparent 58%);
+  -webkit-backdrop-filter: blur(18px) saturate(148%);
+  backdrop-filter: blur(18px) saturate(148%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 40%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #0b1f3f 36%, transparent),
+    0 18px 36px -24px color-mix(in srgb, var(--c-accent) 58%, transparent);
+}
+
+.mobile-header-3d {
+  position: relative;
+  background:
+    linear-gradient(148deg, color-mix(in srgb, var(--c-surface) 86%, transparent), color-mix(in srgb, var(--c-panel) 84%, transparent)),
+    radial-gradient(140% 120% at 30% -20%, color-mix(in srgb, #ffffff 22%, transparent), transparent 62%);
+  -webkit-backdrop-filter: blur(14px) saturate(132%);
+  backdrop-filter: blur(14px) saturate(132%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 36%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #0b1f3f 28%, transparent),
+    0 12px 26px -20px color-mix(in srgb, var(--c-accent) 52%, transparent);
+}
+
+.mobile-nav-3d-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 30% 22%, color-mix(in srgb, #ffffff 54%, transparent), transparent 52%),
+    linear-gradient(160deg, color-mix(in srgb, var(--c-surface) 84%, transparent), color-mix(in srgb, var(--c-panel) 86%, transparent));
+  border: 1px solid color-mix(in srgb, var(--c-border) 84%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 42%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #0b1f3f 22%, transparent),
+    0 10px 20px -16px color-mix(in srgb, var(--c-accent) 62%, transparent);
+  transition: transform 180ms ease, box-shadow 180ms ease, color 180ms ease;
+}
+
+.mobile-icon-only {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mobile-icon-only svg {
+  filter: drop-shadow(0 7px 10px color-mix(in srgb, var(--c-accent) 26%, transparent));
+  transition: transform 170ms ease, filter 170ms ease;
+}
+
+.mobile-icon-only.icon-active svg {
+  transform: translateY(-1px) scale(1.08);
+  filter: drop-shadow(0 9px 14px color-mix(in srgb, var(--c-accent) 45%, transparent));
+}
+
+.mobile-icon-only:active svg {
+  transform: scale(0.96);
+}
+
+.mobile-nav-3d-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(130deg, transparent 22%, color-mix(in srgb, #ffffff 28%, transparent) 48%, transparent 74%);
+  transform: translateX(-120%);
+  animation: launcherSweep 3.1s linear infinite;
+  pointer-events: none;
+}
+
+.mobile-nav-3d-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+:root[data-theme='dark'] .mobile-header-3d {
+  background:
+    linear-gradient(148deg, color-mix(in srgb, #edf6ff 72%, transparent), color-mix(in srgb, #dceeff 66%, transparent)),
+    radial-gradient(140% 120% at 28% -22%, color-mix(in srgb, #ffffff 34%, transparent), transparent 62%);
+  border-color: color-mix(in srgb, #ffffff 46%, transparent);
+}
+
+:root[data-theme='dark'] .mobile-nav-3d-btn {
+  background:
+    radial-gradient(circle at 30% 22%, color-mix(in srgb, #ffffff 68%, transparent), transparent 54%),
+    linear-gradient(160deg, color-mix(in srgb, #eef7ff 74%, transparent), color-mix(in srgb, #d9ecff 66%, transparent));
+  border-color: color-mix(in srgb, #ffffff 46%, transparent);
+}
+
+:root[data-theme='dark'] .mobile-icon-only svg {
+  filter: drop-shadow(0 8px 12px color-mix(in srgb, #ffffff 24%, transparent));
+}
+
+.menu-launcher-btn {
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 30% 24%, color-mix(in srgb, #ffffff 58%, transparent), transparent 52%),
+    linear-gradient(160deg, color-mix(in srgb, var(--c-surface) 84%, transparent), color-mix(in srgb, var(--c-panel) 86%, transparent));
+  -webkit-backdrop-filter: blur(12px) saturate(136%);
+  backdrop-filter: blur(12px) saturate(136%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 50%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #0b1f3f 24%, transparent),
+    0 14px 30px -18px color-mix(in srgb, var(--c-accent) 66%, transparent),
+    0 0 20px -10px color-mix(in srgb, var(--c-accent) 56%, transparent);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.menu-launcher-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(130deg, transparent 18%, color-mix(in srgb, #ffffff 28%, transparent) 46%, transparent 72%);
+  transform: translateX(-110%);
+  animation: launcherSweep 2.8s linear infinite;
+  pointer-events: none;
+}
+
+.menu-launcher-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+:root[data-theme='dark'] .menu-launcher-btn {
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, #ffffff 72%, transparent), transparent 55%),
+    linear-gradient(160deg, color-mix(in srgb, #f2f8ff 74%, transparent), color-mix(in srgb, #d9ecff 66%, transparent));
+  border-color: color-mix(in srgb, #ffffff 52%, transparent);
+}
+
+.chat-agent-fab {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 30% 25%, color-mix(in srgb, #ffffff 55%, transparent), transparent 48%),
+    linear-gradient(155deg, color-mix(in srgb, var(--c-surface) 78%, transparent), color-mix(in srgb, var(--c-panel) 82%, transparent));
+  -webkit-backdrop-filter: blur(12px) saturate(132%);
+  backdrop-filter: blur(12px) saturate(132%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 48%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--c-accent) 22%, transparent),
+    0 14px 28px -14px color-mix(in srgb, var(--c-accent) 72%, transparent),
+    0 0 22px -8px color-mix(in srgb, var(--c-accent) 58%, transparent);
+  animation: chatFabFloat 2.9s ease-in-out infinite;
+}
+
+.chat-agent-fab:active {
+  transform: translateY(0) scale(0.985);
+}
+
+:root[data-theme='dark'] .chat-agent-fab {
+  background:
+    radial-gradient(circle at 30% 25%, color-mix(in srgb, #ffffff 72%, transparent), transparent 52%),
+    linear-gradient(155deg, color-mix(in srgb, #eef6ff 78%, transparent), color-mix(in srgb, #dcefff 70%, transparent));
+  border-color: color-mix(in srgb, #ffffff 56%, transparent);
+}
+
+.chat-agent-fab::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-accent) 48%, transparent);
+  animation: chatFabPulse 2.5s ease-out infinite;
+  pointer-events: none;
+}
+
+.chat-agent-avatar {
+  transform: scale(1.04);
+  transform-origin: center;
+}
+
+:root[data-theme='dark'] .chat-agent-fab::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 1.5px solid color-mix(in srgb, #ffffff 72%, transparent);
+  opacity: 0.9;
+  animation: chatFabHalo 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.chat-agent-fab > .chat-agent-spark {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  z-index: 2;
+  height: 8px;
+  width: 8px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--c-accent) 76%, transparent),
+    0 0 12px 2px color-mix(in srgb, #ffffff 80%, transparent);
+  animation: chatSparkPulse 1.4s ease-in-out infinite;
+}
+
+.chat-agent-fab > .chat-agent-spark::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, #ffffff 72%, transparent);
+  animation: chatSparkRing 1.6s ease-out infinite;
+}
+
+.chat-agent-fab > .chat-agent-spark::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, transparent 0deg, color-mix(in srgb, #ffffff 92%, transparent) 46deg, transparent 98deg);
+  animation: chatSweep 1.8s linear infinite;
+  opacity: 0.65;
+}
+
+@keyframes chatFabPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-accent) 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--c-accent) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-accent) 0%, transparent);
+  }
+}
+
+@keyframes chatFabFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes chatFabHalo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.45;
+  }
+}
+
+@keyframes chatSparkPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.82);
+    opacity: 0.8;
+  }
+}
+
+@keyframes chatSparkRing {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+@keyframes chatSweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes launcherSweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(125%);
+  }
+}
