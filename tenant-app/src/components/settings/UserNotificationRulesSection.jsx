@@ -85,7 +85,7 @@ const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
           <button
             type="button"
             onClick={() => save({ ...rules, quietHoursEnabled: !rules.quietHoursEnabled })}
-            className={`relative h-5 w-9 rounded-full transition ${rules.quietHoursEnabled ? 'bg-indigo-500' : 'bg-slate-700'
+            className={`relative h-5 w-9 rounded-full transition ${rules.quietHoursEnabled ? 'bg-[var(--c-accent)]' : 'bg-slate-700'
               }`}
           >
             <div

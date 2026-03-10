@@ -1,4 +1,25 @@
 .mobile-shell {
+  --m-accent: #69bcff;
+  --m-accent-2: #8fd3ff;
+  --m-accent-3: #86f0de;
+  --m-accent-soft: rgba(105, 188, 255, 0.55);
+  --m-surface-a: rgba(28, 46, 78, 0.82);
+  --m-surface-b: rgba(20, 36, 64, 0.84);
+  --m-border: rgba(171, 208, 255, 0.26);
+  --m-icon-glow: rgba(105, 188, 255, 0.38);
+  --m-icon-glow-active: rgba(105, 188, 255, 0.6);
+  --m-card-surface: rgba(20, 37, 66, 0.86);
+  --m-card-panel: rgba(24, 44, 76, 0.84);
+  --m-card-border: rgba(143, 183, 235, 0.3);
+  --c-accent: var(--m-accent);
+  --c-accent-2: var(--m-accent-2);
+  --c-accent-3: var(--m-accent-3);
+  --c-accent-soft: color-mix(in srgb, var(--m-accent) 24%, transparent);
+  --c-ring: color-mix(in srgb, var(--m-accent) 34%, transparent);
+  --brand-gradient: linear-gradient(125deg, var(--m-accent) 0%, var(--m-accent-2) 54%, var(--m-accent-3) 100%);
+  --c-surface: var(--m-card-surface);
+  --c-panel: var(--m-card-panel);
+  --c-border: var(--m-card-border);
   position: relative;
   height: 100dvh;
   overflow-x: hidden;
@@ -11,6 +32,18 @@
 }
 
 .mobile-shell[data-mobile-wallpaper='midnight'] {
+  --m-accent: #9ea8ff;
+  --m-accent-2: #8eb6ff;
+  --m-accent-3: #b8bcff;
+  --m-accent-soft: rgba(158, 168, 255, 0.56);
+  --m-surface-a: rgba(30, 37, 73, 0.84);
+  --m-surface-b: rgba(24, 30, 64, 0.86);
+  --m-border: rgba(186, 196, 255, 0.28);
+  --m-icon-glow: rgba(158, 168, 255, 0.4);
+  --m-icon-glow-active: rgba(158, 168, 255, 0.66);
+  --m-card-surface: rgba(28, 35, 72, 0.88);
+  --m-card-panel: rgba(33, 40, 82, 0.86);
+  --m-card-border: rgba(171, 183, 252, 0.34);
   background:
     radial-gradient(95% 88% at 8% -12%, rgba(88, 112, 255, 0.3) 0%, transparent 58%),
     radial-gradient(120% 84% at 96% 90%, rgba(43, 66, 131, 0.42) 0%, transparent 64%),
@@ -18,6 +51,18 @@
 }
 
 .mobile-shell[data-mobile-wallpaper='ocean'] {
+  --m-accent: #54d6cf;
+  --m-accent-2: #46b6ff;
+  --m-accent-3: #72e8d6;
+  --m-accent-soft: rgba(84, 214, 207, 0.54);
+  --m-surface-a: rgba(21, 63, 79, 0.82);
+  --m-surface-b: rgba(16, 54, 70, 0.86);
+  --m-border: rgba(165, 246, 231, 0.28);
+  --m-icon-glow: rgba(84, 214, 207, 0.38);
+  --m-icon-glow-active: rgba(84, 214, 207, 0.62);
+  --m-card-surface: rgba(18, 58, 74, 0.86);
+  --m-card-panel: rgba(22, 67, 86, 0.84);
+  --m-card-border: rgba(144, 229, 217, 0.33);
   background:
     radial-gradient(120% 94% at 12% -12%, rgba(32, 147, 255, 0.34) 0%, transparent 60%),
     radial-gradient(88% 72% at 95% 92%, rgba(34, 194, 189, 0.3) 0%, transparent 62%),
@@ -25,10 +70,22 @@
 }
 
 .mobile-shell[data-mobile-wallpaper='sunrise'] {
+  --m-accent: #ff8a6e;
+  --m-accent-2: #ff6fb7;
+  --m-accent-3: #ffb86a;
+  --m-accent-soft: rgba(255, 138, 110, 0.66);
+  --m-surface-a: rgba(84, 51, 104, 0.9);
+  --m-surface-b: rgba(100, 60, 122, 0.88);
+  --m-border: rgba(255, 199, 184, 0.42);
+  --m-icon-glow: rgba(255, 138, 110, 0.54);
+  --m-icon-glow-active: rgba(255, 138, 110, 0.8);
+  --m-card-surface: rgba(90, 54, 110, 0.9);
+  --m-card-panel: rgba(106, 64, 128, 0.88);
+  --m-card-border: rgba(255, 199, 184, 0.44);
   background:
-    radial-gradient(112% 92% at 14% -12%, rgba(255, 174, 98, 0.4) 0%, transparent 58%),
-    radial-gradient(86% 74% at 90% 88%, rgba(255, 124, 138, 0.34) 0%, transparent 62%),
-    linear-gradient(158deg, #2d1f3f 0%, #33264b 50%, #2a1d3f 100%);
+    radial-gradient(112% 92% at 14% -12%, rgba(255, 184, 104, 0.56) 0%, transparent 58%),
+    radial-gradient(86% 74% at 90% 88%, rgba(255, 124, 168, 0.44) 0%, transparent 62%),
+    linear-gradient(158deg, #341f49 0%, #41265f 50%, #311f46 100%);
 }
 
 .mobile-shell::before,
@@ -166,7 +223,40 @@
     linear-gradient(160deg, #081425 0%, #060f1f 48%, #050c1b 100%);
 }
 
+:root[data-theme='dark'] .mobile-shell[data-mobile-wallpaper='midnight'] {
+  background:
+    radial-gradient(95% 88% at 8% -12%, rgba(88, 112, 255, 0.3) 0%, transparent 58%),
+    radial-gradient(120% 84% at 96% 90%, rgba(43, 66, 131, 0.42) 0%, transparent 64%),
+    linear-gradient(158deg, #090f23 0%, #090f1f 48%, #070c19 100%);
+}
+
+:root[data-theme='dark'] .mobile-shell[data-mobile-wallpaper='ocean'] {
+  background:
+    radial-gradient(120% 94% at 12% -12%, rgba(32, 147, 255, 0.34) 0%, transparent 60%),
+    radial-gradient(88% 72% at 95% 92%, rgba(34, 194, 189, 0.3) 0%, transparent 62%),
+    linear-gradient(160deg, #06243b 0%, #072c44 52%, #062637 100%);
+}
+
+:root[data-theme='dark'] .mobile-shell[data-mobile-wallpaper='sunrise'] {
+  background:
+    radial-gradient(112% 92% at 14% -12%, rgba(255, 184, 104, 0.56) 0%, transparent 58%),
+    radial-gradient(86% 74% at 90% 88%, rgba(255, 124, 168, 0.44) 0%, transparent 62%),
+    linear-gradient(158deg, #341f49 0%, #41265f 50%, #311f46 100%);
+}
+
 :root[data-theme='light'] .mobile-shell {
+  --m-accent: #2688f6;
+  --m-accent-2: #4db5ff;
+  --m-accent-3: #64dfc6;
+  --m-accent-soft: rgba(38, 136, 246, 0.46);
+  --m-surface-a: rgba(255, 255, 255, 0.8);
+  --m-surface-b: rgba(236, 245, 255, 0.68);
+  --m-border: rgba(151, 183, 224, 0.44);
+  --m-icon-glow: rgba(38, 136, 246, 0.34);
+  --m-icon-glow-active: rgba(38, 136, 246, 0.52);
+  --m-card-surface: rgba(255, 255, 255, 0.86);
+  --m-card-panel: rgba(240, 248, 255, 0.82);
+  --m-card-border: rgba(151, 183, 224, 0.44);
   background:
     radial-gradient(120% 95% at 12% -10%, color-mix(in srgb, #74afff 38%, #ffffff 62%) 0%, transparent 58%),
     radial-gradient(85% 70% at 95% 90%, color-mix(in srgb, #9be2ff 42%, #ffffff 58%) 0%, transparent 64%),
@@ -174,6 +264,18 @@
 }
 
 :root[data-theme='light'] .mobile-shell[data-mobile-wallpaper='midnight'] {
+  --m-accent: #6478ff;
+  --m-accent-2: #6ea3ff;
+  --m-accent-3: #9ea8ff;
+  --m-accent-soft: rgba(100, 120, 255, 0.46);
+  --m-surface-a: rgba(245, 248, 255, 0.82);
+  --m-surface-b: rgba(231, 237, 255, 0.72);
+  --m-border: rgba(150, 167, 232, 0.44);
+  --m-icon-glow: rgba(100, 120, 255, 0.34);
+  --m-icon-glow-active: rgba(100, 120, 255, 0.52);
+  --m-card-surface: rgba(246, 249, 255, 0.86);
+  --m-card-panel: rgba(236, 241, 255, 0.82);
+  --m-card-border: rgba(150, 167, 232, 0.44);
   background:
     radial-gradient(95% 88% at 8% -12%, rgba(98, 123, 255, 0.22) 0%, transparent 58%),
     radial-gradient(120% 84% at 96% 90%, rgba(129, 152, 219, 0.24) 0%, transparent 64%),
@@ -181,6 +283,18 @@
 }
 
 :root[data-theme='light'] .mobile-shell[data-mobile-wallpaper='ocean'] {
+  --m-accent: #17a8a1;
+  --m-accent-2: #2ea8ff;
+  --m-accent-3: #49d8c6;
+  --m-accent-soft: rgba(23, 168, 161, 0.44);
+  --m-surface-a: rgba(243, 251, 255, 0.84);
+  --m-surface-b: rgba(228, 246, 255, 0.74);
+  --m-border: rgba(132, 212, 206, 0.44);
+  --m-icon-glow: rgba(23, 168, 161, 0.34);
+  --m-icon-glow-active: rgba(23, 168, 161, 0.52);
+  --m-card-surface: rgba(245, 253, 255, 0.86);
+  --m-card-panel: rgba(233, 248, 255, 0.82);
+  --m-card-border: rgba(132, 212, 206, 0.44);
   background:
     radial-gradient(120% 94% at 12% -12%, rgba(68, 173, 255, 0.26) 0%, transparent 60%),
     radial-gradient(88% 72% at 95% 92%, rgba(69, 207, 198, 0.24) 0%, transparent 62%),
@@ -188,6 +302,18 @@
 }
 
 :root[data-theme='light'] .mobile-shell[data-mobile-wallpaper='sunrise'] {
+  --m-accent: #d56f78;
+  --m-accent-2: #db66b6;
+  --m-accent-3: #f1ad77;
+  --m-accent-soft: rgba(213, 111, 120, 0.44);
+  --m-surface-a: rgba(255, 245, 244, 0.84);
+  --m-surface-b: rgba(255, 234, 245, 0.72);
+  --m-border: rgba(227, 162, 169, 0.44);
+  --m-icon-glow: rgba(213, 111, 120, 0.34);
+  --m-icon-glow-active: rgba(213, 111, 120, 0.52);
+  --m-card-surface: rgba(255, 247, 246, 0.88);
+  --m-card-panel: rgba(255, 236, 245, 0.82);
+  --m-card-border: rgba(227, 162, 169, 0.44);
   background:
     radial-gradient(112% 92% at 14% -12%, rgba(255, 182, 120, 0.3) 0%, transparent 58%),
     radial-gradient(86% 74% at 90% 88%, rgba(255, 139, 153, 0.26) 0%, transparent 62%),
@@ -270,27 +396,27 @@
 .mobile-bottom-3d {
   position: relative;
   background:
-    linear-gradient(145deg, color-mix(in srgb, var(--c-surface) 86%, transparent), color-mix(in srgb, var(--c-panel) 84%, transparent)),
+    linear-gradient(145deg, var(--m-surface-a), var(--m-surface-b)),
     radial-gradient(160% 130% at 50% -35%, color-mix(in srgb, #ffffff 28%, transparent), transparent 58%);
   -webkit-backdrop-filter: blur(18px) saturate(148%);
   backdrop-filter: blur(18px) saturate(148%);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #ffffff 40%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #0b1f3f 36%, transparent),
-    0 18px 36px -24px color-mix(in srgb, var(--c-accent) 58%, transparent);
+    0 18px 36px -24px var(--m-accent-soft);
 }
 
 .mobile-header-3d {
   position: relative;
   background:
-    linear-gradient(148deg, color-mix(in srgb, var(--c-surface) 86%, transparent), color-mix(in srgb, var(--c-panel) 84%, transparent)),
+    linear-gradient(148deg, var(--m-surface-a), var(--m-surface-b)),
     radial-gradient(140% 120% at 30% -20%, color-mix(in srgb, #ffffff 22%, transparent), transparent 62%);
   -webkit-backdrop-filter: blur(14px) saturate(132%);
   backdrop-filter: blur(14px) saturate(132%);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #ffffff 36%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #0b1f3f 28%, transparent),
-    0 12px 26px -20px color-mix(in srgb, var(--c-accent) 52%, transparent);
+    0 12px 26px -20px var(--m-accent-soft);
 }
 
 .mobile-nav-3d-btn {
@@ -315,17 +441,30 @@
 }
 
 .mobile-icon-only svg {
-  filter: drop-shadow(0 7px 10px color-mix(in srgb, var(--c-accent) 26%, transparent));
+  filter: drop-shadow(0 7px 10px var(--m-icon-glow));
   transition: transform 170ms ease, filter 170ms ease;
 }
 
 .mobile-icon-only.icon-active svg {
   transform: translateY(-1px) scale(1.08);
-  filter: drop-shadow(0 9px 14px color-mix(in srgb, var(--c-accent) 45%, transparent));
+  filter: drop-shadow(0 9px 14px var(--m-icon-glow-active));
 }
 
 .mobile-icon-only:active svg {
   transform: scale(0.96);
+}
+
+.mobile-profile-chip-active {
+  background: linear-gradient(135deg, var(--m-accent), var(--m-accent-2));
+  box-shadow:
+    0 10px 20px -14px var(--m-accent-soft),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 42%, transparent);
+}
+
+.mobile-shell button[class*='bg-[var(--c-accent)]'],
+.mobile-shell a[class*='bg-[var(--c-accent)]'] {
+  background: var(--brand-gradient) !important;
+  color: var(--c-on-accent) !important;
 }
 
 .mobile-nav-3d-btn::after {
@@ -344,21 +483,15 @@
 }
 
 :root[data-theme='dark'] .mobile-header-3d {
-  background:
-    linear-gradient(148deg, color-mix(in srgb, #edf6ff 72%, transparent), color-mix(in srgb, #dceeff 66%, transparent)),
-    radial-gradient(140% 120% at 28% -22%, color-mix(in srgb, #ffffff 34%, transparent), transparent 62%);
-  border-color: color-mix(in srgb, #ffffff 46%, transparent);
+  border-color: var(--m-border);
 }
 
 :root[data-theme='dark'] .mobile-nav-3d-btn {
-  background:
-    radial-gradient(circle at 30% 22%, color-mix(in srgb, #ffffff 68%, transparent), transparent 54%),
-    linear-gradient(160deg, color-mix(in srgb, #eef7ff 74%, transparent), color-mix(in srgb, #d9ecff 66%, transparent));
-  border-color: color-mix(in srgb, #ffffff 46%, transparent);
+  border-color: var(--m-border);
 }
 
 :root[data-theme='dark'] .mobile-icon-only svg {
-  filter: drop-shadow(0 8px 12px color-mix(in srgb, #ffffff 24%, transparent));
+  filter: drop-shadow(0 8px 12px var(--m-icon-glow));
 }
 
 .menu-launcher-btn {
@@ -366,14 +499,14 @@
   isolation: isolate;
   background:
     radial-gradient(circle at 30% 24%, color-mix(in srgb, #ffffff 58%, transparent), transparent 52%),
-    linear-gradient(160deg, color-mix(in srgb, var(--c-surface) 84%, transparent), color-mix(in srgb, var(--c-panel) 86%, transparent));
+    linear-gradient(160deg, var(--m-surface-a), var(--m-surface-b));
   -webkit-backdrop-filter: blur(12px) saturate(136%);
   backdrop-filter: blur(12px) saturate(136%);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #ffffff 50%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #0b1f3f 24%, transparent),
-    0 14px 30px -18px color-mix(in srgb, var(--c-accent) 66%, transparent),
-    0 0 20px -10px color-mix(in srgb, var(--c-accent) 56%, transparent);
+    0 14px 30px -18px var(--m-accent-soft),
+    0 0 20px -10px var(--m-accent-soft);
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
@@ -393,10 +526,7 @@
 }
 
 :root[data-theme='dark'] .menu-launcher-btn {
-  background:
-    radial-gradient(circle at 30% 20%, color-mix(in srgb, #ffffff 72%, transparent), transparent 55%),
-    linear-gradient(160deg, color-mix(in srgb, #f2f8ff 74%, transparent), color-mix(in srgb, #d9ecff 66%, transparent));
-  border-color: color-mix(in srgb, #ffffff 52%, transparent);
+  border-color: var(--m-border);
 }
 
 .chat-agent-fab {
@@ -405,14 +535,14 @@
   isolation: isolate;
   background:
     radial-gradient(circle at 30% 25%, color-mix(in srgb, #ffffff 55%, transparent), transparent 48%),
-    linear-gradient(155deg, color-mix(in srgb, var(--c-surface) 78%, transparent), color-mix(in srgb, var(--c-panel) 82%, transparent));
+    linear-gradient(155deg, var(--m-surface-a), var(--m-surface-b));
   -webkit-backdrop-filter: blur(12px) saturate(132%);
   backdrop-filter: blur(12px) saturate(132%);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #ffffff 48%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--c-accent) 22%, transparent),
-    0 14px 28px -14px color-mix(in srgb, var(--c-accent) 72%, transparent),
-    0 0 22px -8px color-mix(in srgb, var(--c-accent) 58%, transparent);
+    0 0 0 1px var(--m-border),
+    0 14px 28px -14px var(--m-accent-soft),
+    0 0 22px -8px var(--m-accent-soft);
   animation: chatFabFloat 2.9s ease-in-out infinite;
 }
 
@@ -421,10 +551,7 @@
 }
 
 :root[data-theme='dark'] .chat-agent-fab {
-  background:
-    radial-gradient(circle at 30% 25%, color-mix(in srgb, #ffffff 72%, transparent), transparent 52%),
-    linear-gradient(155deg, color-mix(in srgb, #eef6ff 78%, transparent), color-mix(in srgb, #dcefff 70%, transparent));
-  border-color: color-mix(in srgb, #ffffff 56%, transparent);
+  border-color: var(--m-border);
 }
 
 .chat-agent-fab::after {

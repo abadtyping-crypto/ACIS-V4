@@ -2,19 +2,25 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import UserControlCenterSection from '../components/settings/UserControlCenterSection';
 import {
+  DESKTOP_WALLPAPERS,
   MOBILE_ICON_STYLES,
   MOBILE_WALLPAPERS,
+  readDesktopAppearance,
   readMobileAppearance,
+  saveDesktopAppearance,
   saveMobileAppearance,
 } from '../lib/mobileAppearance';
 
 const MobileProfilePage = () => {
   const { tenantId } = useParams();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [appearance, setAppearance] = useState(() => readMobileAppearance());
+  const [desktopAppearance, setDesktopAppearance] = useState(() => readDesktopAppearance());
   const selectedWallpaperLabel = useMemo(
     () => MOBILE_WALLPAPERS.find((item) => item.id === appearance.wallpaper)?.label || 'Aurora',
     [appearance.wallpaper],
@@ -23,10 +29,39 @@ const MobileProfilePage = () => {
     () => MOBILE_ICON_STYLES.find((item) => item.id === appearance.iconStyle)?.label || 'Glass',
     [appearance.iconStyle],
   );
+  const selectedDesktopWallpaperLabel = useMemo(
+    () => DESKTOP_WALLPAPERS.find((item) => item.id === desktopAppearance.wallpaper)?.label || 'Aurora',
+    [desktopAppearance.wallpaper],
+  );
 
   const updateAppearance = (patch) => {
     const next = saveMobileAppearance({ ...appearance, ...patch });
     setAppearance(next);
+  };
+
+  const updateDesktopAppearance = (patch) => {
+    const next = saveDesktopAppearance({ ...desktopAppearance, ...patch });
+    setDesktopAppearance(next);
+  };
+
+  const handleDesktopWallpaperUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 2 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      if (!result.startsWith('data:image/')) return;
+      updateDesktopAppearance({ mode: 'custom', customWallpaperUrl: result });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate(`/t/${tenantId}/login`, { replace: true });
   };
 
   return (
@@ -39,7 +74,7 @@ const MobileProfilePage = () => {
             type="button"
             onClick={() => setTheme('light')}
             className={`rounded-lg px-3 py-2 text-xs font-semibold ${
-              theme === 'light' ? 'bg-[var(--c-accent)] text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
+              theme === 'light' ? 'mobile-profile-chip-active text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
             }`}
           >
             Light
@@ -48,7 +83,7 @@ const MobileProfilePage = () => {
             type="button"
             onClick={() => setTheme('dark')}
             className={`rounded-lg px-3 py-2 text-xs font-semibold ${
-              theme === 'dark' ? 'bg-[var(--c-accent)] text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
+              theme === 'dark' ? 'mobile-profile-chip-active text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
             }`}
           >
             Dark
@@ -57,7 +92,7 @@ const MobileProfilePage = () => {
             type="button"
             onClick={() => setTheme('system')}
             className={`rounded-lg px-3 py-2 text-xs font-semibold ${
-              theme === 'system' ? 'bg-[var(--c-accent)] text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
+              theme === 'system' ? 'mobile-profile-chip-active text-white' : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
             }`}
           >
             System
@@ -80,7 +115,7 @@ const MobileProfilePage = () => {
                 onClick={() => updateAppearance({ wallpaper: item.id })}
                 className={`rounded-xl px-3 py-2 text-xs font-semibold ${
                   appearance.wallpaper === item.id
-                    ? 'bg-[var(--c-accent)] text-white'
+                    ? 'mobile-profile-chip-active text-white'
                     : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
                 }`}
               >
@@ -101,7 +136,7 @@ const MobileProfilePage = () => {
                 onClick={() => updateAppearance({ iconStyle: item.id })}
                 className={`rounded-xl px-3 py-2 text-xs font-semibold ${
                   appearance.iconStyle === item.id
-                    ? 'bg-[var(--c-accent)] text-white'
+                    ? 'mobile-profile-chip-active text-white'
                     : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
                 }`}
               >
@@ -120,7 +155,7 @@ const MobileProfilePage = () => {
           <button
             type="button"
             onClick={() => navigate(`/t/${tenantId}/profile/edit`)}
-            className="rounded-xl bg-[var(--c-accent)] px-4 py-2 text-sm font-semibold text-white"
+            className="mobile-profile-chip-active rounded-xl px-4 py-2 text-sm font-semibold text-white"
           >
             Open Edit Page
           </button>
@@ -139,6 +174,72 @@ const MobileProfilePage = () => {
         <p className="mt-1 text-xs text-[var(--c-muted)]">Manage function access and notification rules.</p>
         <div className="mt-3">
           <UserControlCenterSection />
+        </div>
+      </section>
+
+      <section className="mt-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+        <p className="text-sm font-semibold text-[var(--c-text)]">Desktop Wallpaper</p>
+        <p className="mt-1 text-xs text-[var(--c-muted)]">Set desktop preset or upload your own wallpaper.</p>
+        <div className="mt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--c-muted)]">Preset</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {DESKTOP_WALLPAPERS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => updateDesktopAppearance({ wallpaper: item.id, mode: 'preset' })}
+                className={`rounded-xl px-3 py-2 text-xs font-semibold ${
+                  desktopAppearance.mode === 'preset' && desktopAppearance.wallpaper === item.id
+                    ? 'mobile-profile-chip-active text-white'
+                    : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-[var(--c-muted)]">
+            Selected desktop wallpaper: {desktopAppearance.mode === 'custom' ? 'Custom' : selectedDesktopWallpaperLabel}
+          </p>
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--c-muted)]">Custom Upload</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <label className="inline-flex cursor-pointer items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)]">
+              Upload Wallpaper
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleDesktopWallpaperUpload}
+                className="hidden"
+              />
+            </label>
+            {desktopAppearance.mode === 'custom' ? (
+              <button
+                type="button"
+                onClick={() => updateDesktopAppearance({ mode: 'preset', customWallpaperUrl: '' })}
+                className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)]"
+              >
+                Use Preset
+              </button>
+            ) : null}
+          </div>
+          <p className="mt-2 text-[11px] text-[var(--c-muted)]">Max upload size: 2 MB.</p>
+        </div>
+      </section>
+
+      <section className="mt-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+        <p className="text-sm font-semibold text-[var(--c-text)]">Session</p>
+        <p className="mt-1 text-xs text-[var(--c-muted)]">Sign out from this workspace session.</p>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300"
+          >
+            Logout
+          </button>
         </div>
       </section>
     </PageShell>

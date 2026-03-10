@@ -14,6 +14,7 @@ import ApplicationIconLibrarySection from '../components/settings/ApplicationIco
 import ServiceTemplateSection from '../components/settings/ServiceTemplateSection';
 import EmailTemplateSection from '../components/settings/EmailTemplateSection';
 import { useTenant } from '../context/TenantContext';
+import useIsDesktopLayout from '../hooks/useIsDesktopLayout';
 
 const SETTINGS_SECTIONS = [
   { key: 'brand', label: 'Brand Details' },
@@ -42,6 +43,7 @@ const TAB_ALIAS_MAP = {
 
 const SettingsPage = () => {
   const { tenant } = useTenant();
+  const isDesktop = useIsDesktopLayout();
   const [searchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState('brand');
 
@@ -54,6 +56,7 @@ const SettingsPage = () => {
   }, [searchParams]);
 
   const sectionContent = useMemo(() => {
+    if (!isDesktop) return <UserControlCenterSection />;
     if (activeSection === 'brand') return <BrandDetailsSection />;
     if (activeSection === 'preferences') return <PreferenceSection />;
     if (activeSection === 'pdfStudio') return <PdfCustomizationStudioSection />;
@@ -65,15 +68,22 @@ const SettingsPage = () => {
     if (activeSection === 'mailTemplates') return <EmailTemplateSection />;
     if (activeSection === 'counters') return <IDRulesSection />;
     return <SecuritySection />;
-  }, [activeSection]);
+  }, [activeSection, isDesktop]);
 
   return (
-    <div style={{ '--c-accent': tenant.brandColor }}>
+    <div style={isDesktop ? { '--c-accent': tenant.brandColor } : undefined}>
       <PageShell
         title={`${tenant.name} Settings`}
-        subtitle={`Tenant-scoped configuration for branding, preferences, and security. Currency: ${tenant.currency}`}
+        subtitle={isDesktop
+          ? `Tenant-scoped configuration for branding, preferences, and security. Currency: ${tenant.currency}`
+          : 'Mobile access: User control only.'}
         icon={Settings}
       >
+        {!isDesktop ? (
+          <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+            {sectionContent}
+          </div>
+        ) : (
         <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
           <aside className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3">
             <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--c-muted)]">
@@ -115,6 +125,7 @@ const SettingsPage = () => {
             {sectionContent}
           </div>
         </div>
+        )}
       </PageShell>
     </div>
   );
