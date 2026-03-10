@@ -16,7 +16,7 @@ import { getCroppedImg } from '../lib/imageStudioUtils';
 import { getRuntimePlatform, PLATFORM_ELECTRON } from '../lib/runtimePlatform';
 import {
   DESKTOP_WALLPAPERS,
-  MOBILE_APPEARANCE_EVENT,
+  DESKTOP_APPEARANCE_EVENT,
   readDesktopAppearance,
   saveDesktopAppearance,
 } from '../lib/mobileAppearance';
@@ -121,10 +121,10 @@ const ProfilePage = () => {
     if (!isElectronDesktop) return undefined;
     const sync = () => setDesktopAppearance(readDesktopAppearance());
     window.addEventListener('storage', sync);
-    window.addEventListener(MOBILE_APPEARANCE_EVENT, sync);
+    window.addEventListener(DESKTOP_APPEARANCE_EVENT, sync);
     return () => {
       window.removeEventListener('storage', sync);
-      window.removeEventListener(MOBILE_APPEARANCE_EVENT, sync);
+      window.removeEventListener(DESKTOP_APPEARANCE_EVENT, sync);
     };
   }, [isElectronDesktop]);
 
@@ -454,11 +454,10 @@ const ProfilePage = () => {
                     key={item.id}
                     type="button"
                     onClick={() => updateDesktopAppearance({ wallpaper: item.id, mode: 'preset' })}
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold ${
-                      desktopAppearance.mode === 'preset' && desktopAppearance.wallpaper === item.id
+                    className={`rounded-xl px-3 py-2 text-xs font-semibold ${desktopAppearance.mode === 'preset' && desktopAppearance.wallpaper === item.id
                         ? 'bg-[var(--c-accent)] text-white'
                         : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>

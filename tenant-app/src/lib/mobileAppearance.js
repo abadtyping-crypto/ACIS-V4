@@ -55,3 +55,50 @@ export const saveMobileAppearance = (nextAppearance) => {
   return normalized;
 };
 
+export const DESKTOP_APPEARANCE_EVENT = 'acis-desktop-appearance-change';
+
+export const DESKTOP_WALLPAPERS = [
+  { id: 'aurora', label: 'Aurora' },
+  { id: 'midnight', label: 'Midnight' },
+  { id: 'ocean', label: 'Ocean' },
+  { id: 'sunrise', label: 'Sunrise' },
+];
+
+const defaultDesktopAppearance = {
+  mode: 'preset',
+  wallpaper: 'aurora',
+  customWallpaperUrl: '',
+};
+
+const sanitizeDesktopWallpaper = (value) => {
+  const candidate = String(value || '').trim().toLowerCase();
+  return DESKTOP_WALLPAPERS.some((item) => item.id === candidate) ? candidate : defaultDesktopAppearance.wallpaper;
+};
+
+export const readDesktopAppearance = () => {
+  if (typeof window === 'undefined') return defaultDesktopAppearance;
+  try {
+    const raw = window.localStorage.getItem('acis_desktop_appearance_v1');
+    if (!raw) return defaultDesktopAppearance;
+    const parsed = JSON.parse(raw);
+    return {
+      mode: parsed?.mode === 'custom' ? 'custom' : 'preset',
+      wallpaper: sanitizeDesktopWallpaper(parsed?.wallpaper),
+      customWallpaperUrl: parsed?.customWallpaperUrl || '',
+    };
+  } catch {
+    return defaultDesktopAppearance;
+  }
+};
+
+export const saveDesktopAppearance = (nextAppearance) => {
+  if (typeof window === 'undefined') return defaultDesktopAppearance;
+  const normalized = {
+    mode: nextAppearance?.mode === 'custom' ? 'custom' : 'preset',
+    wallpaper: sanitizeDesktopWallpaper(nextAppearance?.wallpaper),
+    customWallpaperUrl: nextAppearance?.customWallpaperUrl || '',
+  };
+  window.localStorage.setItem('acis_desktop_appearance_v1', JSON.stringify(normalized));
+  window.dispatchEvent(new CustomEvent('acis-desktop-appearance-change', { detail: normalized }));
+  return normalized;
+};
