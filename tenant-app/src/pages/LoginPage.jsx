@@ -37,6 +37,17 @@ const LoginPage = () => {
   const [supportStatus, setSupportStatus] = useState({ loading: false, error: '', success: '' });
 
   useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     const loadSettings = async () => {
       const res = await getTenantLoginSettings(tenantId);
       if (res.ok && res.data) {
@@ -332,8 +343,22 @@ const LoginPage = () => {
     </div>
   );
 
+  const legalFooterCompact = (
+    <div className="mt-4 flex flex-col items-center">
+      <div className="flex items-center gap-4 text-[11px] font-bold text-[var(--c-muted)]">
+        <button onClick={() => setShowPrivacy(true)} className="flex items-center gap-1.5 hover:text-[var(--c-text)] transition">
+          <FileText size={13} /> Privacy Policy
+        </button>
+        <span>&bull;</span>
+        <button onClick={() => setShowSupport(true)} className="flex items-center gap-1.5 hover:text-[var(--c-text)] transition">
+          <LifeBuoy size={13} /> Support
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--c-background)] px-4">
+    <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[var(--c-background)] px-4 py-3">
       {/* Background Decorative Elements */}
       <div className="absolute left-1/2 top-1/2 -z-10 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--c-accent)]/20 blur-[120px]" />
       <div className="absolute right-0 top-0 -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/10 blur-[100px]" />
@@ -360,10 +385,10 @@ const LoginPage = () => {
         </div>
       )}
 
-      <div className={`w-full animate-in fade-in slide-in-from-bottom-8 duration-700 ${isElectronRuntime ? 'max-w-6xl' : 'max-w-[420px]'}`}>
+      <div className={`w-full animate-in fade-in slide-in-from-bottom-8 duration-700 ${isElectronRuntime ? 'h-[min(860px,calc(100vh-1.5rem))] max-w-6xl' : 'max-w-[420px]'}`}>
         {isElectronRuntime ? (
-          <div className="rounded-3xl border border-white/10 bg-[var(--c-surface)]/76 shadow-2xl backdrop-blur-xl">
-            <div className="grid min-h-[650px] lg:grid-cols-[1.12fr_0.88fr]">
+          <div className="h-full overflow-hidden rounded-3xl border border-white/10 bg-[var(--c-surface)]/76 shadow-2xl backdrop-blur-xl">
+            <div className="grid h-full lg:grid-cols-[1.12fr_0.88fr]">
               <aside className="hidden border-r border-white/10 bg-[var(--c-panel)]/55 p-10 lg:flex lg:flex-col lg:justify-between">
                 <div>
                   <div className="mb-6 flex h-16 items-center">
@@ -389,8 +414,8 @@ const LoginPage = () => {
                 </div>
               </aside>
 
-              <div className="p-7 md:p-9">
-                <div className="rounded-3xl border border-white/10 bg-[var(--c-surface)]/80 p-8 shadow-xl backdrop-blur-xl">
+              <div className="overflow-hidden p-5 md:p-6">
+                <div className="rounded-3xl border border-white/10 bg-[var(--c-surface)]/80 p-6 shadow-xl backdrop-blur-xl">
                   <div className="mb-8 flex flex-col items-center text-center">
                     <div className="mb-6 flex h-20 items-center justify-center">
                       <img
@@ -409,7 +434,7 @@ const LoginPage = () => {
                   </div>
                   {authBody}
                 </div>
-                {legalFooter}
+                {legalFooterCompact}
               </div>
             </div>
           </div>
