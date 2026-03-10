@@ -364,7 +364,9 @@ const LoginPage = () => {
       className={`relative flex items-center justify-center bg-[var(--c-background)] px-4 py-3 ${
         isElectronRuntime ? 'overflow-hidden' : 'overflow-y-auto'
       }`}
-      style={{ height: hasNativeTitleBar ? 'calc(100dvh - 2.25rem)' : '100dvh' }}
+      style={isElectronRuntime
+        ? { height: hasNativeTitleBar ? 'calc(100dvh - 2.25rem)' : '100dvh' }
+        : { minHeight: '100dvh' }}
     >
       {/* Background Decorative Elements */}
       <div className="absolute left-1/2 top-1/2 -z-10 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--c-accent)]/20 blur-[120px]" />
@@ -373,7 +375,7 @@ const LoginPage = () => {
 
       {/* Announcements Modal / Toast */}
       {loginSettings?.announcement?.isVisible && showAnnouncement && (
-        <div className="fixed top-4 right-4 z-50 w-full max-w-sm animate-in slide-in-from-top-4 fade-in duration-500">
+        <div className={`fixed right-4 z-50 w-full max-w-sm animate-in slide-in-from-top-4 fade-in duration-500 ${isElectronRuntime && hasNativeTitleBar ? 'top-12' : 'top-4'}`}>
           <div className="flex items-start gap-3 rounded-2xl border border-[var(--c-accent)]/20 bg-[var(--c-surface)] p-4 shadow-2xl backdrop-blur-xl">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--c-accent)]/20 to-blue-500/20 text-[var(--c-accent)]">
               <BellRing size={20} />
