@@ -9,6 +9,7 @@ import {
     upsertTenantPortal,
     upsertTenantNotification,
     upsertTenantPortalTransaction,
+    generateDisplayPortalId,
 } from '../lib/backendStore';
 import { canUserPerformAction } from '../lib/userControlPreferences';
 import { generateDisplayTxId, toSafeDocId } from '../lib/txIdGenerator';
@@ -123,9 +124,8 @@ const PortalFormPage = () => {
             setStatusType('error');
             return;
         }
-
         setIsSaving(true);
-        const finalPortalId = portalId || `portal_${Date.now()}`;
+        const finalPortalId = portalId || await generateDisplayPortalId(tenantId);
         let iconUrl = selectedIconUrl || portalTypes.find((t) => t.id === form.type)?.icon || '';
 
         const openingAmount = Number(form.balance) || 0;

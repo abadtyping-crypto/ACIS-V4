@@ -1059,6 +1059,24 @@ export const generateDisplayClientId = async (tenantId, type) => {
   return `${prefix}${String(seq).padStart(padding, '0')}`;
 };
 
+export const generateDisplayPortalId = async (tenantId) => {
+  const sequenceKey = 'lastPortalSeq';
+  const ruleKey = 'PORTAL';
+
+  const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
+  const rules = settingsRes.ok && settingsRes.data ? settingsRes.data[ruleKey] || {} : {};
+
+  const prefix = rules.prefix || 'PRT';
+  const padding = Number(rules.padding) || 4;
+
+  const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
+  await setDoc(ref, { [sequenceKey]: increment(1) }, { merge: true });
+  const snap = await getDoc(ref);
+  const seq = snap.data()[sequenceKey];
+
+  return `${prefix}${String(seq).padStart(padding, '0')}`;
+};
+
 export const checkTradeLicenseDuplicate = async (tenantId, licenseNumber) => {
   const q = query(collection(db, 'tenants', tenantId, 'clients'), where('tradeLicenseNumber', '==', licenseNumber));
   const snap = await getDocs(q);
