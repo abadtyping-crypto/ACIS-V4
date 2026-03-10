@@ -6,7 +6,6 @@ import {
   fetchTenantUsersMap,
   getTenantUserByUid,
   getTenantUserControlByUid,
-  upsertTenantSyncEvent,
   upsertTenantUserControlMap,
   upsertTenantUserMap,
 } from '../lib/backendStore';
@@ -14,6 +13,13 @@ import { replaceTenantAvatar } from '../lib/avatarStorage';
 import { User } from 'lucide-react';
 import ImageStudio from '../components/common/ImageStudio';
 import { getCroppedImg } from '../lib/imageStudioUtils';
+import { getRuntimePlatform, PLATFORM_ELECTRON } from '../lib/runtimePlatform';
+import {
+  DESKTOP_WALLPAPERS,
+  MOBILE_APPEARANCE_EVENT,
+  readDesktopAppearance,
+  saveDesktopAppearance,
+} from '../lib/mobileAppearance';
 
 const inputClass =
   'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
@@ -56,6 +62,8 @@ const toPublicProfile = (item) => ({
 const ProfilePage = () => {
   const { tenantId } = useTenant();
   const { user, patchSessionUser } = useAuth();
+  const runtimePlatform = getRuntimePlatform();
+  const isElectronDesktop = runtimePlatform === PLATFORM_ELECTRON;
   const [profiles, setProfiles] = useState([]);
   const [saveMessage, setSaveMessage] = useState('');
   const [flashVisible, setFlashVisible] = useState(false);
@@ -107,6 +115,38 @@ const ProfilePage = () => {
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [desktopAppearance, setDesktopAppearance] = useState(() => readDesktopAppearance());
+
+  useEffect(() => {
+    if (!isElectronDesktop) return undefined;
+    const sync = () => setDesktopAppearance(readDesktopAppearance());
+    window.addEventListener('storage', sync);
+    window.addEventListener(MOBILE_APPEARANCE_EVENT, sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener(MOBILE_APPEARANCE_EVENT, sync);
+    };
+  }, [isElectronDesktop]);
+
+  const updateDesktopAppearance = (patch) => {
+    const next = saveDesktopAppearance({ ...desktopAppearance, ...patch });
+    setDesktopAppearance(next);
+  };
+
+  const onDesktopWallpaperUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 2 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      if (!result.startsWith('data:image/')) return;
+      updateDesktopAppearance({ mode: 'custom', customWallpaperUrl: result });
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (!avatarRawUrl || !avatarRawUrl.startsWith('blob:')) return () => { };
@@ -301,18 +341,6 @@ const ProfilePage = () => {
       return;
     }
 
-    // Comply with syncEvents rule
-    await upsertTenantSyncEvent(tenantId, `profile_${Date.now()}`, {
-      tenantId,
-      eventType: 'update',
-      entityType: 'profile',
-      entityId: user.uid,
-      changedFields: ['displayName', 'photoURL', 'publicProfile', 'headline', 'bio'],
-      createdAt: new Date().toISOString(),
-      createdBy: user.uid,
-      syncStatus: 'pending',
-    });
-
     const prefs = await getTenantUserControlByUid(tenantId, user.uid);
     const currentRules = prefs.data?.notificationRules || {};
     const controlResult = await upsertTenantUserControlMap(tenantId, user.uid, {
@@ -414,6 +442,46 @@ const ProfilePage = () => {
         subtitle="Customize your own public profile. Portal users can view only profiles marked public."
         icon={User}
       >
+        {isElectronDesktop ? (
+          <section className="mb-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 sm:p-5">
+            <h2 className="font-title text-xl text-[var(--c-text)]">Desktop Wallpaper</h2>
+            <p className="mt-1 text-sm text-[var(--c-muted)]">Set desktop preset or upload your own wallpaper (device local only).</p>
+            <div className="mt-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--c-muted)]">Preset</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {DESKTOP_WALLPAPERS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => updateDesktopAppearance({ wallpaper: item.id, mode: 'preset' })}
+                    className={`rounded-xl px-3 py-2 text-xs font-semibold ${
+                      desktopAppearance.mode === 'preset' && desktopAppearance.wallpaper === item.id
+                        ? 'bg-[var(--c-accent)] text-white'
+                        : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)]">
+                Upload Custom
+                <input type="file" accept="image/*" onChange={onDesktopWallpaperUpload} className="hidden" />
+              </label>
+              {desktopAppearance.mode === 'custom' ? (
+                <button
+                  type="button"
+                  onClick={() => updateDesktopAppearance({ mode: 'preset', customWallpaperUrl: '' })}
+                  className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)]"
+                >
+                  Use Preset
+                </button>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
         <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
           <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 sm:p-5">
             <div className="flex items-center justify-between">

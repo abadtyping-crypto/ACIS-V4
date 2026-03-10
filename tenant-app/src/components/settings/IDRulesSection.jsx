@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTenant } from '../../context/TenantContext';
 import { getTenantSettingDoc, upsertTenantSettingDoc, db } from '../../lib/backendStore';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import SettingCard from './SettingCard';
 
 const IDRulesSection = () => {
@@ -68,19 +68,6 @@ const IDRulesSection = () => {
         });
 
         if (res.ok) {
-            // Write Sync Event
-            const ts = Date.now();
-            const eventId = `se_rules_${ts}`;
-            await setDoc(doc(db, 'tenants', tenantId, 'syncEvents', eventId), {
-                tenantId,
-                entityId: 'transactionIdRules',
-                entityType: 'settings',
-                eventType: 'update',
-                changedFields: ['transactionIdRules', 'docRefCodes'],
-                createdAt: serverTimestamp(),
-                createdBy: 'system', // Target uid if available
-                syncStatus: 'pending'
-            });
             setStatus({ type: 'success', message: 'ID rules updated successfully!' });
         } else {
             setStatus({ type: 'error', message: res.error || 'Failed to update rules.' });
@@ -100,20 +87,6 @@ const IDRulesSection = () => {
         try {
             const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
             await setDoc(ref, { [field]: val }, { merge: true });
-
-            // Write Sync Event
-            const ts = Date.now();
-            const eventId = `se_counter_${field}_${ts}`;
-            await setDoc(doc(db, 'tenants', tenantId, 'syncEvents', eventId), {
-                tenantId,
-                entityId: field,
-                entityType: 'counter',
-                eventType: 'update',
-                changedFields: [field],
-                createdAt: serverTimestamp(),
-                createdBy: 'system',
-                syncStatus: 'pending'
-            });
 
             setRules(prev => ({
                 ...prev,

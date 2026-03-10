@@ -563,17 +563,7 @@ export const fetchPortalTransactions = async (tenantId, portalId, startDate, end
 };
 
 export const upsertTenantSyncEvent = async (tenantId, eventId, payload) => {
-  try {
-    await setDoc(doc(db, 'tenants', tenantId, 'syncEvents', eventId), {
-      ...payload,
-      updatedAt: serverTimestamp(),
-    });
-    return { ok: true };
-  } catch (error) {
-    const message = toSafeError(error);
-    console.warn(`[backendStore] syncEvent upsert failed tenants/${tenantId}/syncEvents/${eventId}: ${message}`);
-    return { ok: false, error: message };
-  }
+  return { ok: true, skipped: true };
 };
 
 export const upsertTenantSettingDoc = async (tenantId, settingDocId, payload) => {
@@ -1342,19 +1332,6 @@ export const deleteTenantClientCascade = async (tenantId, clientId, deletedBy) =
       const depDoc = depSnap.docs.find((item) => String(item.data()?.displayClientId || '') === String(clientId));
       if (!depDoc) return { ok: false, error: 'Client record not found.' };
       await deleteDoc(depDoc.ref);
-      await setDoc(
-        doc(db, 'tenants', tenantId, 'syncEvents', `se_client_delete_${clientId}_${Date.now()}`),
-        {
-          tenantId,
-          entityId: clientId,
-          entityType: 'dependent',
-          eventType: 'delete',
-          deletedBy: deletedBy || 'unknown',
-          deletedDependents: 0,
-          createdAt: serverTimestamp(),
-          syncStatus: 'pending',
-        },
-      );
       return { ok: true, deletedDependents: 0 };
     }
 
@@ -1391,20 +1368,6 @@ export const deleteTenantClientCascade = async (tenantId, clientId, deletedBy) =
       await deleteDoc(clientRef);
     }
 
-    await setDoc(
-      doc(db, 'tenants', tenantId, 'syncEvents', `se_client_delete_${clientId}_${Date.now()}`),
-      {
-        tenantId,
-        entityId: clientId,
-        entityType: 'client',
-        eventType: 'delete',
-        deletedBy: deletedBy || 'unknown',
-        deletedDependents,
-        createdAt: serverTimestamp(),
-        syncStatus: 'pending',
-      },
-    );
-
     return { ok: true, deletedDependents };
   } catch (error) {
     const message = toSafeError(error);
@@ -1432,18 +1395,6 @@ export const upsertClient = async (tenantId, clientId, payload) => {
       updatedAt: serverTimestamp(),
       ...(isNew ? { createdAt: serverTimestamp() } : {}),
     }, { merge: true });
-
-    // Write Sync Event
-    await setDoc(doc(db, 'tenants', tenantId, 'syncEvents', `se_client_${finalId}_${Date.now()}`), {
-      tenantId,
-      entityId: finalId,
-      entityType: 'client',
-      eventType: isNew ? 'create' : 'update',
-      changedFields: Object.keys(payload),
-      createdAt: serverTimestamp(),
-      createdBy: payload.createdBy || 'unknown',
-      syncStatus: 'pending'
-    });
 
     return { ok: true, id: finalId };
   } catch (error) {
@@ -1477,17 +1428,6 @@ export const upsertDependentUnderParent = async (
       dependentPayload,
       { merge: true },
     );
-
-    await setDoc(doc(db, 'tenants', tenantId, 'syncEvents', `se_dependent_${dependentId}_${Date.now()}`), {
-      tenantId,
-      entityId: dependentId,
-      entityType: 'dependent',
-      eventType: 'create',
-      changedFields: Object.keys(payload || {}),
-      createdAt: serverTimestamp(),
-      createdBy: payload?.createdBy || 'unknown',
-      syncStatus: 'pending',
-    });
 
     return { ok: true, id: dependentId };
   } catch (error) {
