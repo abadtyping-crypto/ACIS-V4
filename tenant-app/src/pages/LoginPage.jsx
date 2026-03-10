@@ -14,6 +14,7 @@ const LoginPage = () => {
   const tenant = findTenantById(tenantId);
   const displayTenantName = tenant ? tenant.name : tenantId;
   const isElectronRuntime = getRuntimePlatform() === PLATFORM_ELECTRON;
+  const hasNativeTitleBar = typeof window !== 'undefined' && Boolean(window.electron?.windowControls);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +38,7 @@ const LoginPage = () => {
   const [supportStatus, setSupportStatus] = useState({ loading: false, error: '', success: '' });
 
   useEffect(() => {
+    if (!isElectronRuntime) return undefined;
     const prevBodyOverflow = document.body.style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -45,7 +47,7 @@ const LoginPage = () => {
       document.body.style.overflow = prevBodyOverflow;
       document.documentElement.style.overflow = prevHtmlOverflow;
     };
-  }, []);
+  }, [isElectronRuntime]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -358,7 +360,12 @@ const LoginPage = () => {
   );
 
   return (
-    <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[var(--c-background)] px-4 py-3">
+    <div
+      className={`relative flex items-center justify-center bg-[var(--c-background)] px-4 py-3 ${
+        isElectronRuntime ? 'overflow-hidden' : 'overflow-y-auto'
+      }`}
+      style={{ height: hasNativeTitleBar ? 'calc(100dvh - 2.25rem)' : '100dvh' }}
+    >
       {/* Background Decorative Elements */}
       <div className="absolute left-1/2 top-1/2 -z-10 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--c-accent)]/20 blur-[120px]" />
       <div className="absolute right-0 top-0 -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/10 blur-[100px]" />
@@ -385,7 +392,7 @@ const LoginPage = () => {
         </div>
       )}
 
-      <div className={`w-full animate-in fade-in slide-in-from-bottom-8 duration-700 ${isElectronRuntime ? 'h-[min(860px,calc(100vh-1.5rem))] max-w-6xl' : 'max-w-[420px]'}`}>
+      <div className={`w-full animate-in fade-in slide-in-from-bottom-8 duration-700 ${isElectronRuntime ? 'h-[min(860px,calc(100dvh-1.5rem))] max-w-6xl' : 'max-w-[420px]'}`}>
         {isElectronRuntime ? (
           <div className="h-full overflow-hidden rounded-3xl border border-white/10 bg-[var(--c-surface)]/76 shadow-2xl backdrop-blur-xl">
             <div className="grid h-full lg:grid-cols-[1.12fr_0.88fr]">
