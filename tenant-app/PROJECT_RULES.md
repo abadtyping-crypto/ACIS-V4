@@ -2,9 +2,10 @@
 
 ## 1) Scope and Goal
 
-- Build a multi-tenant admin platform with 14 pages and ~72 components, targeted for **Electron (Desktop)**.
+- Build a multi-tenant admin platform with 14 pages and ~72 components, targeted for **Electron (Desktop)** and **Mobile**.
+- **Crucial UI Split:** The UI served on the Electron Desktop view is COMPLETELY separate from the Mobile view. They must be wired and designed separately. (Do not serve the same UI for both).
 - Keep all implementation clean-room (no legacy code copy/paste).
-- Optimize for premium UI quality, maintainability, and predictable delivery in a desktop environment.
+- Optimize for premium UI quality, maintainability, and predictable delivery.
 
 ## 2) Core Architecture
 
@@ -44,7 +45,9 @@
 
 ## 7) Responsive and Layout Rules
 
-- Mobile-first implementation mandatory.
+- Mobile-first implementation mandatory for mobile views.
+- **Strict UI Separation:** Desktop (Electron) and Mobile components must be completely split. 
+- **Mobile UI Guidelines:** Serve limited options. Avoid unwanted text titles; convey meaning with icons heavily (e.g., `Application` = 🧾, `Search` = 🔎).
 - Supported widths: 320px mobile, tablet, desktop wide.
 - No horizontal overflow at 320px.
 - Minimum interactive target size: 44px height.
@@ -133,13 +136,13 @@
 
 ## 18) Electron Specific Rules
 
-- **Environment**: Use Electron for desktop distribution.
+- **Environment**: Use Electron for desktop distribution and build separate views for Mobile (APK). Use Web view for development only; URLs will be completely hidden in production.
 - **Process Separation**: Strictly separate Main process (Node.js) and Renderer process (React).
 - **Security**: Enable `contextIsolation`, `sandbox`, and disable `nodeIntegration` in the renderer.
 - **Communication**: Use `ipcMain` and `ipcRenderer` via a `preload.js` script for all communication between processes.
 - **Native Interops**: Any native OS feature (file system, printing, native notifications) must be gated behind IPC.
 - **Event Token Persistence**: The "Event Token" (Sync Event issuing) must be consistent across all open windows/pages.
-- **Distribution**: Target Windows platform primarily.
+- **Distribution**: Target Windows platform primarily for Electron, APK for mobile.
 
 ## 19) Global Enforcement (All Pages, No Exceptions)
 

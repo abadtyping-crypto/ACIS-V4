@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import {
+  Settings,
+  Paintbrush,
+  SlidersHorizontal,
+  FileText,
+  LayoutTemplate,
+  Library,
+  Users,
+  ShieldAlert,
+  Mail,
+  Mailbox,
+  ShieldCheck,
+  Hash,
+} from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import PreferenceSection from '../components/settings/PreferenceSection';
 import BrandDetailsSection from '../components/settings/BrandDetailsSection';
@@ -17,17 +30,17 @@ import { useTenant } from '../context/TenantContext';
 import useIsDesktopLayout from '../hooks/useIsDesktopLayout';
 
 const SETTINGS_SECTIONS = [
-  { key: 'brand', label: 'Brand Details' },
-  { key: 'preferences', label: 'Preferences' },
-  { key: 'pdfStudio', label: 'PDF Studio' },
-  { key: 'svcTemplates', label: 'Application Templates' },
-  { key: 'appIconLibrary', label: 'Applications Icon Library' },
-  { key: 'users', label: 'User Management' },
-  { key: 'control', label: 'User Control Center' },
-  { key: 'mail', label: 'Mail Configuration' },
-  { key: 'mailTemplates', label: 'Email Templates' },
-  { key: 'security', label: 'Security' },
-  { key: 'counters', label: 'ID Rules & Counters' },
+  { key: 'brand', label: 'Brand Details', icon: Paintbrush },
+  { key: 'preferences', label: 'Preferences', icon: SlidersHorizontal },
+  { key: 'pdfStudio', label: 'PDF Studio', icon: FileText },
+  { key: 'svcTemplates', label: 'Application Templates', icon: LayoutTemplate },
+  { key: 'appIconLibrary', label: 'Applications Icon Library', icon: Library },
+  { key: 'users', label: 'User Management', icon: Users },
+  { key: 'control', label: 'User Control Center', icon: ShieldAlert },
+  { key: 'mail', label: 'Mail Configuration', icon: Mail },
+  { key: 'mailTemplates', label: 'Email Templates', icon: Mailbox },
+  { key: 'security', label: 'Security', icon: ShieldCheck },
+  { key: 'counters', label: 'ID Rules & Counters', icon: Hash },
 ];
 
 const TAB_ALIAS_MAP = {
@@ -95,11 +108,12 @@ const SettingsPage = () => {
                   key={section.key}
                   type="button"
                   onClick={() => setActiveSection(section.key)}
-                  className={`rounded-xl px-3 py-2 text-left text-sm font-semibold ${activeSection === section.key
-                    ? 'bg-[var(--c-panel)] text-[var(--c-text)] ring-1 ring-[var(--c-ring)]'
-                    : 'text-[var(--c-muted)] hover:bg-[var(--c-panel)] hover:text-[var(--c-text)]'
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${activeSection === section.key
+                      ? 'bg-[var(--c-panel)] text-[var(--c-text)] ring-1 ring-[var(--c-ring)]'
+                      : 'text-[var(--c-muted)] hover:bg-[var(--c-panel)] hover:text-[var(--c-text)]'
                     }`}
                 >
+                  <section.icon className={`h-4 w-4 ${activeSection === section.key ? 'text-[var(--c-accent)]' : ''}`} />
                   {section.label}
                 </button>
               ))}

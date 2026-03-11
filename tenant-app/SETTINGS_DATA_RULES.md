@@ -11,8 +11,9 @@
 - Avoid duplicate user profile fields in settings docs (`name`, `email`, `phone`, `role`) when they can be resolved from `uid`.
 - Keep each settings document domain-scoped (`profileSettings`, `preferenceSettings`, `securitySettings`) with minimal fields.
 
-## 3) Minimal Data Usage
-- Store only fields required for rendering or policy checks.
+## 3) Minimal Data Usage & Relational Reads
+- Store only fields required for rendering or policy checks. **Write minimum (e.g. `createdBy` is just a UID string) but connect with more on the frontend** (e.g. resolve that UID to display their avatar, name, role, profile route, and history).
+- **NO PLACEHOLDER WRITING** in Backend Firestore. Write only necessary data.
 - Do not persist derived values (formatting labels, display text, computed summaries).
 - Do not store large arrays/objects in settings if they can be queried on demand.
 - Prefer boolean flags and compact enums over verbose objects.
@@ -27,8 +28,9 @@
 - No writes based on role-wise branching in settings payload.
 - User-specific customization only (keyed by uid or user document path).
 
-## 5) Read Rules for Settings Page
-- Resolve user display details from auth/user collection by `uid` at read time.
+## 5) Read Rules & Relational Wiring
+- **Crucial Wiring Rule:** Resolve user display details from auth/user collection by `uid` at read time. Do not write user names, avatars, or roles directly into transactional/settings docs.
+- Retrieve the `uid` stored in the document, and use it to fetch the latest Avatar, Display Name, Role, and History when displaying it in the UI.
 - Do not trust client-passed identity fields.
 - Tenant-aware read path must stay under `/t/:tenantId/...` context.
 

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { Paintbrush } from 'lucide-react';
 import SettingCard from './SettingCard';
 import { getTenantSettingDoc, upsertTenantSettingDoc } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
@@ -35,7 +36,7 @@ const MAX_LOGO_SLOTS = 5;
 
 const defaultLogoLibrary = Array.from({ length: MAX_LOGO_SLOTS }, (_, index) => ({
   slotId: `logo_${index + 1}`,
-  name: `Logo Slot ${index + 1}`,
+  name: '', // Removed pre-filled name per user request
   url: '',
 }));
 
@@ -55,13 +56,6 @@ const toProperCase = (value) =>
     .trim()
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
-
-const normalizeTrnDigits = (value) =>
-  String(value || '')
-    .toUpperCase()
-    .replace(/TRN\s*:?/g, '')
-    .replace(/\D/g, '')
-    .slice(0, 15);
 
 const normalizePhone = (value) => toDigits(value).slice(0, 9);
 const normalizePoBox = (value) => toDigits(value).slice(0, 8);
@@ -98,9 +92,6 @@ const BrandDetailsSection = () => {
     poBoxEmirate: '',
     email1: '',
     webAddress: '',
-    taxEnabled: true,
-    taxPercentage: '5',
-    taxRegistrationNumber: '',
     bankName: '',
     bankAccountName: '',
     bankAccountNumber: '',
@@ -108,6 +99,10 @@ const BrandDetailsSection = () => {
     bankSwift: '',
     bankBranch: '',
     locationPin: '',
+    facebookUrl: '',
+    instagramUrl: '',
+    twitterUrl: '',
+    linkedinUrl: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -155,9 +150,6 @@ const BrandDetailsSection = () => {
         poBoxEmirate: String(data.poBoxEmirate || ''),
         email1: toLower(data.email1 || ''),
         webAddress: toLower(data.webAddress || ''),
-        taxEnabled: data.taxEnabled !== false,
-        taxPercentage: String(data.taxPercentage || 5),
-        taxRegistrationNumber: normalizeTrnDigits(data.taxRegistrationNumber || ''),
         bankName: String(data.bankName || ''),
         bankAccountName: String(data.bankAccountName || ''),
         bankAccountNumber: String(data.bankAccountNumber || ''),
@@ -165,6 +157,10 @@ const BrandDetailsSection = () => {
         bankSwift: String(data.bankSwift || ''),
         bankBranch: String(data.bankBranch || ''),
         locationPin: String(data.locationPin || ''),
+        facebookUrl: toLower(data.facebookUrl || ''),
+        instagramUrl: toLower(data.instagramUrl || ''),
+        twitterUrl: toLower(data.twitterUrl || ''),
+        linkedinUrl: toLower(data.linkedinUrl || ''),
       }));
       const incomingLibrary = Array.isArray(data.logoLibrary) ? data.logoLibrary : [];
       const normalizedLibrary = defaultLogoLibrary.map((slot) => {
@@ -344,9 +340,6 @@ const BrandDetailsSection = () => {
       poBoxEmirate: normalizePoBox(form.poBoxNumber) ? form.poBoxEmirate || '' : '',
       email1: toLower(form.email1),
       webAddress: toLower(form.webAddress),
-      taxEnabled: Boolean(form.taxEnabled),
-      taxPercentage: Number(toDigits(form.taxPercentage) || 5),
-      taxRegistrationNumber: normalizeTrnDigits(form.taxRegistrationNumber),
       bankName: String(form.bankName || '').trim(),
       bankAccountName: String(form.bankAccountName || '').trim(),
       bankAccountNumber: String(form.bankAccountNumber || '').trim(),
@@ -354,6 +347,10 @@ const BrandDetailsSection = () => {
       bankSwift: String(form.bankSwift || '').trim().toUpperCase(),
       bankBranch: String(form.bankBranch || '').trim(),
       locationPin: String(form.locationPin || '').trim(),
+      facebookUrl: toLower(form.facebookUrl),
+      instagramUrl: toLower(form.instagramUrl),
+      twitterUrl: toLower(form.twitterUrl),
+      linkedinUrl: toLower(form.linkedinUrl),
       logoLibrary: defaultLogoLibrary.map((baseSlot) => {
         const slot = logoLibrary.find((item) => item.slotId === baseSlot.slotId) || baseSlot;
         return {
@@ -394,14 +391,6 @@ const BrandDetailsSection = () => {
       nextErrors.poBoxNumber = 'Maximum 8 digits allowed.';
     }
 
-    if (payload.taxEnabled && !Number.isFinite(payload.taxPercentage)) {
-      nextErrors.taxPercentage = 'Tax percentage must be numeric.';
-    }
-
-    if (payload.taxRegistrationNumber && payload.taxRegistrationNumber.length > 15) {
-      nextErrors.taxRegistrationNumber = 'TRN supports maximum 15 digits.';
-    }
-
     if (payload.bankIban && payload.bankIban.length < 10) {
       nextErrors.bankIban = 'IBAN looks too short.';
     }
@@ -431,9 +420,11 @@ const BrandDetailsSection = () => {
       secondaryAddress: payload.secondaryAddress,
       email1: payload.email1,
       webAddress: payload.webAddress,
-      taxRegistrationNumber: payload.taxRegistrationNumber,
-      taxPercentage: String(payload.taxPercentage),
       locationPin: payload.locationPin,
+      facebookUrl: payload.facebookUrl,
+      instagramUrl: payload.instagramUrl,
+      twitterUrl: payload.twitterUrl,
+      linkedinUrl: payload.linkedinUrl,
     }));
 
     const write = await upsertTenantSettingDoc(tenantId, 'branding', payload);
@@ -458,17 +449,13 @@ const BrandDetailsSection = () => {
     );
   };
 
-  const trnPreview = useMemo(() => {
-    const digits = normalizeTrnDigits(form.taxRegistrationNumber);
-    return digits ? `TRN:${digits}` : 'TRN:';
-  }, [form.taxRegistrationNumber]);
-
   if (!user) return null;
 
   return (
     <SettingCard
       title="Brand Details"
       description="Company identity and statutory settings with strict save-time normalization."
+      icon={Paintbrush}
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <label className={labelClass}>
@@ -667,56 +654,50 @@ const BrandDetailsSection = () => {
             Paste the Google Maps "Share" link or "Plus Code" here for future reference.
           </p>
         </label>
+      </div>
 
-        <div className="sm:col-span-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium text-[var(--c-text)]">Tax / Registration</p>
-            <button
-              type="button"
-              onClick={() => updateField('taxEnabled', !form.taxEnabled)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${form.taxEnabled
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
-                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                }`}
-            >
-              {form.taxEnabled ? 'Enabled' : 'Disabled'}
-            </button>
-          </div>
-
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className={labelClass}>
-              Tax Percentage
-              <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3">
-                <input
-                  className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
-                  value={form.taxPercentage}
-                  onChange={(event) => updateField('taxPercentage', toDigits(event.target.value))}
-                  inputMode="numeric"
-                  placeholder="5"
-                  disabled={!form.taxEnabled}
-                />
-                <span className="pl-2 text-sm text-[var(--c-muted)]">%</span>
-              </div>
-              {errors.taxPercentage ? <p className="mt-1 text-xs text-rose-600">{errors.taxPercentage}</p> : null}
-            </label>
-
-            <label className={labelClass}>
-              Tax Registration Number (TRN)
-              <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3">
-                <span className="pr-2 text-sm text-[var(--c-muted)]">TRN:</span>
-                <input
-                  className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
-                  value={form.taxRegistrationNumber}
-                  onChange={(event) => updateField('taxRegistrationNumber', normalizeTrnDigits(event.target.value))}
-                  inputMode="numeric"
-                  maxLength={15}
-                  placeholder="15 digits max"
-                />
-              </div>
-              <p className="mt-1 text-[11px] text-[var(--c-muted)]">Preview: {trnPreview}</p>
-              {errors.taxRegistrationNumber ? <p className="mt-1 text-xs text-rose-600">{errors.taxRegistrationNumber}</p> : null}
-            </label>
-          </div>
+      <div className="mt-6 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4">
+        <div className="mb-3">
+          <p className="text-sm font-semibold text-[var(--c-text)]">Social Media</p>
+          <p className="text-xs text-[var(--c-muted)]">Add direct links to your company&#39;s social profiles.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className={labelClass}>
+            Facebook URL
+            <input
+              className={inputClass}
+              value={form.facebookUrl}
+              onChange={(event) => updateField('facebookUrl', event.target.value.toLowerCase())}
+              placeholder="https://facebook.com/..."
+            />
+          </label>
+          <label className={labelClass}>
+            Instagram URL
+            <input
+              className={inputClass}
+              value={form.instagramUrl}
+              onChange={(event) => updateField('instagramUrl', event.target.value.toLowerCase())}
+              placeholder="https://instagram.com/..."
+            />
+          </label>
+          <label className={labelClass}>
+            X / Twitter URL
+            <input
+              className={inputClass}
+              value={form.twitterUrl}
+              onChange={(event) => updateField('twitterUrl', event.target.value.toLowerCase())}
+              placeholder="https://twitter.com/..."
+            />
+          </label>
+          <label className={labelClass}>
+            LinkedIn URL
+            <input
+              className={inputClass}
+              value={form.linkedinUrl}
+              onChange={(event) => updateField('linkedinUrl', event.target.value.toLowerCase())}
+              placeholder="https://linkedin.com/..."
+            />
+          </label>
         </div>
       </div>
 
