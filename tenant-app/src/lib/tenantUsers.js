@@ -46,7 +46,7 @@ export const fetchTenantUsersFromBackend = async (tenantId) => {
     photoURL: item.photoURL || '',
     mobile: item.mobile || '',
     role: item.role || 'Staff',
-    status: item.status || 'Active',
+    status: item.status || 'Invited',
     createdBy: item.createdBy || '',
     createdAt: item.createdAt || null,
   }));
@@ -66,7 +66,7 @@ export const addTenantUser = (tenantId, payload) => {
     photoURL: payload.photoURL || '',
     mobile: payload.mobile || '',
     role: payload.role,
-    status: 'Active',
+    status: payload.status || 'Invited',
     createdBy: payload.createdBy,
     createdAt: new Date().toISOString(),
   };

@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react';
-import { fetchTenantUsersMap } from '../lib/backendStore';
+import { fetchTenantUsersMap, upsertTenantUserMap } from '../lib/backendStore';
 import { auth } from '../lib/firebaseConfig';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
@@ -7,7 +7,7 @@ const AUTH_STORAGE_KEY = 'acis_auth_session_v1';
 const AuthContext = createContext(null);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_ROLES = new Set(['Super Admin', 'Admin', 'Manager', 'Accountant', 'Staff']);
-const ALLOWED_STATUS = new Set(['Active', 'Frozen']);
+const ALLOWED_STATUS = new Set(['Active', 'Frozen', 'Invited']);
 
 const readSession = () => {
   if (typeof window === 'undefined') return null;
@@ -100,6 +100,17 @@ export const AuthProvider = ({ children }) => {
       photoURL: result.data.photoURL || '/avatar.png',
       status: result.data.status || 'Active',
     };
+
+    if (String(rawUser.status).toLowerCase() === 'invited') {
+      const activated = {
+        ...result.data,
+        status: 'Active',
+        invitedAcceptedAt: new Date().toISOString(),
+      };
+      await upsertTenantUserMap(tenantId, rawUser.uid, activated);
+      rawUser.status = 'Active';
+    }
+
     const validated = toValidatedUser(rawUser);
     if (!validated.ok) return validated;
     const user = validated.user;
@@ -148,6 +159,16 @@ export const AuthProvider = ({ children }) => {
         photoURL: matchedUser.photoURL || googleUser?.photoURL || '/avatar.png',
         status: matchedUser.status || 'Active',
       };
+
+      if (String(rawUser.status).toLowerCase() === 'invited') {
+        const activated = {
+          ...matchedUser,
+          status: 'Active',
+          invitedAcceptedAt: new Date().toISOString(),
+        };
+        await upsertTenantUserMap(tenantId, rawUser.uid, activated);
+        rawUser.status = 'Active';
+      }
 
       const validated = toValidatedUser(rawUser);
       if (!validated.ok) {

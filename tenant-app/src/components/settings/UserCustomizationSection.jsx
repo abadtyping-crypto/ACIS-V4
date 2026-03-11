@@ -38,12 +38,11 @@ const UserCustomizationSection = () => {
     mobile: '',
     role: '',
   });
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState(() => getTenantUsers(tenantId));
   const [errors, setErrors] = useState({});
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
-    setUsers(getTenantUsers(tenantId));
     let active = true;
     fetchTenantUsersFromBackend(tenantId).then((next) => {
       if (active) setUsers(next);
@@ -102,6 +101,7 @@ const UserCustomizationSection = () => {
     const next = addTenantUser(tenantId, {
       ...payload,
       createdBy: user.uid,
+      status: 'Invited',
     });
     setUsers(next);
     setForm({
@@ -110,7 +110,7 @@ const UserCustomizationSection = () => {
       mobile: '',
       role: '',
     });
-    setSaveMessage('User created. You can freeze/unfreeze or delete from list below.');
+    setSaveMessage('User created with Invited status. On first successful login, status becomes Active.');
   };
 
   if (!user) return null;
@@ -173,7 +173,7 @@ const UserCustomizationSection = () => {
             placeholder="email@domain.com"
           />
           <p className="mt-1 text-[11px] text-[var(--c-muted)]">
-            Invitation link for account activation will be sent to this email.
+            Invite-safe access is tied to this email. User must log in with this exact email.
           </p>
           {errors.email ? <p className="mt-1 text-xs text-rose-600">{errors.email}</p> : null}
         </label>
