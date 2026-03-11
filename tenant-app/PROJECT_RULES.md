@@ -202,3 +202,17 @@
   - `iconName` is mandatory and editable; rename must migrate doc ID accordingly.
   - Reuploading an icon must automatically remove prior storage asset URL.
   - Icon uploads must be compressed (webp, reduced footprint) for lightweight reuse across upcoming pages.
+
+## 22) Super Admin Role Rules
+
+- **Singularity**: There is strictly only ONE Super Admin user per tenant.
+- **Creation**: The Super Admin is *only* created by the developer during onboarding. They cannot be created via the standard User Customization or User Control Center pages by the tenant.
+- **Backend Identifier**: The role ID in Firestore will be explicitly `super_admin`.
+- **Frontend Display**: In the UI, this role must always be badged/displayed as **Owner** or **Founder**.
+- **Privileges & Access Control**:
+  - The Super Admin has "superpower" access with absolutely no restrictions to any page.
+  - They are never blocked from any functionality.
+  - They are the *only* role with access to the User Customization / Reference configurations.
+  - They are the "plan manager" who can assign notifications and roles.
+  - They receive *all* notifications by default.
+- **UI Exclusions**: The `super_admin` role MUST be skipped/excluded from the standard 4-role customization triggers on the User Role Customization page, as their permissions are immutable and absolute.

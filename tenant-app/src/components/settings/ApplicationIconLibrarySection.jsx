@@ -9,6 +9,7 @@ import {
   getApplicationIconById,
   upsertApplicationIcon,
 } from '../../lib/applicationIconLibraryStore';
+import { Layout, Library } from 'lucide-react';
 import {
   deleteApplicationIconAssetByUrl,
   uploadApplicationIconAsset,
@@ -211,103 +212,126 @@ const ApplicationIconLibrarySection = () => {
       title="Applications Icon Library"
       description="Upload reusable app/module icons. Icon Name is mandatory and used as the backend document ID."
     >
-      <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-sm text-[var(--c-muted)]">
-            Icon Name *
-            <input
-              className={inputClass}
-              value={iconName}
-              onChange={(event) => setIconName(event.target.value)}
-              placeholder="Example: invoice_management"
-            />
-          </label>
-
-          <label className="text-sm text-[var(--c-muted)]">
-            Icon Image {isEditing ? '(optional for rename only)' : '*'}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              onChange={handleFileChange}
-              className={inputClass}
-            />
-          </label>
-        </div>
-
-        {isEditing && editingRow ? (
-          <p className="mt-2 text-xs text-[var(--c-muted)]">
-            Editing ID: <span className="font-semibold text-[var(--c-text)]">{editingRow.iconId}</span>
-          </p>
-        ) : null}
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSaving}
-            className="rounded-xl bg-[var(--c-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {isEditing ? 'Update Icon' : 'Add Icon'}
-          </button>
-          {isEditing ? (
-            <button
-              type="button"
-              onClick={resetForm}
-              disabled={isSaving}
-              className="rounded-xl border border-[var(--c-border)] px-4 py-2 text-sm font-semibold text-[var(--c-text)]"
-            >
-              Cancel Edit
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {error ? <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p> : null}
-      {status ? <p className="mt-3 text-sm font-semibold text-emerald-600">{status}</p> : null}
-
-      <div className="mt-4 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-        <p className="text-sm font-semibold text-[var(--c-text)]">Library Items</p>
-        {isLoading ? (
-          <p className="mt-2 text-sm text-[var(--c-muted)]">Loading icons...</p>
-        ) : rows.length === 0 ? (
-          <p className="mt-2 text-sm text-[var(--c-muted)]">No icons added yet.</p>
-        ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {rows.map((row) => (
-              <article key={row.iconId} className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg bg-white">
-                    {row.iconUrl ? (
-                      <img src={row.iconUrl} alt={row.iconName} className="h-full w-full object-contain" />
-                    ) : (
-                      <span className="text-[10px] font-semibold text-[var(--c-muted)]">No Icon</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[var(--c-text)]">{row.iconName || row.iconId}</p>
-                    <p className="truncate text-xs text-[var(--c-muted)]">{row.iconId}</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleStartEdit(row)}
-                    className="rounded-lg border border-[var(--c-border)] px-3 py-1.5 text-xs font-semibold text-[var(--c-text)]"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(row)}
-                    className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
+      <div className="space-y-8">
+        {/* Section 1: Add/Edit Icon Form */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-[var(--c-border)] pb-2 text-[var(--c-accent)]">
+            <Layout className="h-5 w-5" />
+            <span className="text-sm font-bold uppercase tracking-wider text-[var(--c-text)]">
+              {isEditing ? 'Edit Icon Details' : 'Add New Icon'}
+            </span>
           </div>
-        )}
+
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="text-sm text-[var(--c-muted)]">
+                Icon Name *
+                <input
+                  className={inputClass}
+                  value={iconName}
+                  onChange={(event) => setIconName(event.target.value)}
+                  placeholder="Example: invoice_management"
+                />
+              </label>
+
+              <label className="text-sm text-[var(--c-muted)]">
+                Icon Image {isEditing ? '(optional for rename only)' : '*'}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  onChange={handleFileChange}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+
+            {isEditing && editingRow ? (
+              <p className="mt-2 text-xs text-[var(--c-muted)]">
+                Editing ID: <span className="font-semibold text-[var(--c-text)]">{editingRow.iconId}</span>
+              </p>
+            ) : null}
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="rounded-xl bg-[var(--c-accent)] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:scale-105 active:scale-95 disabled:opacity-60"
+              >
+                {isEditing ? 'Update Icon' : 'Add Icon'}
+              </button>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  disabled={isSaving}
+                  className="rounded-xl border border-[var(--c-border)] px-4 py-2 text-sm font-semibold text-[var(--c-text)] transition hover:bg-[var(--c-panel)]"
+                >
+                  Cancel Edit
+                </button>
+              ) : null}
+            </div>
+            
+            {error ? <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p> : null}
+            {status ? <p className="mt-3 text-sm font-semibold text-emerald-600">{status}</p> : null}
+          </div>
+        </section>
+
+        {/* Section 2: Library Items */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-[var(--c-border)] pb-2 text-[var(--c-accent)]">
+            <Library className="h-5 w-5" />
+            <span className="text-sm font-bold uppercase tracking-wider text-[var(--c-text)]">Library Items</span>
+          </div>
+
+          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+            <p className="text-xs text-[var(--c-muted)] mb-3">Upload reusable app/module icons. Icon Name is used as the document ID.</p>
+            {isLoading ? (
+              <div className="flex items-center gap-2 py-8 justify-center">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--c-accent)] border-t-transparent" />
+                <p className="text-sm text-[var(--c-muted)]">Loading icons...</p>
+              </div>
+            ) : rows.length === 0 ? (
+              <p className="py-8 text-center text-sm text-[var(--c-muted)]">No icons added yet.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {rows.map((row) => (
+                  <article key={row.iconId} className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 border border-[var(--c-border)]/30">
+                        {row.iconUrl ? (
+                          <img src={row.iconUrl} alt={row.iconName} className="h-full w-full object-contain" />
+                        ) : (
+                          <span className="text-[10px] font-semibold text-[var(--c-muted)]">No Icon</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-[var(--c-text)]">{row.iconName || row.iconId}</p>
+                        <p className="truncate text-[10px] font-medium text-[var(--c-muted)] uppercase tracking-tight">{row.iconId}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(row)}
+                        className="flex-1 rounded-lg border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1.5 text-xs font-semibold text-[var(--c-text)] hover:bg-[var(--c-surface)] transition"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(row)}
+                        className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </SettingCard>
   );

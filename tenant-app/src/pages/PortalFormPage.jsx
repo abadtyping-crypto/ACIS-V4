@@ -4,6 +4,7 @@ import PageShell from '../components/layout/PageShell';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
 import { createSyncEvent } from '../lib/syncEvents';
+import { buildNotificationPayload, generateNotificationId } from '../lib/notificationTemplate';
 import {
     fetchTenantPortals,
     upsertTenantPortal,
@@ -163,17 +164,25 @@ const PortalFormPage = () => {
 
         if (!portalId) {
             const routePath = `/t/${tenantId}/portal-management/${finalPortalId}`;
-            await upsertTenantNotification(tenantId, `notif_portal_create_${finalPortalId}`, {
-                title: 'Portal Created',
-                detail: `${form.name} was created successfully.`,
-                eventType: 'create',
-                entityType: 'portal',
-                entityId: finalPortalId,
-                routePath,
-                targetRoles: [],
-                createdAt: new Date().toISOString(),
-                createdBy: user.uid,
-            });
+            await upsertTenantNotification(
+                tenantId,
+                generateNotificationId({ topic: 'finance', subTopic: 'portal' }),
+                buildNotificationPayload({
+                    topic: 'finance',
+                    subTopic: 'portal',
+                    type: 'create',
+                    title: 'Portal Created',
+                    detail: `${form.name} was created successfully.`,
+                    createdBy: user.uid,
+                    routePath,
+                    actionPresets: ['view'],
+                    extra: {
+                        eventType: 'create',
+                        entityType: 'portal',
+                        entityId: finalPortalId,
+                    },
+                }),
+            );
         }
 
         await createSyncEvent({

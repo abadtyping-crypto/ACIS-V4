@@ -6,7 +6,7 @@ import { createSyncEvent } from '../../lib/syncEvents';
 import SettingCard from './SettingCard';
 import { Mail, RefreshCw, PenTool, Eye } from 'lucide-react';
 
-const rowClass = 'grid grid-cols-1 gap-1 sm:grid-cols-[180px_1fr] sm:items-start py-3';
+const rowClass = 'grid grid-cols-1 gap-1 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-start py-3';
 const inputClass = 'w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:ring-1 focus:ring-[var(--c-accent)] transition';
 const textAreaClass = `${inputClass} resize-y min-h-[120px] leading-relaxed`;
 
@@ -174,7 +174,7 @@ const EmailTemplateSection = () => {
         }
         return (
             <div
-                className="w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-0 sm:p-4 max-h-[500px] overflow-auto shadow-inner [&_a]:text-[var(--c-accent)]"
+                className="w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-2 sm:p-4 max-h-[500px] overflow-auto shadow-inner [&_a]:text-[var(--c-accent)]"
                 dangerouslySetInnerHTML={{ __html: createPreviewHtml(text) }}
             />
         );
@@ -188,13 +188,13 @@ const EmailTemplateSection = () => {
             <div className="space-y-6">
 
                 {/* Navigation Tabs */}
-                <div className="flex items-center justify-between border-b border-[var(--c-border)] pb-4">
-                    <div className="flex gap-2">
+                <div className="flex flex-col gap-3 border-b border-[var(--c-border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap gap-2">
                         {['welcome', 'statement', 'signature'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => { setActiveTab(tab); setPreviewMode(false); }}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition capitalize ${activeTab === tab
+                                className={`whitespace-nowrap px-3 py-2 rounded-xl text-xs font-bold transition capitalize ${activeTab === tab
                                         ? 'bg-[var(--c-accent)] text-white shadow-md shadow-[var(--c-accent)]/20'
                                         : 'text-[var(--c-muted)] hover:bg-[var(--c-panel)] hover:text-[var(--c-text)]'
                                     }`}
@@ -239,7 +239,7 @@ const EmailTemplateSection = () => {
 
                         {/* Welcome Tab */}
                         {activeTab === 'welcome' && (
-                            <div className="rounded-2xl border border-[var(--c-border)] bg-transparent">
+                            <div className="rounded-2xl border border-[var(--c-border)] bg-transparent p-4 sm:p-5">
                                 <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
                                         <h3 className="text-sm font-bold text-[var(--c-text)]">Welcome Email Content</h3>
@@ -279,7 +279,7 @@ const EmailTemplateSection = () => {
 
                         {/* Statement Tab */}
                         {activeTab === 'statement' && (
-                            <div className="rounded-2xl border border-[var(--c-border)] bg-transparent">
+                            <div className="rounded-2xl border border-[var(--c-border)] bg-transparent p-4 sm:p-5">
                                 <div className="mb-4">
                                     <h3 className="text-sm font-bold text-[var(--c-text)]">Statement / Document Email</h3>
                                     <p className="text-xs text-[var(--c-muted)] mt-1">Sent when sharing statement portal links or sending attached receipts.</p>
@@ -310,7 +310,7 @@ const EmailTemplateSection = () => {
 
                         {/* Signature Tab */}
                         {activeTab === 'signature' && (
-                            <div className="rounded-2xl border border-[var(--c-border)] bg-transparent">
+                            <div className="rounded-2xl border border-[var(--c-border)] bg-transparent p-4 sm:p-5">
                                 <div className="mb-4 flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl">
                                     <Mail className="text-indigo-500 shrink-0 mt-1" size={20} />
                                     <div>
@@ -340,8 +340,8 @@ const EmailTemplateSection = () => {
                 )}
 
                 {/* Always-on Actions Footer */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--c-border)] mt-4">
-                    <div className="w-full sm:w-auto flex items-center gap-2 max-w-sm">
+                <div className="mt-4 flex flex-col gap-4 border-t border-[var(--c-border)] pt-4">
+                    <div className="flex w-full flex-col gap-2 sm:max-w-xl sm:flex-row sm:items-center">
                         <input
                             type="email"
                             placeholder="Send a test to..."
@@ -358,7 +358,7 @@ const EmailTemplateSection = () => {
                         </button>
                     </div>
 
-                    <div className="flex w-full sm:w-auto flex-col sm:flex-row items-center gap-4">
+                    <div className="flex w-full flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                         {status.message && (
                             <p className={`text-xs font-bold ${status.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`}>
                                 {status.message}
@@ -368,7 +368,7 @@ const EmailTemplateSection = () => {
                             type="button"
                             onClick={onSave}
                             disabled={isSaving}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-[var(--c-accent)] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--c-accent)] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50 sm:w-auto"
                         >
                             {isSaving ? <RefreshCw size={16} className="animate-spin" /> : 'Save & Compile'}
                         </button>

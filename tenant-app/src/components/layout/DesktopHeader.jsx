@@ -149,22 +149,35 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                 ) : (
                   <div className="max-h-[24rem] space-y-1 overflow-auto pr-1">
                     {recentNotifications.map((item) => (
-                      <button
+                      <div
                         key={item.id}
-                        type="button"
-                        onClick={() => handleNotificationOpen(item)}
-                        className={`w-full rounded-xl border px-2 py-2 text-left transition ${item.isRead
-                          ? 'border-[var(--c-border)] bg-[var(--c-surface)]'
-                          : 'border-[var(--c-ring)] bg-[var(--c-panel)]'
+                        className={`w-full rounded-xl border px-2 py-2 transition ${item.isRead
+                            ? 'border-[var(--c-border)] bg-[var(--c-surface)]'
+                            : 'border-[var(--c-ring)] bg-[var(--c-panel)]'
                           }`}
                       >
-                        <div className="flex items-start gap-2">
-                          <img
-                            src={item.createdByUser?.photoURL || '/avatar.png'}
-                            alt={item.createdByUser?.displayName || 'User'}
-                            className="mt-0.5 h-7 w-7 rounded-full border border-[var(--c-border)] object-cover"
-                          />
-                          <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-2 text-left">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotificationsOpen(false);
+                              if (item.createdBy) goTo(`profile/${item.createdBy}`);
+                            }}
+                            className="shrink-0 hover:opacity-80"
+                            title="View Profile"
+                          >
+                            <img
+                              src={item.createdByUser?.photoURL || '/avatar.png'}
+                              alt={item.createdByUser?.displayName || 'User'}
+                              className="mt-0.5 h-8 w-8 rounded-full border border-[var(--c-border)] object-cover"
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleNotificationOpen(item)}
+                            className="min-w-0 flex-1 text-left"
+                          >
                             <div className="flex items-center gap-2">
                               <p className="truncate text-xs font-bold text-[var(--c-text)]">{item.title || item.eventType || 'Notification'}</p>
                               {!item.isRead ? <span className="h-2 w-2 rounded-full bg-[var(--c-accent)]" /> : null}
@@ -182,12 +195,22 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                                 </p>
                               </div>
                             ) : null}
-                            <p className="mt-1 text-[10px] text-[var(--c-muted)]">
-                              {item.createdByUser?.displayName || 'Unknown'} • {toDateLabel(item.createdAt)}
-                            </p>
-                          </div>
+                            <div className="mt-1.5 flex items-center justify-between text-[10px] text-[var(--c-muted)]">
+                              <span
+                                className="cursor-pointer hover:text-[var(--c-text)] hover:underline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setNotificationsOpen(false);
+                                  if (item.createdBy) goTo(`profile/${item.createdBy}`);
+                                }}
+                              >
+                                {item.createdByUser?.displayName || 'System'}
+                              </span>
+                              <span>{toDateLabel(item.createdAt)}</span>
+                            </div>
+                          </button>
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}

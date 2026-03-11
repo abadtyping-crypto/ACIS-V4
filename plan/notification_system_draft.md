@@ -20,6 +20,7 @@ The Notification documents stored in Firestore should be as lightweight as possi
   "excludedUsers": ["UID_11111"],  // Specific users blocked via override (e.g., Accountant was blocked by Tenant)
   "timestamp": 1715610231000,
   "isRead": false,
+  "actionTakenBy": null,           // If populated with a UID (e.g. "UID_99999"), hides the action buttons
   "routePath": "/settings/brand",  // The exact root path to redirect to when clicked
   "actions": [                     // Array of dynamic actions to render as buttons
     { 
@@ -107,7 +108,15 @@ The UI will loop through the `actions` array and render standard styled buttons 
 ))}
 ```
 
-## 3. Implementation Steps
+### E. Action Resolution State (Shared Actions)
+When a notification is sent to multiple users (e.g., 3 Admins needing to approve something), only ONE user needs to take the action.
+1. When User A clicks "Confirm" or "Delete" (an API action), the backend executes the main logic and then updates the notification document, setting `actionTakenBy` to User A's UID.
+2. When the Notification UI renders, it first checks if `actionTakenBy` exists.
+3. If it exists, **ALL action buttons are hidden**.
+4. Instead, the UI displays a styled badge or text resolving that exact UID into their name/avatar: *"Action taken by [User A]"*.
+This prevents duplicate actions and provides crystal-clear audit trails inside the notification tab itself.
+
+## 4. Implementation Steps
 1.  **Define TypeScript/JSDoc Types** for the Notification Object to ensure all payloads match the schema.
 2.  **Create the Icon Mapping Registry** for topics.
 3.  **Build the Notification List UI** utilizing the existing User Cache layer for immediate Avatar loading.

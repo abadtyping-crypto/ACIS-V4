@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { resolvePdfTemplateForRenderer } from './pdfTemplateRenderer';
-import { fetchTenantPdfTemplates } from './backendStore';
+import { fetchTenantPdfTemplates, getTenantSettingDoc } from './backendStore';
 
 /**
  * Centered PDF generation utility.
@@ -23,6 +23,20 @@ export const generateTenantPdf = async ({
             documentType,
             templateDoc: templatesRes.byType[documentType],
         });
+
+        // 1.5 Fetch Branding Settings to get Header/Footer logos
+        const brandRes = await getTenantSettingDoc(tenantId, 'branding');
+        const branding = brandRes.ok && brandRes.data ? brandRes.data : {};
+        const logoLibrary = Array.isArray(branding.logoLibrary) ? branding.logoLibrary : [];
+        const logoUsage = branding.logoUsage || {};
+        
+        const headerLogoSlot = logoLibrary.find(s => s.slotId === logoUsage.header);
+        const footerLogoSlot = logoLibrary.find(s => s.slotId === logoUsage.footer);
+        const docLogoSlot = logoLibrary.find(s => s.slotId === logoUsage[documentType]);
+        
+        const headerImageUrl = headerLogoSlot?.url;
+        const footerImageUrl = footerLogoSlot?.url;
+        const docLogoUrl = docLogoSlot?.url || template.logoUrl;
 
         // 2. Initialize jsPDF
         const format = template.paperSize === 'A4' ? 'a4' : 'letter';
@@ -66,33 +80,41 @@ export const generateTenantPdf = async ({
         // 5. Header Section
         let cursorY = margins.top;
 
-        // Header Background
-        doc.setFillColor(...applyColor(template.headerBackground));
+        // Header
         const headerHeight = 100;
-        doc.rect(0, 0, pageWidth, headerHeight, 'F');
-
-        // Logo
-        if (template.logoUrl) {
+        
+        if (headerImageUrl) {
             try {
-                // Note: In real production, we'd need to handle image loading/blob conversion
-                // For simplicity here, we assume the URL is accessible.
-                // If it fails, we skip the logo.
-                doc.addImage(template.logoUrl, 'PNG', 40, 20, 60, 60, undefined, 'FAST');
+                // Render custom header image spanning the width
+                doc.addImage(headerImageUrl, 'PNG', margins.left, 20, pageWidth - margins.left - margins.right, headerHeight - 20, undefined, 'FAST');
             } catch (e) {
-                console.warn('Logo failed to load:', e);
+                console.warn('Header Image failed to load:', e);
             }
+        } else {
+            // Fallback Header Background
+            doc.setFillColor(...applyColor(template.headerBackground));
+            doc.rect(0, 0, pageWidth, headerHeight, 'F');
+
+            // Fallback Logo
+            if (docLogoUrl) {
+                try {
+                    doc.addImage(docLogoUrl, 'PNG', 40, 20, 60, 60, undefined, 'FAST');
+                } catch (e) {
+                    console.warn('Logo failed to load:', e);
+                }
+            }
+
+            // Fallback Header Text
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.setFont('helvetica', 'bold');
+            doc.text(template.titleText || 'DOCUMENT', pageWidth - margins.right, 45, { align: 'right' });
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            const headerLines = doc.splitTextToSize(template.headerText || '', 200);
+            doc.text(headerLines, pageWidth - margins.right, 65, { align: 'right' });
         }
-
-        // Header Text
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold');
-        doc.text(template.titleText || 'DOCUMENT', pageWidth - margins.right, 45, { align: 'right' });
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        const headerLines = doc.splitTextToSize(template.headerText || '', 200);
-        doc.text(headerLines, pageWidth - margins.right, 65, { align: 'right' });
 
         cursorY = headerHeight + margins.top;
 
@@ -142,16 +164,26 @@ export const generateTenantPdf = async ({
         }
 
         // 7. Footer
-        doc.setFontSize(9);
-        doc.setTextColor(120, 120, 120);
         const footerY = pageHeight - margins.bottom;
+        
+        if (footerImageUrl) {
+             try {
+                 // Render custom footer image spanning the width
+                 doc.addImage(footerImageUrl, 'PNG', margins.left, footerY - 40, pageWidth - margins.left - margins.right, 50, undefined, 'FAST');
+             } catch (e) {
+                 console.warn('Footer Image failed to load:', e);
+             }
+        } else {
+            doc.setFontSize(9);
+            doc.setTextColor(120, 120, 120);
+            
+            const footerLines = doc.splitTextToSize(template.footerText || '', pageWidth - margins.left - margins.right);
+            doc.text(footerLines, pageWidth / 2, footerY - 15, { align: 'center' });
 
-        const footerLines = doc.splitTextToSize(template.footerText || '', pageWidth - margins.left - margins.right);
-        doc.text(footerLines, pageWidth / 2, footerY - 15, { align: 'center' });
-
-        if (template.footerLink) {
-            doc.setTextColor(...applyColor(template.accentColor));
-            doc.text(template.footerLink, pageWidth / 2, footerY, { align: 'center' });
+            if (template.footerLink) {
+                doc.setTextColor(...applyColor(template.accentColor));
+                doc.text(template.footerLink, pageWidth / 2, footerY, { align: 'center' });
+            }
         }
 
         // 8. Output

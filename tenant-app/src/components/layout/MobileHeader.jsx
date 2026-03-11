@@ -1,33 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useTheme } from '../../context/ThemeContext';
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const toDisplayName = (user) => {
-  const raw = String(user?.displayName || '').trim();
-  if (raw && !emailRegex.test(raw)) return raw;
-  const email = String(user?.email || '').trim().toLowerCase();
-  if (emailRegex.test(email)) return email.split('@')[0];
-  return 'User';
-};
-
-const MobileHeader = ({ tenant, user, onLogout }) => {
+const MobileHeader = ({ tenant, user }) => {
   const { tenantId } = useParams();
-  const { resolvedTheme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-  const displayName = toDisplayName(user);
 
   const goTo = (path) => navigate(`/t/${tenantId}/${path}`);
-
-  useEffect(() => {
-    const onPointerDown = (event) => {
-      if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
-    };
-    window.addEventListener('pointerdown', onPointerDown);
-    return () => window.removeEventListener('pointerdown', onPointerDown);
-  }, []);
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3">
@@ -50,13 +27,12 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
         </button>
 
         <div className="mobile-glass-panel mobile-header-3d flex items-center gap-2 rounded-2xl border border-[var(--c-border)] px-2 py-1.5">
-          <div className="relative" ref={menuRef}>
           <button
             type="button"
-            onClick={() => setMenuOpen((prev) => !prev)}
+            onClick={() => goTo('profile')}
             className="mobile-nav-3d-btn inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)]"
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
+            aria-label="Open profile"
+            title="Profile"
           >
             <img
               src={user.photoURL || '/avatar.png'}
@@ -64,55 +40,6 @@ const MobileHeader = ({ tenant, user, onLogout }) => {
             className="h-8 w-8 rounded-full object-cover"
             />
           </button>
-          {menuOpen ? (
-            <div className="mobile-glass-panel absolute right-0 top-[calc(100%+8px)] z-50 w-52 rounded-2xl border border-[var(--c-border)] p-2 shadow-lg">
-              <div className="mb-2 border-b border-[var(--c-border)] px-3 py-2">
-                <p className="truncate text-sm font-semibold text-[var(--c-text)]">{displayName}</p>
-                <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[var(--c-muted)]">{user?.role || 'User'}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  goTo('profile');
-                }}
-                className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--c-text)] hover:bg-[var(--c-panel)]"
-              >
-                Profile Page
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  goTo('portal-management');
-                }}
-                className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--c-text)] hover:bg-[var(--c-panel)]"
-              >
-                Portal Management
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  toggleTheme();
-                  setMenuOpen(false);
-                }}
-                className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--c-text)] hover:bg-[var(--c-panel)]"
-              >
-                {resolvedTheme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onLogout?.();
-                }}
-                className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20"
-              >
-                Logout
-              </button>
-            </div>
-          ) : null}
-          </div>
         </div>
       </div>
     </header>

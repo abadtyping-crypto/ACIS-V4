@@ -20,6 +20,7 @@ import {
 import { db, auth } from './firebaseConfig';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { toSafeDocId } from './idUtils';
+import { buildSequenceKey, formatDisplayId, normalizeIdRule } from './idFormat';
 export { db };
 
 const toSafeError = (error) => {
@@ -438,13 +439,12 @@ export const createDailyTransactionWithFinancials = async (tenantId, txId, paylo
             message: `Transaction ${transactionId} resulted in a negative balance.`,
             eventKey: 'negativeClientBalance',
             tenantId,
-            transactionId: txId,
-            clientId,
-            routePath: `/t/${tenantId}/daily-transactions`,
-            targetRoles: ['staff', 'accountant', 'manager', 'admin'],
-            status: 'unread',
-            createdAt: serverTimestamp(),
-            createdBy,
+          transactionId: txId,
+          clientId,
+          routePath: `/t/${tenantId}/daily-transactions`,
+          status: 'unread',
+          createdAt: serverTimestamp(),
+          createdBy,
           },
           { merge: true },
         );
@@ -479,8 +479,13 @@ export const upsertTenantPortalTransaction = async (tenantId, txId, payload) => 
 
 export const upsertTenantNotification = async (tenantId, notificationId, payload) => {
   try {
+    const nextPayload = { ...(payload || {}) };
+    delete nextPayload.targetRoles;
+    delete nextPayload.targetUsers;
+    delete nextPayload.excludedUsers;
+    delete nextPayload.targetUserId;
     await setDoc(doc(db, 'tenants', tenantId, 'notifications', notificationId), {
-      ...payload,
+      ...nextPayload,
       updatedAt: serverTimestamp(),
     }, { merge: true });
     return { ok: true };
@@ -505,6 +510,38 @@ export const markTenantNotificationRead = async (tenantId, notificationId, uid) 
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] notification mark read failed tenants/${tenantId}/notifications/${notificationId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const markTenantNotificationActionTaken = async (tenantId, notificationId, uid, action = null) => {
+  try {
+    if (!tenantId || !notificationId || !uid) {
+      return { ok: false, error: 'Missing tenantId, notificationId or uid.' };
+    }
+    const ref = doc(db, 'tenants', tenantId, 'notifications', notificationId);
+    await runTransaction(db, async (txn) => {
+      const snap = await txn.get(ref);
+      if (!snap.exists()) throw new Error('Notification not found.');
+      const data = snap.data() || {};
+      const existing = String(data.actionTakenBy || '').trim();
+      if (existing && existing !== uid) {
+        throw new Error('Action already taken by another user.');
+      }
+      txn.update(ref, {
+        actionTakenBy: uid,
+        actionTakenAt: serverTimestamp(),
+        actionTakenLabel: String(action?.label || '').trim(),
+        actionTakenType: String(action?.actionType || '').trim(),
+        [`readByUid.${uid}`]: true,
+        [`readAtByUid.${uid}`]: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+    return { ok: true };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] notification action failed tenants/${tenantId}/notifications/${notificationId}: ${message}`);
     return { ok: false, error: message };
   }
 };
@@ -1034,37 +1071,68 @@ export const permanentlyDeleteEntity = async (tenantId, domain, entityId) => {
 
 export const generateDisplayClientId = async (tenantId, type) => {
   // type: 'company' | 'individual' | 'dependent'
-  const isDependent = type === 'dependent';
-  const sequenceKey = isDependent ? 'lastDependentSeq' : 'lastClientSeq';
-  const ruleKey = isDependent ? 'DPID' : 'CLID';
+  const normalizedType = String(type || '').toLowerCase();
+  const isDependent = normalizedType === 'dependent';
 
-  // Fetch customizable rules
   const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
-  const rules = settingsRes.ok && settingsRes.data ? settingsRes.data[ruleKey] || {} : {};
+  const allRules = settingsRes.ok && settingsRes.data ? settingsRes.data : {};
+  const clientIdMode = String(allRules.clientIdMode || 'unified').toLowerCase() === 'separate' ? 'separate' : 'unified';
 
-  const prefix = rules.prefix || ruleKey;
-  const padding = Number(rules.padding) || 4;
+  let ruleKey = 'CLID';
+  let sequenceKey = 'lastClientSeq';
+  let fallbackPrefix = 'CLID';
 
-  const seq = await incrementClientSequence(tenantId, sequenceKey);
-  return `${prefix}${String(seq).padStart(padding, '0')}`;
+  if (isDependent) {
+    ruleKey = 'DPID';
+    sequenceKey = 'lastDependentSeq';
+    fallbackPrefix = 'DPID';
+  } else if (clientIdMode === 'separate' && normalizedType === 'company') {
+    ruleKey = 'CCID';
+    sequenceKey = 'lastCompanySeq';
+    fallbackPrefix = 'CCID';
+  } else if (clientIdMode === 'separate' && normalizedType === 'individual') {
+    ruleKey = 'ICID';
+    sequenceKey = 'lastIndividualSeq';
+    fallbackPrefix = 'ICID';
+  }
+
+  const selectedRule = allRules[ruleKey] || (!isDependent ? allRules.CLID || {} : {});
+  const normalizedRule = normalizeIdRule(
+    selectedRule,
+    fallbackPrefix,
+  );
+  const actualSeqKey = buildSequenceKey(sequenceKey, normalizedRule);
+  await ensureTransactionSequenceStart(tenantId, actualSeqKey, normalizedRule.sequenceStart);
+  const seq = await incrementTransactionSequence(tenantId, actualSeqKey);
+  return formatDisplayId({
+    prefix: normalizedRule.prefix,
+    seq,
+    padding: normalizedRule.padding,
+    dateFormat: normalizedRule.dateEnabled ? normalizedRule.dateFormat : 'NONE',
+    useSeparator: normalizedRule.useSeparator,
+  });
 };
 
 export const generateDisplayPortalId = async (tenantId) => {
   const sequenceKey = 'lastPortalSeq';
-  const ruleKey = 'PORTAL';
+  const ruleKey = 'PID';
 
+  // Use the same settings rule key shown in Consolidated ID Prefixing UI (PID)
   const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
-  const rules = settingsRes.ok && settingsRes.data ? settingsRes.data[ruleKey] || {} : {};
-
-  const prefix = rules.prefix || 'PRT';
-  const padding = Number(rules.padding) || 4;
-
-  const ref = doc(db, 'tenants', tenantId, 'settings', 'transactionIdRules');
-  await setDoc(ref, { [sequenceKey]: increment(1) }, { merge: true });
-  const snap = await getDoc(ref);
-  const seq = snap.data()[sequenceKey];
-
-  return `${prefix}${String(seq).padStart(padding, '0')}`;
+  const normalizedRule = normalizeIdRule(
+    settingsRes.ok && settingsRes.data ? settingsRes.data[ruleKey] || {} : {},
+    'PID',
+  );
+  const actualSeqKey = buildSequenceKey(sequenceKey, normalizedRule);
+  await ensureTransactionSequenceStart(tenantId, actualSeqKey, normalizedRule.sequenceStart);
+  const seq = await incrementTransactionSequence(tenantId, actualSeqKey);
+  return formatDisplayId({
+    prefix: normalizedRule.prefix,
+    seq,
+    padding: normalizedRule.padding,
+    dateFormat: normalizedRule.dateEnabled ? normalizedRule.dateFormat : 'NONE',
+    useSeparator: normalizedRule.useSeparator,
+  });
 };
 
 export const checkTradeLicenseDuplicate = async (tenantId, licenseNumber) => {
@@ -1818,7 +1886,6 @@ export const softDeleteTransaction = async (tenantId, txId, deletedBy) => {
           entityType: 'transaction',
           routePath: `/t/${tenantId}/daily-transactions`,
           status: 'unread',
-          targetRoles: ['manager', 'admin'],
           createdAt: serverTimestamp(),
           createdBy: actorId,
           updatedAt: serverTimestamp(),
@@ -1896,31 +1963,28 @@ export const generateNextTransactionId = async (tenantId, ruleKey = 'DTID') => {
   try {
     // 1. Fetch customizable rules
     const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
-    const rules = settingsRes.ok && settingsRes.data ? settingsRes.data[ruleKey] || {} : {};
-
-    const prefix = rules.prefix || (ruleKey === 'DTID' ? 'APP' : ruleKey);
-    const padding = Number(rules.padding) || 4;
-    const sequenceStart = Number(rules.sequenceStart) || 1;
-    const skipDate = rules.skipDate === true;
-
-    // For Daily Transactions (DTID), we use a daily-resetting sequence
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
-    const actualSeqKey = ruleKey === 'DTID' ? `${ruleKey}_${dateStr}` : ruleKey;
+    const fallbackPrefix = ruleKey === 'DTID' ? 'APP' : ruleKey;
+    const normalizedRule = normalizeIdRule(
+      settingsRes.ok && settingsRes.data ? settingsRes.data[ruleKey] || {} : {},
+      fallbackPrefix,
+    );
+    const actualSeqKey = buildSequenceKey(ruleKey, normalizedRule);
 
     // Ensure sequence hasn't fallen behind manual start
-    await ensureTransactionSequenceStart(tenantId, actualSeqKey, sequenceStart);
+    await ensureTransactionSequenceStart(tenantId, actualSeqKey, normalizedRule.sequenceStart);
 
     // 2. Fetch/Increment sequence
     const seq = await incrementTransactionSequence(tenantId, actualSeqKey);
     if (!seq) throw new Error('Failed to increment sequence.');
 
-    // 3. Format output
-    if (ruleKey === 'DTID' || (ruleKey !== 'CLID' && ruleKey !== 'DPID' && !skipDate)) {
-      return `${prefix}${dateStr}${String(seq).padStart(padding, '0')}`;
-    }
-
-    return `${prefix}${String(seq).padStart(padding, '0')}`;
+    // 3. Format output (unified)
+    return formatDisplayId({
+      prefix: normalizedRule.prefix,
+      seq,
+      padding: normalizedRule.padding,
+      dateFormat: normalizedRule.dateEnabled ? normalizedRule.dateFormat : 'NONE',
+      useSeparator: normalizedRule.useSeparator,
+    });
   } catch (error) {
     console.warn(`[backendStore] next ID generation failed for ${ruleKey}:`, error);
     return `${ruleKey}_${Date.now()}`;

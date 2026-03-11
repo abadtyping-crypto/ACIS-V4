@@ -12,6 +12,7 @@ import {
 } from '../../lib/backendStore';
 import { uploadPortalIcon } from '../../lib/portalStorage';
 import { createSyncEvent } from '../../lib/syncEvents';
+import { buildNotificationPayload, generateNotificationId } from '../../lib/notificationTemplate';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
@@ -269,17 +270,25 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
 
         if (!editingPortal) {
             const routePath = `/t/${tenantId}/portal-management/${targetPortalId}`;
-            await upsertTenantNotification(tenantId, `notif_portal_create_${targetPortalId}`, {
-                title: 'Portal Created',
-                detail: `${form.name} was created successfully.`,
-                eventType: 'create',
-                entityType: 'portal',
-                entityId: targetPortalId,
-                routePath,
-                targetRoles: [],
-                createdAt: new Date().toISOString(),
-                createdBy: user.uid,
-            });
+            await upsertTenantNotification(
+                tenantId,
+                generateNotificationId({ topic: 'finance', subTopic: 'portal' }),
+                buildNotificationPayload({
+                    topic: 'finance',
+                    subTopic: 'portal',
+                    type: 'create',
+                    title: 'Portal Created',
+                    detail: `${form.name} was created successfully.`,
+                    createdBy: user.uid,
+                    routePath,
+                    actionPresets: ['view'],
+                    extra: {
+                        eventType: 'create',
+                        entityType: 'portal',
+                        entityId: targetPortalId,
+                    },
+                }),
+            );
         }
 
         await createSyncEvent({

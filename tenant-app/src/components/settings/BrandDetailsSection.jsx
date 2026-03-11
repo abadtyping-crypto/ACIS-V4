@@ -1,18 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Paintbrush } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Linkedin, Building2 } from 'lucide-react';
+import { deleteField } from 'firebase/firestore';
 import SettingCard from './SettingCard';
-import { getTenantSettingDoc, upsertTenantSettingDoc } from '../../lib/backendStore';
+import { getTenantSettingDoc, upsertTenantNotification, upsertTenantSettingDoc } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import { useTenant } from '../../context/TenantContext';
 import { uploadBrandLogoAsset, validateBrandLogoAsset } from '../../lib/brandLogoStorage';
-import ImageStudio from '../common/ImageStudio';
 import { getCroppedImg } from '../../lib/imageStudioUtils';
+import { buildNotificationPayload, generateNotificationId } from '../../lib/notificationTemplate';
+import { 
+  CompanyInfoSection, 
+  SocialMediaSection, 
+  BankDetailsSection, 
+  LogoLibrarySection, 
+  LogoUsageSection, 
+  LogoEditorSection,
+  WhatsAppIcon
+} from './BrandingSubsections';
 
 const inputClass =
-  'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
+  'mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2.5 text-sm text-(--c-text) outline-none transition focus:border-(--c-accent) focus:ring-2 focus:ring-(--c-ring)';
 
-const labelClass = 'text-sm text-[var(--c-muted)]';
+const labelClass = 'text-sm text-(--c-muted)';
 
 const emirates = [
   'ABU_DHABI',
@@ -24,15 +34,35 @@ const emirates = [
   'FUJAIRAH',
 ];
 
+const emirateIcons = {
+  'ABU_DHABI': '/emiratesIcon/abudhabi.png',
+  'DUBAI': '/emiratesIcon/dubai.png',
+  'SHARJAH': '/emiratesIcon/sharjah.png',
+  'AJMAN': '/emiratesIcon/ajman.png',
+  'UMM_AL_QUWAIN': '/emiratesIcon/ummAlQuwain.png',
+  'RAS_AL_KHAIMAH': '/emiratesIcon/rasAlKhaaimah.png',
+  'FUJAIRAH': '/emiratesIcon/fujairah.png',
+};
+
+const SOCIAL_PLATFORMS = [
+  { key: 'whatsappUrl', label: 'WhatsApp', icon: WhatsAppIcon },
+  { key: 'instagramUrl', label: 'Instagram', icon: Instagram },
+  { key: 'facebookUrl', label: 'Facebook', icon: Facebook },
+  { key: 'twitterUrl', label: 'X (Twitter)', icon: Twitter },
+  { key: 'linkedinUrl', label: 'LinkedIn', icon: Linkedin },
+];
+
 const LOGO_FUNCTIONS = [
   { key: 'paymentReceipt', label: 'Payment Receipt' },
   { key: 'nextInvoice', label: 'Next Invoice' },
   { key: 'quotation', label: 'Quotation' },
   { key: 'performerInvoice', label: 'Performer Invoice' },
   { key: 'statement', label: 'Statements' },
+  { key: 'header', label: 'Header' },
+  { key: 'footer', label: 'Footer' },
 ];
 
-const MAX_LOGO_SLOTS = 5;
+const MAX_LOGO_SLOTS = 10;
 
 const defaultLogoLibrary = Array.from({ length: MAX_LOGO_SLOTS }, (_, index) => ({
   slotId: `logo_${index + 1}`,
@@ -59,6 +89,27 @@ const toProperCase = (value) =>
 
 const normalizePhone = (value) => toDigits(value).slice(0, 9);
 const normalizePoBox = (value) => toDigits(value).slice(0, 8);
+const createEmptyBankDetail = () => ({
+  bankName: '',
+  bankAccountName: '',
+  bankAccountNumber: '',
+  bankIban: '',
+  bankSwift: '',
+  bankBranch: '',
+});
+
+const normalizeBankDetail = (detail = {}) => ({
+  bankName: String(detail.bankName || '').trim(),
+  bankAccountName: String(detail.bankAccountName || '').trim(),
+  bankAccountNumber: String(detail.bankAccountNumber || '').trim(),
+  bankIban: String(detail.bankIban || '').trim().toUpperCase(),
+  bankSwift: String(detail.bankSwift || '').trim().toUpperCase(),
+  bankBranch: String(detail.bankBranch || '').trim(),
+});
+
+const hasAnyBankValue = (detail = {}) =>
+  Object.values(detail).some((value) => String(value || '').trim().length > 0);
+
 const logoFilterMap = {
   natural: { label: 'Natural', css: 'none', canvas: 'none' },
   vibrant: { label: 'Vibrant', css: 'saturate(1.18) contrast(1.1)', canvas: 'saturate(118%) contrast(110%)' },
@@ -81,16 +132,13 @@ const BrandDetailsSection = () => {
   const [form, setForm] = useState({
     companyName: toUpper(tenant?.name || ''),
     brandName: '',
-    landline1: '',
-    landline2: '',
-    mobile1: '',
-    mobile2: '',
-    primaryAddress: '',
-    secondaryAddress: '',
+    landlines: [''],
+    mobiles: [''],
+    addresses: [''],
     emirate: '',
     poBoxNumber: '',
     poBoxEmirate: '',
-    email1: '',
+    emails: [''],
     webAddress: '',
     bankName: '',
     bankAccountName: '',
@@ -98,17 +146,24 @@ const BrandDetailsSection = () => {
     bankIban: '',
     bankSwift: '',
     bankBranch: '',
+    bankDetails: [createEmptyBankDetail()],
     locationPin: '',
     facebookUrl: '',
     instagramUrl: '',
     twitterUrl: '',
     linkedinUrl: '',
+    whatsappUrl: '',
   });
 
   const [errors, setErrors] = useState({});
   const [saveMessage, setSaveMessage] = useState('');
+  
+  // Dynamic Social Media State
+  const [activeSocialKeys, setActiveSocialKeys] = useState([]);
+
   const [logoLibrary, setLogoLibrary] = useState(defaultLogoLibrary);
   const [logoUsage, setLogoUsage] = useState(defaultLogoUsage);
+  const [visibleSlotsCount, setVisibleSlotsCount] = useState(1);
   const [logoErrors, setLogoErrors] = useState({});
   const [logoUploading, setLogoUploading] = useState({});
   const [activeLogoEditorSlotId, setActiveLogoEditorSlotId] = useState('');
@@ -119,6 +174,12 @@ const BrandDetailsSection = () => {
   const [logoFilter, setLogoFilter] = useState('natural');
   const [logoDirty, setLogoDirty] = useState(false);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+  const emiratesOptions = emirates.map((emirate) => ({
+    value: emirate,
+    label: emirate.replace(/_/g, ' '),
+    icon: emirateIcons[emirate],
+  }));
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -135,33 +196,68 @@ const BrandDetailsSection = () => {
     getTenantSettingDoc(tenantId, 'branding').then((result) => {
       if (!active || !result.ok || !result.data) return;
       const data = result.data;
+      const fallbackPrimaryBank = normalizeBankDetail({
+        bankName: data.bankName || '',
+        bankAccountName: data.bankAccountName || '',
+        bankAccountNumber: data.bankAccountNumber || '',
+        bankIban: data.bankIban || '',
+        bankSwift: data.bankSwift || '',
+        bankBranch: data.bankBranch || '',
+      });
+
+      const incomingBankDetails = Array.isArray(data.bankDetails) && data.bankDetails.length
+        ? data.bankDetails.map(normalizeBankDetail).filter(hasAnyBankValue)
+        : [];
+
+      const normalizedBankDetails = incomingBankDetails.length
+        ? incomingBankDetails
+        : (hasAnyBankValue(fallbackPrimaryBank) ? [fallbackPrimaryBank] : [createEmptyBankDetail()]);
+
+      const primaryBank = normalizedBankDetails[0] || createEmptyBankDetail();
+
       setForm((prev) => ({
         ...prev,
         companyName: toUpper(data.companyName || prev.companyName),
         brandName: toUpper(data.brandName || ''),
-        landline1: normalizePhone(data.landline1 || ''),
-        landline2: normalizePhone(data.landline2 || ''),
-        mobile1: normalizePhone(data.mobile1 || ''),
-        mobile2: normalizePhone(data.mobile2 || ''),
-        primaryAddress: String(data.primaryAddress || ''),
-        secondaryAddress: String(data.secondaryAddress || ''),
+        landlines: Array.isArray(data.landlines) && data.landlines.length 
+          ? data.landlines.map(normalizePhone) 
+          : [normalizePhone(data.landline1 || '')].filter(Boolean).concat(data.landline2 ? [normalizePhone(data.landline2)] : []),
+        mobiles: Array.isArray(data.mobiles) && data.mobiles.length 
+          ? data.mobiles.map(normalizePhone) 
+          : [normalizePhone(data.mobile1 || '')].filter(Boolean).concat(data.mobile2 ? [normalizePhone(data.mobile2)] : []),
+        addresses: Array.isArray(data.addresses) && data.addresses.length
+          ? data.addresses
+          : [String(data.primaryAddress || '')].filter(Boolean).concat(data.secondaryAddress ? [String(data.secondaryAddress)] : []),
         emirate: String(data.emirate || ''),
         poBoxNumber: normalizePoBox(data.poBoxNumber || ''),
         poBoxEmirate: String(data.poBoxEmirate || ''),
-        email1: toLower(data.email1 || ''),
+        emails: Array.isArray(data.emails) && data.emails.length ? data.emails : [toLower(data.email1 || '')].filter(Boolean),
         webAddress: toLower(data.webAddress || ''),
-        bankName: String(data.bankName || ''),
-        bankAccountName: String(data.bankAccountName || ''),
-        bankAccountNumber: String(data.bankAccountNumber || ''),
-        bankIban: String(data.bankIban || ''),
-        bankSwift: String(data.bankSwift || ''),
-        bankBranch: String(data.bankBranch || ''),
+        bankName: primaryBank.bankName,
+        bankAccountName: primaryBank.bankAccountName,
+        bankAccountNumber: primaryBank.bankAccountNumber,
+        bankIban: primaryBank.bankIban,
+        bankSwift: primaryBank.bankSwift,
+        bankBranch: primaryBank.bankBranch,
+        bankDetails: normalizedBankDetails,
         locationPin: String(data.locationPin || ''),
         facebookUrl: toLower(data.facebookUrl || ''),
         instagramUrl: toLower(data.instagramUrl || ''),
         twitterUrl: toLower(data.twitterUrl || ''),
         linkedinUrl: toLower(data.linkedinUrl || ''),
+        whatsappUrl: toLower(data.whatsappUrl || ''),
       }));
+      
+      const incomingSocials = [];
+      if (data.whatsappUrl) incomingSocials.push('whatsappUrl');
+      if (data.instagramUrl) incomingSocials.push('instagramUrl');
+      if (data.facebookUrl) incomingSocials.push('facebookUrl');
+      if (data.twitterUrl) incomingSocials.push('twitterUrl');
+      if (data.linkedinUrl) incomingSocials.push('linkedinUrl');
+      
+      // Default to one empty slot if none exist
+      setActiveSocialKeys(incomingSocials.length > 0 ? incomingSocials : [SOCIAL_PLATFORMS[0].key]);
+      
       const incomingLibrary = Array.isArray(data.logoLibrary) ? data.logoLibrary : [];
       const normalizedLibrary = defaultLogoLibrary.map((slot) => {
         const match = incomingLibrary.find((item) => item.slotId === slot.slotId);
@@ -182,6 +278,14 @@ const BrandDetailsSection = () => {
         return acc;
       }, {});
       setLogoUsage(sanitizedUsage);
+
+      // Calculate how many slots should be visible (at least 1, up to the highest slot with data)
+      let maxActiveIndex = 0;
+      normalizedLibrary.forEach((slot, index) => {
+        if (slot.url || slot.name) maxActiveIndex = index;
+      });
+      setVisibleSlotsCount(Math.min(MAX_LOGO_SLOTS, Math.max(1, maxActiveIndex + 1)));
+
     });
     return () => {
       active = false;
@@ -195,14 +299,42 @@ const BrandDetailsSection = () => {
     };
   }, [logoRawUrl]);
 
+
+
+  useEffect(() => {
+    if (form.landlines.length === 0) setForm(prev => ({ ...prev, landlines: [''] }));
+    if (form.mobiles.length === 0) setForm(prev => ({ ...prev, mobiles: [''] }));
+    if (form.addresses.length === 0) setForm(prev => ({ ...prev, addresses: [''] }));
+    if (form.emails.length === 0) setForm(prev => ({ ...prev, emails: [''] }));
+  }, [form.landlines, form.mobiles, form.addresses, form.emails]);
+
   const poBoxDisabled = !toDigits(form.poBoxNumber);
 
   const updateField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handlePhoneChange = (key, value) => {
-    updateField(key, toDigits(value).slice(0, 9));
+  const updateArrayField = (key, index, value) => {
+    setForm(prev => {
+      const cloned = [...prev[key]];
+      cloned[index] = value;
+      return { ...prev, [key]: cloned };
+    });
+  };
+
+  const addArrayField = (key) => {
+    setForm(prev => ({ ...prev, [key]: [...prev[key], ''] }));
+  };
+
+  const removeArrayField = (key, index) => {
+    setForm(prev => ({
+      ...prev,
+      [key]: prev[key].filter((_, i) => i !== index)
+    }));
+  };
+
+  const handlePhoneArrayChange = (key, index, value) => {
+    updateArrayField(key, index, toDigits(value).slice(0, 9));
   };
 
   const handlePoBoxChange = (value) => {
@@ -214,6 +346,71 @@ const BrandDetailsSection = () => {
     }));
   };
 
+  const addSocialPlatform = () => {
+    const available = SOCIAL_PLATFORMS.find(p => !activeSocialKeys.includes(p.key));
+    if (available) {
+      setActiveSocialKeys([...activeSocialKeys, available.key]);
+    }
+  };
+
+  const updateBankDetailField = (index, key, value) => {
+    setForm((prev) => {
+      const next = Array.isArray(prev.bankDetails) && prev.bankDetails.length
+        ? [...prev.bankDetails]
+        : [createEmptyBankDetail()];
+      next[index] = {
+        ...(next[index] || createEmptyBankDetail()),
+        [key]: value,
+      };
+      return { ...prev, bankDetails: next };
+    });
+  };
+
+  const addBankDetail = () => {
+    setForm((prev) => ({
+      ...prev,
+      bankDetails: [...(prev.bankDetails || [createEmptyBankDetail()]), createEmptyBankDetail()],
+    }));
+  };
+
+  const removeBankDetail = (index) => {
+    setForm((prev) => {
+      const next = (prev.bankDetails || []).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        bankDetails: next.length ? next : [createEmptyBankDetail()],
+      };
+    });
+  };
+
+  const removeSocialPlatform = (key) => {
+    setActiveSocialKeys(activeSocialKeys.filter(k => k !== key));
+    updateField(key, '');
+  };
+
+  const changeSocialPlatform = (oldKey, newKey) => {
+    setActiveSocialKeys(activeSocialKeys.map(k => k === oldKey ? newKey : k));
+    // Carry over the value to the new key
+    updateField(newKey, form[oldKey]);
+    updateField(oldKey, '');
+  };
+
+  const removeLogoSlot = (slotId) => {
+    setLogoLibrary((prev) =>
+      prev.map((s) => (s.slotId === slotId ? { ...s, name: '', url: '' } : s))
+    );
+    // Adjust usage to logo_1 if deleting an assigned slot
+    setLogoUsage((prev) => {
+      const nextUsage = { ...prev };
+      Object.keys(nextUsage).forEach((funcKey) => {
+        if (nextUsage[funcKey] === slotId) {
+          nextUsage[funcKey] = 'logo_1';
+        }
+      });
+      return nextUsage;
+    });
+  };
+
   const updateLogoSlot = (slotId, patch) => {
     setLogoLibrary((prev) =>
       prev.map((slot) => (slot.slotId === slotId ? { ...slot, ...patch } : slot)),
@@ -223,8 +420,7 @@ const BrandDetailsSection = () => {
   const openLogoEditor = (slotId) => {
     const slot = logoLibrary.find((item) => item.slotId === slotId);
     setActiveLogoEditorSlotId(slotId);
-    setLogoRawUrl('');
-    setLogoSourceUrl(slot?.url || '/logo.png');
+    setLogoSourceUrl(slot?.url || '');
     setLogoZoom(1);
     setLogoRotation(0);
     setLogoFilter('natural');
@@ -270,9 +466,7 @@ const BrandDetailsSection = () => {
   const onLogoEditorReset = () => {
     if (!activeLogoEditorSlotId) return;
     const slot = logoLibrary.find((item) => item.slotId === activeLogoEditorSlotId);
-    setLogoRawUrl('');
-    setLogoSourceUrl(slot?.url || '/logo.png');
-    setLogoZoom(1);
+    setLogoSourceUrl(slot?.url || '');
     setLogoRotation(0);
     setLogoFilter('natural');
     setLogoDirty(false);
@@ -325,84 +519,156 @@ const BrandDetailsSection = () => {
     }
   };
 
+  const visibleLogoSlots = logoLibrary.slice(0, visibleSlotsCount);
+  const assignedOptions = visibleLogoSlots.filter(s => s.url || s.slotId === 'logo_1'); // Always keep Logo 1 as fallback
+
   const onSave = async () => {
-    const payload = {
+    const bankDetailsPayload = (Array.isArray(form.bankDetails) ? form.bankDetails : [])
+      .map(normalizeBankDetail)
+      .filter(hasAnyBankValue);
+
+    const primaryBank = bankDetailsPayload[0] || createEmptyBankDetail();
+    const normalizedLogoLibrary = defaultLogoLibrary
+      .map((baseSlot) => {
+        const slot = logoLibrary.find((item) => item.slotId === baseSlot.slotId) || baseSlot;
+        return {
+          slotId: baseSlot.slotId,
+          name: String(slot.name || baseSlot.name || '').trim(),
+          url: String(slot.url || '').trim(),
+        };
+      })
+      .filter((slot) => slot.name || slot.url);
+    const activeLogoSlotIds = new Set(normalizedLogoLibrary.map((slot) => slot.slotId));
+    const normalizedLogoUsage = LOGO_FUNCTIONS.reduce((acc, item) => {
+      const candidate = String(logoUsage[item.key] || '').trim();
+      if (activeLogoSlotIds.has(candidate)) acc[item.key] = candidate;
+      return acc;
+    }, {});
+
+    const normalized = {
       companyName: toUpper(form.companyName),
       brandName: toUpper(form.brandName),
-      landline1: normalizePhone(form.landline1),
-      landline2: normalizePhone(form.landline2),
-      mobile1: normalizePhone(form.mobile1),
-      mobile2: normalizePhone(form.mobile2),
-      primaryAddress: toProperCase(form.primaryAddress),
-      secondaryAddress: toProperCase(form.secondaryAddress),
+      landlines: form.landlines.map(normalizePhone).filter(Boolean),
+      mobiles: form.mobiles.map(normalizePhone).filter(Boolean),
+      addresses: form.addresses.map(toProperCase).filter(Boolean),
       emirate: form.emirate || '',
       poBoxNumber: normalizePoBox(form.poBoxNumber),
       poBoxEmirate: normalizePoBox(form.poBoxNumber) ? form.poBoxEmirate || '' : '',
-      email1: toLower(form.email1),
+      emails: form.emails.map(toLower).filter(Boolean),
       webAddress: toLower(form.webAddress),
-      bankName: String(form.bankName || '').trim(),
-      bankAccountName: String(form.bankAccountName || '').trim(),
-      bankAccountNumber: String(form.bankAccountNumber || '').trim(),
-      bankIban: String(form.bankIban || '').trim().toUpperCase(),
-      bankSwift: String(form.bankSwift || '').trim().toUpperCase(),
-      bankBranch: String(form.bankBranch || '').trim(),
+      bankName: primaryBank.bankName,
+      bankAccountName: primaryBank.bankAccountName,
+      bankAccountNumber: primaryBank.bankAccountNumber,
+      bankIban: primaryBank.bankIban,
+      bankSwift: primaryBank.bankSwift,
+      bankBranch: primaryBank.bankBranch,
+      bankDetails: bankDetailsPayload,
       locationPin: String(form.locationPin || '').trim(),
       facebookUrl: toLower(form.facebookUrl),
       instagramUrl: toLower(form.instagramUrl),
       twitterUrl: toLower(form.twitterUrl),
       linkedinUrl: toLower(form.linkedinUrl),
-      logoLibrary: defaultLogoLibrary.map((baseSlot) => {
-        const slot = logoLibrary.find((item) => item.slotId === baseSlot.slotId) || baseSlot;
-        return {
-          slotId: baseSlot.slotId,
-          name: String(slot.name || baseSlot.name || ''),
-          url: String(slot.url || ''),
-        };
-      }),
-      logoUsage: LOGO_FUNCTIONS.reduce((acc, item) => {
-        const candidate = String(logoUsage[item.key] || 'logo_1');
-        const slotExists = defaultLogoLibrary.some((slot) => slot.slotId === candidate);
-        acc[item.key] = slotExists ? candidate : 'logo_1';
-        return acc;
-      }, {}),
+      whatsappUrl: toLower(form.whatsappUrl),
+      logoLibrary: normalizedLogoLibrary,
+      logoUsage: normalizedLogoUsage,
+    };
+
+    const payload = {
       updatedBy: user.uid,
     };
+    if (normalized.companyName) payload.companyName = normalized.companyName;
+    if (normalized.brandName) payload.brandName = normalized.brandName;
+    if (normalized.landlines.length) payload.landlines = normalized.landlines;
+    if (normalized.mobiles.length) payload.mobiles = normalized.mobiles;
+    if (normalized.addresses.length) payload.addresses = normalized.addresses;
+    if (normalized.emirate) payload.emirate = normalized.emirate;
+    if (normalized.poBoxNumber) payload.poBoxNumber = normalized.poBoxNumber;
+    if (normalized.poBoxNumber && normalized.poBoxEmirate) payload.poBoxEmirate = normalized.poBoxEmirate;
+    if (normalized.emails.length) payload.emails = normalized.emails;
+    if (normalized.webAddress) payload.webAddress = normalized.webAddress;
+    if (normalized.bankName) payload.bankName = normalized.bankName;
+    if (normalized.bankAccountName) payload.bankAccountName = normalized.bankAccountName;
+    if (normalized.bankAccountNumber) payload.bankAccountNumber = normalized.bankAccountNumber;
+    if (normalized.bankIban) payload.bankIban = normalized.bankIban;
+    if (normalized.bankSwift) payload.bankSwift = normalized.bankSwift;
+    if (normalized.bankBranch) payload.bankBranch = normalized.bankBranch;
+    if (normalized.bankDetails.length) payload.bankDetails = normalized.bankDetails;
+    if (normalized.locationPin) payload.locationPin = normalized.locationPin;
+    if (normalized.facebookUrl) payload.facebookUrl = normalized.facebookUrl;
+    if (normalized.instagramUrl) payload.instagramUrl = normalized.instagramUrl;
+    if (normalized.twitterUrl) payload.twitterUrl = normalized.twitterUrl;
+    if (normalized.linkedinUrl) payload.linkedinUrl = normalized.linkedinUrl;
+    if (normalized.whatsappUrl) payload.whatsappUrl = normalized.whatsappUrl;
+    if (normalized.logoLibrary.length) payload.logoLibrary = normalized.logoLibrary;
+    if (Object.keys(normalized.logoUsage).length) payload.logoUsage = normalized.logoUsage;
+
+    [
+      'companyName',
+      'brandName',
+      'emirate',
+      'poBoxNumber',
+      'poBoxEmirate',
+      'webAddress',
+      'bankName',
+      'bankAccountName',
+      'bankAccountNumber',
+      'bankIban',
+      'bankSwift',
+      'bankBranch',
+      'locationPin',
+      'facebookUrl',
+      'instagramUrl',
+      'twitterUrl',
+      'linkedinUrl',
+      'whatsappUrl',
+      // legacy fields to keep document clean after migration
+      'landline1',
+      'landline2',
+      'mobile1',
+      'mobile2',
+      'primaryAddress',
+      'secondaryAddress',
+      'email1',
+    ].forEach((key) => {
+      if (!(key in payload)) payload[key] = deleteField();
+    });
+    ['landlines', 'mobiles', 'addresses', 'emails', 'bankDetails', 'logoLibrary'].forEach((key) => {
+      if (!(key in payload)) payload[key] = deleteField();
+    });
+    if (!('logoUsage' in payload)) payload.logoUsage = deleteField();
 
     const nextErrors = {};
 
-    if (!payload.companyName && !payload.brandName) {
+    if (!normalized.companyName && !normalized.brandName) {
       nextErrors.companyName = 'Provide Company Name or Brand Name.';
       nextErrors.brandName = 'Provide Company Name or Brand Name.';
     }
 
-    const phoneFields = [
-      ['landline1', payload.landline1],
-      ['landline2', payload.landline2],
-      ['mobile1', payload.mobile1],
-      ['mobile2', payload.mobile2],
-    ];
-
-    phoneFields.forEach(([field, digits]) => {
+    const allPhones = [...normalized.landlines, ...normalized.mobiles];
+    let phoneError = '';
+    allPhones.forEach((digits) => {
       const err = validateNineDigitUae(digits);
-      if (err) nextErrors[field] = err;
+      if (err) phoneError = err;
     });
+    if (phoneError) nextErrors.phones = phoneError;
 
-    if (payload.poBoxNumber.length > 8) {
+    if (normalized.poBoxNumber.length > 8) {
       nextErrors.poBoxNumber = 'Maximum 8 digits allowed.';
     }
 
-    if (payload.bankIban && payload.bankIban.length < 10) {
-      nextErrors.bankIban = 'IBAN looks too short.';
-    }
-
-    if (payload.bankSwift && payload.bankSwift.length < 6) {
-      nextErrors.bankSwift = 'SWIFT code looks too short.';
-    }
-    const invalidLogo =
-      payload.logoLibrary.length !== MAX_LOGO_SLOTS ||
-      payload.logoLibrary.some((slot) => !slot.slotId || !slot.name);
+    bankDetailsPayload.forEach((detail, index) => {
+      if (detail.bankIban && detail.bankIban.length < 10) {
+        nextErrors[`bankIban_${index}`] = 'IBAN looks too short.';
+        if (index === 0) nextErrors.bankIban = 'IBAN looks too short.';
+      }
+      if (detail.bankSwift && detail.bankSwift.length < 6) {
+        nextErrors[`bankSwift_${index}`] = 'SWIFT code looks too short.';
+        if (index === 0) nextErrors.bankSwift = 'SWIFT code looks too short.';
+      }
+    });
+    const invalidLogo = normalized.logoLibrary.some((slot) => slot.url && !slot.name);
     if (invalidLogo) {
-      nextErrors.logoLibrary = 'Each logo slot must have a name.';
+      nextErrors.logoLibrary = 'Each uploaded logo must have a name.';
     }
 
     setErrors(nextErrors);
@@ -414,17 +680,26 @@ const BrandDetailsSection = () => {
 
     setForm((prev) => ({
       ...prev,
-      companyName: payload.companyName,
-      brandName: payload.brandName,
-      primaryAddress: payload.primaryAddress,
-      secondaryAddress: payload.secondaryAddress,
-      email1: payload.email1,
-      webAddress: payload.webAddress,
-      locationPin: payload.locationPin,
-      facebookUrl: payload.facebookUrl,
-      instagramUrl: payload.instagramUrl,
-      twitterUrl: payload.twitterUrl,
-      linkedinUrl: payload.linkedinUrl,
+      companyName: normalized.companyName,
+      brandName: normalized.brandName,
+      landlines: normalized.landlines.length ? normalized.landlines : [''],
+      mobiles: normalized.mobiles.length ? normalized.mobiles : [''],
+      addresses: normalized.addresses.length ? normalized.addresses : [''],
+      emails: normalized.emails.length ? normalized.emails : [''],
+      webAddress: normalized.webAddress,
+      locationPin: normalized.locationPin,
+      bankName: normalized.bankName,
+      bankAccountName: normalized.bankAccountName,
+      bankAccountNumber: normalized.bankAccountNumber,
+      bankIban: normalized.bankIban,
+      bankSwift: normalized.bankSwift,
+      bankBranch: normalized.bankBranch,
+      bankDetails: normalized.bankDetails.length ? normalized.bankDetails : [createEmptyBankDetail()],
+      facebookUrl: normalized.facebookUrl,
+      instagramUrl: normalized.instagramUrl,
+      twitterUrl: normalized.twitterUrl,
+      linkedinUrl: normalized.linkedinUrl,
+      whatsappUrl: normalized.whatsappUrl,
     }));
 
     const write = await upsertTenantSettingDoc(tenantId, 'branding', payload);
@@ -433,7 +708,7 @@ const BrandDetailsSection = () => {
       return;
     }
 
-    const sync = await createSyncEvent({
+    await createSyncEvent({
       tenantId,
       eventType: 'update',
       entityType: 'settingsBranding',
@@ -442,467 +717,137 @@ const BrandDetailsSection = () => {
       createdBy: user.uid,
     });
 
-    setSaveMessage(
-      sync.backendSynced
-        ? 'Brand details saved and synced with backend.'
-        : 'Brand details saved. Backend sync pending.',
-    );
+    // Emit an in-app notification for brand updates.
+    // Keep this non-blocking so save success is not affected by notification write failures.
+    const notificationId = generateNotificationId({ topic: 'settings', subTopic: 'brand' });
+    const savedBrandName = normalized.brandName || normalized.companyName || 'Brand Details';
+    const message = `Brand settings updated for ${savedBrandName}.`;
+    upsertTenantNotification(
+      tenantId,
+      notificationId,
+      buildNotificationPayload({
+        topic: 'settings',
+        subTopic: 'brand',
+        type: 'update',
+        title: 'Brand Settings Updated',
+        message,
+        createdBy: user.uid,
+        routePath: '/settings?tab=brand',
+        actionPresets: ['view'],
+      }),
+    ).catch(() => {
+      // Intentionally silent in UI.
+    });
+
+    setSaveMessage('Brand details saved successfully.');
   };
 
   if (!user) return null;
 
+  const normalizedSaveMessage = String(saveMessage || '').toLowerCase();
+  const statusMessage = saveMessage || 'Last saved changes will be applied instantly.';
+  const statusClass = !saveMessage
+    ? 'border-(--c-border) bg-(--c-panel) text-(--c-muted)'
+    : (normalizedSaveMessage.includes('failed') ||
+      normalizedSaveMessage.includes('error') ||
+      normalizedSaveMessage.includes('fix'))
+      ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+      : (normalizedSaveMessage.includes('pending')
+        ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+        : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300');
+
   return (
-    <SettingCard
-      title="Brand Details"
-      description="Company identity and statutory settings with strict save-time normalization."
-      icon={Paintbrush}
-    >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className={labelClass}>
-          Company Name (Optional)
-          <input
-            className={inputClass}
-            value={form.companyName}
-            onChange={(event) => updateField('companyName', event.target.value.toUpperCase())}
-            placeholder="COMPANY NAME"
+    <>
+      <SettingCard
+        title="Brand Details"
+        description="Company identity and statutory settings with strict save-time normalization."
+        icon={Building2}
+      >
+        <div className="space-y-8">
+          <CompanyInfoSection
+            form={form}
+            errors={errors}
+            updateField={updateField}
+            addArrayField={addArrayField}
+            removeArrayField={removeArrayField}
+            handlePhoneArrayChange={handlePhoneArrayChange}
+            handlePoBoxChange={handlePoBoxChange}
+            updateArrayField={updateArrayField}
+            emiratesOptions={emiratesOptions}
+            poBoxDisabled={poBoxDisabled}
+            labelClass={labelClass}
+            inputClass={inputClass}
           />
-          {errors.companyName ? <p className="mt-1 text-xs text-rose-600">{errors.companyName}</p> : null}
-        </label>
 
-        <label className={labelClass}>
-          Brand Name (Short, Optional)
-          <input
-            className={inputClass}
-            value={form.brandName}
-            onChange={(event) => updateField('brandName', event.target.value.toUpperCase())}
-            placeholder="BRAND NAME"
+          <SocialMediaSection
+            activeSocialKeys={activeSocialKeys}
+            form={form}
+            updateField={updateField}
+            addSocialPlatform={addSocialPlatform}
+            removeSocialPlatform={removeSocialPlatform}
+            changeSocialPlatform={changeSocialPlatform}
+            socialPlatforms={SOCIAL_PLATFORMS}
           />
-          {errors.brandName ? <p className="mt-1 text-xs text-rose-600">{errors.brandName}</p> : null}
-        </label>
-
-        <label className={labelClass}>
-          Landline #1
-          <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
-            <span className="pr-2 text-sm text-[var(--c-muted)]">+971</span>
-            <input
-              className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
-              value={form.landline1}
-              onChange={(event) => handlePhoneChange('landline1', event.target.value)}
-              inputMode="numeric"
-              maxLength={9}
-              placeholder="4xxxxxxx"
-            />
-          </div>
-          {errors.landline1 ? <p className="mt-1 text-xs text-rose-600">{errors.landline1}</p> : null}
-        </label>
-
-        <label className={labelClass}>
-          Landline #2
-          <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
-            <span className="pr-2 text-sm text-[var(--c-muted)]">+971</span>
-            <input
-              className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
-              value={form.landline2}
-              onChange={(event) => handlePhoneChange('landline2', event.target.value)}
-              inputMode="numeric"
-              maxLength={9}
-              placeholder="4xxxxxxx"
-            />
-          </div>
-          {errors.landline2 ? <p className="mt-1 text-xs text-rose-600">{errors.landline2}</p> : null}
-        </label>
-
-        <label className={labelClass}>
-          Mobile #1
-          <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
-            <span className="pr-2 text-sm text-[var(--c-muted)]">+971</span>
-            <input
-              className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
-              value={form.mobile1}
-              onChange={(event) => handlePhoneChange('mobile1', event.target.value)}
-              inputMode="numeric"
-              maxLength={9}
-              placeholder="5xxxxxxxx"
-            />
-          </div>
-          {errors.mobile1 ? <p className="mt-1 text-xs text-rose-600">{errors.mobile1}</p> : null}
-        </label>
-
-        <label className={labelClass}>
-          Mobile #2
-          <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
-            <span className="pr-2 text-sm text-[var(--c-muted)]">+971</span>
-            <input
-              className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
-              value={form.mobile2}
-              onChange={(event) => handlePhoneChange('mobile2', event.target.value)}
-              inputMode="numeric"
-              maxLength={9}
-              placeholder="5xxxxxxxx"
-            />
-          </div>
-          {errors.mobile2 ? <p className="mt-1 text-xs text-rose-600">{errors.mobile2}</p> : null}
-        </label>
-
-        <label className={`${labelClass} sm:col-span-2`}>
-          Primary Address
-          <input
-            className={inputClass}
-            value={form.primaryAddress}
-            onChange={(event) => updateField('primaryAddress', event.target.value)}
-            placeholder="Primary address"
+          
+          <BankDetailsSection
+            form={form}
+            errors={errors}
+            updateBankDetailField={updateBankDetailField}
+            addBankDetail={addBankDetail}
+            removeBankDetail={removeBankDetail}
+            labelClass={labelClass}
+            inputClass={inputClass}
           />
-        </label>
 
-        <label className={`${labelClass} sm:col-span-2`}>
-          Secondary Address
-          <input
-            className={inputClass}
-            value={form.secondaryAddress}
-            onChange={(event) => updateField('secondaryAddress', event.target.value)}
-            placeholder="Secondary address"
+          <LogoLibrarySection
+            visibleLogoSlots={visibleLogoSlots}
+            logoErrors={logoErrors}
+            logoUploading={logoUploading}
+            openLogoEditor={openLogoEditor}
+            removeLogoSlot={removeLogoSlot}
+            updateLogoSlot={updateLogoSlot}
+            setVisibleSlotsCount={setVisibleSlotsCount}
+            maxLogoSlots={MAX_LOGO_SLOTS}
           />
-        </label>
 
-        <label className={labelClass}>
-          Emirate
-          <select
-            className={inputClass}
-            value={form.emirate}
-            onChange={(event) => updateField('emirate', event.target.value)}
-          >
-            <option value="">Select emirate</option>
-            {emirates.map((item) => (
-              <option key={item} value={item}>
-                {item.replaceAll('_', ' ')}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={labelClass}>
-          P.O. Box Number
-          <input
-            className={inputClass}
-            value={form.poBoxNumber}
-            onChange={(event) => handlePoBoxChange(event.target.value)}
-            inputMode="numeric"
-            maxLength={8}
-            placeholder="Digits only"
+          <LogoUsageSection
+            logoUsage={logoUsage}
+            logoFunctions={LOGO_FUNCTIONS}
+            assignedOptions={assignedOptions}
+            setLogoUsage={setLogoUsage}
           />
-          {errors.poBoxNumber ? <p className="mt-1 text-xs text-rose-600">{errors.poBoxNumber}</p> : null}
-        </label>
 
-        <label className={labelClass}>
-          P.O. Box Emirate
-          <select
-            className={inputClass}
-            value={form.poBoxEmirate}
-            onChange={(event) => updateField('poBoxEmirate', event.target.value)}
-            disabled={poBoxDisabled}
-          >
-            <option value="">Select emirate</option>
-            {emirates.map((item) => (
-              <option key={item} value={item}>
-                {item.replaceAll('_', ' ')}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={labelClass}>
-          Email Address #1
-          <input
-            className={inputClass}
-            value={form.email1}
-            onChange={(event) => updateField('email1', event.target.value.toLowerCase())}
-            placeholder="email@domain.com"
-          />
-        </label>
-
-        <label className={labelClass}>
-          Web Address
-          <input
-            className={inputClass}
-            value={form.webAddress}
-            onChange={(event) => updateField('webAddress', event.target.value.toLowerCase())}
-            placeholder="www.example.com"
-          />
-        </label>
-
-        <label className={`${labelClass} sm:col-span-2`}>
-          Google Maps Location Pin (URL)
-          <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
-            <input
-              className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
-              value={form.locationPin}
-              onChange={(event) => updateField('locationPin', event.target.value)}
-              placeholder="https://maps.google.com/..."
-            />
-            {form.locationPin && (
-              <a
-                href={form.locationPin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-2 text-xs font-semibold text-[var(--c-accent)] hover:underline"
-              >
-                Test Pin
-              </a>
-            )}
-          </div>
-          <p className="mt-1 text-[10px] text-[var(--c-muted)]">
-            Paste the Google Maps "Share" link or "Plus Code" here for future reference.
-          </p>
-        </label>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4">
-        <div className="mb-3">
-          <p className="text-sm font-semibold text-[var(--c-text)]">Social Media</p>
-          <p className="text-xs text-[var(--c-muted)]">Add direct links to your company&#39;s social profiles.</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className={labelClass}>
-            Facebook URL
-            <input
-              className={inputClass}
-              value={form.facebookUrl}
-              onChange={(event) => updateField('facebookUrl', event.target.value.toLowerCase())}
-              placeholder="https://facebook.com/..."
-            />
-          </label>
-          <label className={labelClass}>
-            Instagram URL
-            <input
-              className={inputClass}
-              value={form.instagramUrl}
-              onChange={(event) => updateField('instagramUrl', event.target.value.toLowerCase())}
-              placeholder="https://instagram.com/..."
-            />
-          </label>
-          <label className={labelClass}>
-            X / Twitter URL
-            <input
-              className={inputClass}
-              value={form.twitterUrl}
-              onChange={(event) => updateField('twitterUrl', event.target.value.toLowerCase())}
-              placeholder="https://twitter.com/..."
-            />
-          </label>
-          <label className={labelClass}>
-            LinkedIn URL
-            <input
-              className={inputClass}
-              value={form.linkedinUrl}
-              onChange={(event) => updateField('linkedinUrl', event.target.value.toLowerCase())}
-              placeholder="https://linkedin.com/..."
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4">
-        <div className="mb-3">
-          <p className="text-sm font-semibold text-[var(--c-text)]">Bank Details</p>
-          <p className="text-xs text-[var(--c-muted)]">These details can appear on PDFs and statements.</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className={labelClass}>
-            Bank Name
-            <input
-              className={inputClass}
-              value={form.bankName}
-              onChange={(event) => updateField('bankName', event.target.value)}
-              placeholder="Bank name"
-            />
-          </label>
-          <label className={labelClass}>
-            Account Name
-            <input
-              className={inputClass}
-              value={form.bankAccountName}
-              onChange={(event) => updateField('bankAccountName', event.target.value)}
-              placeholder="Account name"
-            />
-          </label>
-          <label className={labelClass}>
-            Account Number
-            <input
-              className={inputClass}
-              value={form.bankAccountNumber}
-              onChange={(event) => updateField('bankAccountNumber', event.target.value)}
-              placeholder="Account number"
-            />
-          </label>
-          <label className={labelClass}>
-            IBAN
-            <input
-              className={inputClass}
-              value={form.bankIban}
-              onChange={(event) => updateField('bankIban', event.target.value.toUpperCase())}
-              placeholder="AE00 0000 0000 0000 0000 000"
-            />
-            {errors.bankIban ? <p className="mt-1 text-xs text-rose-600">{errors.bankIban}</p> : null}
-          </label>
-          <label className={labelClass}>
-            SWIFT / BIC
-            <input
-              className={inputClass}
-              value={form.bankSwift}
-              onChange={(event) => updateField('bankSwift', event.target.value.toUpperCase())}
-              placeholder="BANKAEAD"
-            />
-            {errors.bankSwift ? <p className="mt-1 text-xs text-rose-600">{errors.bankSwift}</p> : null}
-          </label>
-          <label className={labelClass}>
-            Branch
-            <input
-              className={inputClass}
-              value={form.bankBranch}
-              onChange={(event) => updateField('bankBranch', event.target.value)}
-              placeholder="Branch name"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-semibold text-[var(--c-text)]">Logo Library</p>
-            <p className="text-xs text-[var(--c-muted)]">Upload up to 5 logos and map each function to a slot.</p>
+          <div className="flex items-center justify-between border-t border-(--c-border) pt-8">
+            <p className={`max-w-[70%] rounded-lg border px-3 py-2 text-xs font-semibold ${statusClass}`}>
+              {statusMessage}
+            </p>
+            <button
+              onClick={onSave}
+              className="group flex items-center gap-2 rounded-xl bg-(--c-accent) px-8 py-3 text-sm font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-95 shadow-(--c-accent)/20"
+            >
+              Save All Changes
+            </button>
           </div>
         </div>
+      </SettingCard>
 
-        {errors.logoLibrary ? <p className="text-xs text-rose-600">{errors.logoLibrary}</p> : null}
-
-        <div className="grid gap-3 md:grid-cols-2">
-          {logoLibrary.map((slot) => (
-            <div key={slot.slotId} className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-              <label className={labelClass}>
-                Slot Name
-                <input
-                  className={inputClass}
-                  value={slot.name}
-                  onChange={(event) => updateLogoSlot(slot.slotId, { name: event.target.value })}
-                  placeholder="Logo Slot Name"
-                />
-              </label>
-              {slot.url ? (
-                <div className="mt-2 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] p-2">
-                  <img src={slot.url} alt={slot.name} className="h-16 w-auto object-contain" />
-                </div>
-              ) : (
-                <p className="mt-2 text-xs text-[var(--c-muted)]">No logo uploaded yet.</p>
-              )}
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => openLogoEditor(slot.slotId)}
-                  className="rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--c-text)]"
-                >
-                  Edit / Upload
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateLogoSlot(slot.slotId, { url: '' })}
-                  className="rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-1.5 text-xs font-semibold text-rose-600"
-                >
-                  Remove
-                </button>
-                {logoUploading[slot.slotId] ? (
-                  <p className="text-xs text-[var(--c-muted)]">Uploading...</p>
-                ) : null}
-              </div>
-              {logoErrors[slot.slotId] ? (
-                <p className="mt-1 text-xs text-rose-600">{logoErrors[slot.slotId]}</p>
-              ) : null}
-            </div>
-          ))}
-        </div>
-
-        {activeLogoEditorSlotId ? (
-          <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-[var(--c-text)]">
-                Logo Editor: {logoLibrary.find((slot) => slot.slotId === activeLogoEditorSlotId)?.name || activeLogoEditorSlotId}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={applyLogoEditor}
-                  disabled={logoUploading[activeLogoEditorSlotId]}
-                  className="rounded-lg bg-[var(--c-accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                >
-                  Apply & Upload
-                </button>
-                <button
-                  type="button"
-                  onClick={closeLogoEditor}
-                  className="rounded-lg border border-[var(--c-border)] px-3 py-1.5 text-xs font-semibold text-[var(--c-text)]"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <div className="mt-4">
-              <ImageStudio
-                sourceUrl={logoSourceUrl}
-                onReset={onLogoEditorReset}
-                zoom={logoZoom}
-                setZoom={setLogoZoom}
-                rotation={logoRotation}
-                setRotation={setRotationWrapper}
-                filter={logoFilter}
-                setFilter={setLogoFilter}
-                filterMap={logoFilterMap}
-                onFileChange={onLogoEditorFileChange}
-                onCropComplete={onCropComplete}
-                title={`Editing ${logoLibrary.find((s) => s.slotId === activeLogoEditorSlotId)?.name}`}
-                aspect={1}
-                cropShape="rect"
-              />
-            </div>
-          </div>
-        ) : null}
-
-        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-          <p className="text-sm font-semibold text-[var(--c-text)]">Logo Usage by Function</p>
-          <p className="text-xs text-[var(--c-muted)]">Choose which logo slot applies to each document type.</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            {LOGO_FUNCTIONS.map((item) => (
-              <label key={item.key} className={labelClass}>
-                {item.label}
-                <select
-                  className={inputClass}
-                  value={logoUsage[item.key] || 'logo_1'}
-                  onChange={(event) =>
-                    setLogoUsage((prev) => ({ ...prev, [item.key]: event.target.value }))
-                  }
-                >
-                  {logoLibrary.map((slot) => (
-                    <option key={slot.slotId} value={slot.slotId}>
-                      {slot.name || slot.slotId}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={onSave}
-          className="rounded-xl bg-[var(--c-accent)] px-4 py-2.5 text-sm font-semibold text-white"
-        >
-          Save Brand Details
-        </button>
-        {saveMessage ? <p className="text-sm text-[var(--c-muted)]">{saveMessage}</p> : null}
-      </div>
-    </SettingCard >
+      <LogoEditorSection
+        activeLogoEditorSlotId={activeLogoEditorSlotId}
+        logoLibrary={logoLibrary}
+        logoSourceUrl={logoSourceUrl}
+        logoZoom={logoZoom}
+        setLogoZoom={setLogoZoom}
+        logoRotation={logoRotation}
+        setRotationWrapper={setRotationWrapper}
+        onCropComplete={onCropComplete}
+        onLogoEditorFileChange={onLogoEditorFileChange}
+        onLogoEditorReset={onLogoEditorReset}
+        applyLogoEditor={applyLogoEditor}
+        closeLogoEditor={closeLogoEditor}
+        logoUploading={logoUploading}
+        logoErrors={logoErrors}
+      />
+    </>
   );
 };
 

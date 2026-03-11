@@ -11,6 +11,7 @@ const IconSelect = ({
     onSearchChange,
     searchPlaceholder = 'Search...',
     className = '',
+    hideLabel = false,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const rootRef = useRef(null);
@@ -35,17 +36,25 @@ const IconSelect = ({
             >
                 {selected ? (
                     <span className="flex min-w-0 items-center gap-2">
-                        {selected.icon && <img src={selected.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />}
-                        <span className="truncate text-[var(--c-text)]">{selected.label}</span>
+                        {selected.icon && (
+                            typeof selected.icon === 'string' ? (
+                                <img src={selected.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain bg-white p-[2px] border border-[var(--c-border)]/50" />
+                            ) : (
+                                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-visible">
+                                    <selected.icon className="h-5 w-5 text-[var(--c-accent)]" />
+                                </span>
+                            )
+                        )}
+                        {!hideLabel && <span className="truncate text-[var(--c-text)]">{selected.label}</span>}
                     </span>
                 ) : (
                     <span className="text-[var(--c-muted)]">{placeholder}</span>
                 )}
-                <span className="ml-3 text-xs text-[var(--c-muted)]">▼</span>
+                <span className="ml-3 text-[10px] text-[var(--c-muted)]">▼</span>
             </button>
 
             {isOpen && !disabled && (
-                <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-1 shadow-xl">
+                <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-1 shadow-2xl">
                     {searchable ? (
                         <div className="sticky top-0 z-10 mb-1 rounded-lg bg-[var(--c-surface)] p-1">
                             <input
@@ -68,14 +77,22 @@ const IconSelect = ({
                                     onChange(opt.value);
                                     setIsOpen(false);
                                 }}
-                                className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition ${
-                                    opt.value === value ? 'bg-[var(--c-accent)]/10' : 'hover:bg-[var(--c-panel)]'
+                                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left transition ${
+                                    opt.value === value ? 'bg-[var(--c-accent)]/10 text-[var(--c-accent)]' : 'hover:bg-[var(--c-panel)] text-[var(--c-text)]'
                                 }`}
                             >
-                                {opt.icon && <img src={opt.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />}
-                                <span className="min-w-0">
-                                    <span className="block truncate text-sm font-bold text-[var(--c-text)]">{opt.label}</span>
-                                    {opt.meta ? <span className="block truncate text-[10px] font-semibold text-[var(--c-muted)]">{opt.meta}</span> : null}
+                                {opt.icon && (
+                                    typeof opt.icon === 'string' ? (
+                                        <img src={opt.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain bg-white p-[2px] border border-[var(--c-border)]/50" />
+                                    ) : (
+                                        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-visible">
+                                            <opt.icon className="h-5 w-5" />
+                                        </span>
+                                    )
+                                )}
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-bold">{opt.label}</span>
+                                    {opt.meta ? <span className="block truncate text-[10px] font-semibold opacity-70">{opt.meta}</span> : null}
                                 </span>
                             </button>
                         ))

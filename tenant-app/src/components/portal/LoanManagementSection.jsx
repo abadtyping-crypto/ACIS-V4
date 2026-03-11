@@ -14,6 +14,7 @@ import {
 import { generateDisplayTxId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { createSyncEvent } from '../../lib/syncEvents';
+import { buildNotificationPayload, generateNotificationId } from '../../lib/notificationTemplate';
 import { generateTenantPdf } from '../../lib/pdfGenerator';
 import IconSelect from '../common/IconSelect';
 
@@ -119,15 +120,20 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                 createdBy: user.uid,
                 changedFields: ['name', 'phone', 'email', 'status']
             });
-            await upsertTenantNotification(tenantId, `notif_loan_person_${personId}`, {
-                title: 'Loan Person Added',
-                detail: `${newPerson.name} added to loan management.`,
+            await upsertTenantNotification(tenantId, generateNotificationId({ topic: 'finance', subTopic: 'loan' }), {
+                ...buildNotificationPayload({
+                    topic: 'finance',
+                    subTopic: 'loan',
+                    type: 'create',
+                    title: 'Loan Person Added',
+                    detail: `${newPerson.name} added to loan management.`,
+                    createdBy: user.uid,
+                    routePath: `/t/${tenantId}/portal-management`,
+                    actionPresets: ['view'],
+                }),
                 eventType: 'create',
                 entityType: 'loanPerson',
                 entityId: personId,
-                routePath: `/t/${tenantId}/portal-management`,
-                createdAt: new Date().toISOString(),
-                createdBy: user.uid,
             });
             setTimeout(() => setStatus({ message: '', type: '' }), 2000);
         } else {

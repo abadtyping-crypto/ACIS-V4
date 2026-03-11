@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { db, markTenantNotificationRead } from '../lib/backendStore';
+import { db, markTenantNotificationActionTaken, markTenantNotificationRead } from '../lib/backendStore';
 
 const toMillis = (value) => {
   if (!value) return 0;
@@ -13,13 +13,9 @@ const toMillis = (value) => {
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
 const isAudienceMatch = (notification, user) => {
-  const uid = String(user?.uid || '');
-  const role = String(user?.role || '');
-  const targetUserId = String(notification?.targetUserId || '');
-  const targetRoles = toArray(notification?.targetRoles).map((item) => String(item));
-
-  if (targetUserId && targetUserId !== uid) return false;
-  if (targetRoles.length > 0 && !targetRoles.includes(role)) return false;
+  if (!user?.uid) return false;
+  // Universal notification delivery. User-specific visibility rules will be enforced
+  // from user profile/preferences in a dedicated rule layer.
   return true;
 };
 
@@ -109,6 +105,8 @@ export const useTenantNotifications = (tenantId, user) => {
         const entityId = String(item?.entityId || '');
         const entityType = String(item?.entityType || '');
         const portal = entityType === 'portal' ? (portalsById[entityId] || null) : null;
+        const actionTakenBy = String(item?.actionTakenBy || '').trim();
+        const actionByUser = actionTakenBy ? (usersByUid[actionTakenBy] || {}) : null;
         const uid = String(user?.uid || '');
         return {
           ...item,
@@ -118,6 +116,11 @@ export const useTenantNotifications = (tenantId, user) => {
             displayName: creator.displayName || creator.name || creator.email || 'Unknown user',
             photoURL: creator.photoURL || '',
           },
+          actionTakenByUser: actionTakenBy ? {
+            uid: actionTakenBy,
+            displayName: actionByUser?.displayName || actionByUser?.name || actionByUser?.email || actionTakenBy,
+            photoURL: actionByUser?.photoURL || '',
+          } : null,
           entityMeta: portal ? {
             iconUrl: portal.iconUrl || '',
             name: portal.name || entityId,
@@ -130,7 +133,7 @@ export const useTenantNotifications = (tenantId, user) => {
 
   const unreadCount = useMemo(() => {
     return filteredRows.reduce((count, item) => count + (item.isRead ? 0 : 1), 0);
-  }, [filteredRows, user]);
+  }, [filteredRows]);
 
   const recentNotifications = useMemo(() => filteredRows.slice(0, 10), [filteredRows]);
 
@@ -140,11 +143,18 @@ export const useTenantNotifications = (tenantId, user) => {
     return markTenantNotificationRead(tenantId, notificationId, uid);
   }, [tenantId, user]);
 
+  const markActionTaken = useCallback(async (notificationId, action) => {
+    const uid = String(user?.uid || '');
+    if (!tenantId || !notificationId || !uid) return { ok: false, error: 'Missing notification action context.' };
+    return markTenantNotificationActionTaken(tenantId, notificationId, uid, action);
+  }, [tenantId, user]);
+
   return {
     notifications: filteredRows,
     recentNotifications,
     unreadCount,
     markAsRead,
+    markActionTaken,
     isLoading: false,
   };
 };
