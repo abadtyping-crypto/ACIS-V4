@@ -480,7 +480,8 @@
 
 .mobile-shell button[class*='bg-[var(--c-accent)]'],
 .mobile-shell a[class*='bg-[var(--c-accent)]'] {
-  background: var(--brand-gradient) !important;
+  background-image: none !important;
+  background-color: var(--c-accent) !important;
   color: var(--c-on-accent) !important;
 }
 

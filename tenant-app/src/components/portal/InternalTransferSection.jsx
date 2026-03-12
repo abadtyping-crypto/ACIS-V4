@@ -9,12 +9,6 @@ import { generateTenantPdf } from '../../lib/pdfGenerator';
 import IconSelect from '../common/IconSelect';
 
 const txMethodLabels = {
-    cashByHand: 'Cash by Hand',
-    bankTransfer: 'Bank Transfer',
-    cdmDeposit: 'CDM Deposit',
-    checqueDeposit: 'Cheque Deposit',
-    onlinePayment: 'Online Payment',
-    cashWithdrawals: 'Cash Withdrawals',
     tabby: 'Tabby',
     Tamara: 'Tamara',
 };
@@ -86,13 +80,14 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
             });
 
             if (res.ok) {
+                const finalTxId = res.displayTxId || displayTxId;
                 setStatus({
-                    message: `Transfer successful! ID: ${displayTxId}`,
+                    message: `Transfer successful! ID: ${finalTxId}`,
                     type: 'success',
                     download: {
                         docType: 'performerInvoice',
                         data: {
-                            txId: displayTxId,
+                            txId: finalTxId,
                             amount: form.amount,
                             recipientName: portals.find(p => p.id === form.toPortalId)?.name || 'Destination Portal',
                             description: form.description || `Internal transfer from ${portals.find(p => p.id === form.fromPortalId)?.name}`,

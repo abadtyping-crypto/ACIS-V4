@@ -49,7 +49,11 @@ const ServiceTemplateSection = () => {
     }, [tenantId]);
 
     useEffect(() => {
-        if (tenantId) loadData();
+        if (!tenantId) return undefined;
+        const timer = window.setTimeout(() => {
+            loadData();
+        }, 0);
+        return () => window.clearTimeout(timer);
     }, [tenantId, loadData]);
 
     const resetForm = () => {
@@ -246,7 +250,7 @@ const ServiceTemplateSection = () => {
                             >
                                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
                                     {(icons.find((icon) => icon.iconId === row.iconId)?.iconUrl) ? (
-                                        <img src={icons.find((icon) => icon.iconId === row.iconId)?.iconUrl} alt="" className="h-8 w-8 object-contain" />
+                                        <img src={icons.find((icon) => icon.iconId === row.iconId)?.iconUrl} alt="" className="h-full w-full rounded-xl object-cover" />
                                     ) : (
                                         <span className="text-2xl">📄</span>
                                     )}

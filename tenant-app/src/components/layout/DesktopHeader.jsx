@@ -162,7 +162,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                             onClick={(e) => {
                               e.stopPropagation();
                               setNotificationsOpen(false);
-                              if (item.createdBy) goTo(`profile/${item.createdBy}`);
+                              if (item.createdBy) goTo(`profile?uid=${encodeURIComponent(item.createdBy)}`);
                             }}
                             className="shrink-0 hover:opacity-80"
                             title="View Profile"
@@ -201,7 +201,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setNotificationsOpen(false);
-                                  if (item.createdBy) goTo(`profile/${item.createdBy}`);
+                                  if (item.createdBy) goTo(`profile?uid=${encodeURIComponent(item.createdBy)}`);
                                 }}
                               >
                                 {item.createdByUser?.displayName || 'System'}

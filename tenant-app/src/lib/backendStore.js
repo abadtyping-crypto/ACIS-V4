@@ -21,6 +21,7 @@ import { db, auth } from './firebaseConfig';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { toSafeDocId } from './idUtils';
 import { buildSequenceKey, formatDisplayId, normalizeIdRule } from './idFormat';
+import { buildNotificationPayload, generateNotificationId } from './notificationTemplate';
 export { db };
 
 const toSafeError = (error) => {
@@ -821,14 +822,15 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
       throw new Error(`Insufficient funds in ${fromPortal.name || 'source portal'}.`);
     }
 
+    const resolvedDisplayTxId = String(displayTxId || '').trim() || `TRF-${Date.now()}`;
     const batchId = `trf_${Date.now()}`;
-    const debitId = toSafeDocId(`${displayTxId}-D`, 'portal_tx');
-    const creditId = toSafeDocId(`${displayTxId}-C`, 'portal_tx');
+    const debitId = toSafeDocId(`${resolvedDisplayTxId}-D`, 'portal_tx');
+    const creditId = toSafeDocId(`${resolvedDisplayTxId}-C`, 'portal_tx');
 
     // 1. Debit from Source
     const debitRes = await upsertTenantPortalTransaction(tenantId, debitId, {
       portalId: fromPortalId,
-      displayTransactionId: displayTxId,
+      displayTransactionId: resolvedDisplayTxId,
       amount: -transferAmount,
       type: 'Internal Transfer',
       category: category || 'Transfer',
@@ -843,7 +845,7 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
     // 2. Credit to Destination
     const creditRes = await upsertTenantPortalTransaction(tenantId, creditId, {
       portalId: toPortalId,
-      displayTransactionId: displayTxId,
+      displayTransactionId: resolvedDisplayTxId,
       amount: transferAmount,
       type: 'Internal Transfer',
       category: category || 'Transfer',
@@ -857,14 +859,14 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
 
     // 3. Handle Fee (Operation Expense)
     if (transferFee > 0) {
-      const feeId = toSafeDocId(`${displayTxId}-FEE`, 'portal_tx');
+      const feeId = toSafeDocId(`${resolvedDisplayTxId}-FEE`, 'portal_tx');
       const feeRes = await upsertTenantPortalTransaction(tenantId, feeId, {
         portalId: fromPortalId, // Fee is usually charged to the source
-        displayTransactionId: `${displayTxId}-FEE`,
+        displayTransactionId: `${resolvedDisplayTxId}-FEE`,
         amount: -transferFee,
         type: 'Operation Expenses',
         category: 'Transfer Fee',
-        description: `Fee for transfer ${displayTxId} to ${toPortalId}`,
+        description: `Fee for transfer ${resolvedDisplayTxId} to ${toPortalId}`,
         date: new Date().toISOString(),
         batchId,
         createdBy,
@@ -872,7 +874,28 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
       if (!feeRes.ok) console.warn(`[backendStore] Transfer fee recording failed: ${feeRes.error}`);
     }
 
-    return { ok: true, batchId };
+    await upsertTenantNotification(
+      tenantId,
+      generateNotificationId({ topic: 'finance', subTopic: 'transfer' }),
+      {
+        ...buildNotificationPayload({
+          topic: 'finance',
+          subTopic: 'transfer',
+          type: 'create',
+          title: 'Internal Transfer Posted',
+          detail: `${resolvedDisplayTxId}: ${fromPortal.name || fromPortalId} → ${toPortal.name || toPortalId}`,
+          createdBy,
+          routePath: `/t/${tenantId}/portal-management`,
+          actionPresets: ['view'],
+        }),
+        eventType: 'create',
+        entityType: 'internalTransfer',
+        entityId: batchId,
+        txId: resolvedDisplayTxId,
+      },
+    ).catch(() => null);
+
+    return { ok: true, batchId, displayTxId: resolvedDisplayTxId };
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] internal transfer failed: ${message}`);
@@ -900,14 +923,15 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
       }
     }
 
+    const resolvedDisplayTxId = String(displayTxId || '').trim() || `LON-${Date.now()}`;
     const batchId = `loan_${Date.now()}`;
     const date = new Date().toISOString();
-    const portalTxId = toSafeDocId(displayTxId, 'portal_tx');
+    const portalTxId = toSafeDocId(resolvedDisplayTxId, 'portal_tx');
 
     // 1. Record for Portal
     const portalTxRes = await upsertTenantPortalTransaction(tenantId, portalTxId, {
       portalId,
-      displayTransactionId: displayTxId,
+      displayTransactionId: resolvedDisplayTxId,
       amount: type === 'disbursement' ? -txnAmount : txnAmount,
       type: type === 'disbursement' ? 'Loan Disbursement' : 'Loan Repayment',
       description: `${type === 'disbursement' ? 'Loan to' : 'Repayment from'} ${personId}${description ? `: ${description}` : ''}`,
@@ -920,10 +944,10 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
     if (!portalTxRes.ok) throw new Error(`Portal entry failed: ${portalTxRes.error}`);
 
     // 2. Record for Loan Person (History)
-    const personTxRes = await upsertTenantPortalTransaction(tenantId, toSafeDocId(`${displayTxId}-P`, 'portal_tx'), {
+    const personTxRes = await upsertTenantPortalTransaction(tenantId, toSafeDocId(`${resolvedDisplayTxId}-P`, 'portal_tx'), {
       personId,
       portalId,
-      displayTransactionId: `${displayTxId}-P`,
+      displayTransactionId: `${resolvedDisplayTxId}-P`,
       amount: txnAmount, // We keep the positive amount representing the loan/repayment value for the person
       type,   // 'disbursement' or 'repayment'
       affectsPortalBalance: false,
@@ -933,7 +957,28 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
     });
     if (!personTxRes.ok) throw new Error(`Person entry failed: ${personTxRes.error}`);
 
-    return { ok: true, batchId };
+    await upsertTenantNotification(
+      tenantId,
+      generateNotificationId({ topic: 'finance', subTopic: 'loan' }),
+      {
+        ...buildNotificationPayload({
+          topic: 'finance',
+          subTopic: 'loan',
+          type: 'create',
+          title: type === 'repayment' ? 'Loan Repayment Recorded' : 'Loan Disbursement Recorded',
+          detail: `${resolvedDisplayTxId} for ${personId}`,
+          createdBy,
+          routePath: `/t/${tenantId}/portal-management`,
+          actionPresets: ['view'],
+        }),
+        eventType: 'create',
+        entityType: 'loanTransaction',
+        entityId: batchId,
+        txId: resolvedDisplayTxId,
+      },
+    ).catch(() => null);
+
+    return { ok: true, batchId, displayTxId: resolvedDisplayTxId };
   } catch (error) {
     const message = toSafeError(error);
     console.warn(`[backendStore] loan transaction failed: ${message}`);

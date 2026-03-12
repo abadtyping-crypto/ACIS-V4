@@ -17,24 +17,19 @@ import { generateDisplayTxId, toSafeDocId } from '../lib/txIdGenerator';
 import { fetchApplicationIconLibrary, upsertApplicationIcon } from '../lib/applicationIconLibraryStore';
 import { toSafeDocId as toSafeIconId } from '../lib/idUtils';
 import { uploadApplicationIconAsset, validateApplicationIconFile } from '../lib/applicationIconStorage';
+import {
+    ALLOWED_METHOD_IDS,
+    TRANSACTION_METHODS,
+    buildMethodIconMap,
+    resolveMethodIconUrl,
+} from '../lib/transactionMethodConfig';
 
 const portalTypes = [
-    { id: 'Bank', label: 'Bank', icon: '/portals/bank.png', methods: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'onlinePayment', 'cashWithdrawals'] },
-    { id: 'Card Payment', label: 'Card Payment', icon: '/portals/cardpayment.png', methods: ['onlinePayment', 'bankTransfer'] },
-    { id: 'Petty Cash', label: 'Petty Cash', icon: '/portals/pettycash.png', methods: ['cashByHand', 'cdmDeposit', 'cashWithdrawals'] },
-    { id: 'Portals', label: 'Portals', icon: '/portals/portals.png', methods: ['cashByHand', 'bankTransfer', 'onlinePayment'] },
-    { id: 'Terminal', label: 'Terminal', icon: '/portals/terminal.png', methods: ['bankTransfer', 'tabby', 'Tamara'] },
-];
-
-const transactionMethods = [
-    { id: 'cashByHand', label: 'Cash by Hand', icon: '/portals/methods/cashByHand.png' },
-    { id: 'bankTransfer', label: 'Bank Transfer', icon: '/portals/methods/banktransfer.png' },
-    { id: 'cdmDeposit', label: 'CDM Deposit', icon: '/portals/methods/cdmDeposit.png' },
-    { id: 'checqueDeposit', label: 'Cheque Deposit', icon: '/portals/methods/checqueDeposit.png' },
-    { id: 'onlinePayment', label: 'Online Payment', icon: '/portals/methods/onlinePayment.png' },
-    { id: 'cashWithdrawals', label: 'Cash Withdrawals', icon: '/portals/methods/cashWithdrawal.png' },
-    { id: 'tabby', label: 'Tabby', icon: '/portals/methods/tabby.png' },
-    { id: 'Tamara', label: 'Tamara', icon: '/portals/methods/tamara.png' },
+    { id: 'Bank', label: 'Bank', icon: '/portals/bank.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Card Payment', label: 'Card Payment', icon: '/portals/cardpayment.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Petty Cash', label: 'Petty Cash', icon: '/portals/pettycash.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Portals', label: 'Portals', icon: '/portals/portals.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Terminal', label: 'Terminal', icon: '/portals/terminal.png', methods: ALLOWED_METHOD_IDS },
 ];
 
 const PortalFormPage = () => {
@@ -66,17 +61,12 @@ const PortalFormPage = () => {
     const [newIconName, setNewIconName] = useState('');
     const [newIconFile, setNewIconFile] = useState(null);
     const [isAddingIcon, setIsAddingIcon] = useState(false);
+    const [isLibraryPanelOpen, setIsLibraryPanelOpen] = useState(false);
 
     const loadIconLibrary = useCallback(async () => {
         const res = await fetchApplicationIconLibrary(tenantId);
         if (!res.ok) return false;
-        const nextMap = {};
-        (res.rows || []).forEach((row) => {
-            const key = String(row?.iconId || '').trim().toLowerCase();
-            if (!key || !row?.iconUrl) return;
-            nextMap[key] = row.iconUrl;
-        });
-        setMethodIconMap(nextMap);
+        setMethodIconMap(buildMethodIconMap(res.rows || []));
         setIconLibrary((res.rows || []).filter((r) => !!r.iconUrl));
         return true;
     }, [tenantId]);
@@ -361,80 +351,90 @@ const PortalFormPage = () => {
 
                         <div className="space-y-4">
                             <div className="space-y-4">
-                                <p className="text-sm font-bold text-[var(--c-muted)] uppercase tracking-wider">Custom Portal Icon</p>
-                                {iconLibrary.length > 0 ? (
-                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-5 gap-3">
-                                        {iconLibrary.map((item) => {
-                                            const isSelected = selectedIconUrl === item.iconUrl;
-                                            return (
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm font-bold text-[var(--c-muted)] uppercase tracking-wider">Custom Portal Icon</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsLibraryPanelOpen((prev) => !prev)}
+                                        className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-1.5 text-xs font-bold text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
+                                    >
+                                        {isLibraryPanelOpen ? 'Hide Library' : 'Show Library'}
+                                    </button>
+                                </div>
+                                {isLibraryPanelOpen ? (
+                                    <>
+                                        {iconLibrary.length > 0 ? (
+                                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-5 gap-3">
+                                                {iconLibrary.map((item) => {
+                                                    const isSelected = selectedIconUrl === item.iconUrl;
+                                                    return (
+                                                        <button
+                                                            key={item.iconId}
+                                                            type="button"
+                                                            onClick={() => setSelectedIconUrl(isSelected ? '' : item.iconUrl)}
+                                                            className={`aspect-square w-full rounded-xl flex items-center justify-center p-2.5 transition border ${isSelected
+                                                                ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/10 ring-2 ring-[var(--c-accent)] ring-offset-2 ring-offset-[var(--c-surface)]'
+                                                                : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:border-[var(--c-muted)]'
+                                                                }`}
+                                                        >
+                                                            <img
+                                                                src={item.iconUrl}
+                                                                alt="Icon"
+                                                                className="h-full w-full object-contain"
+                                                            />
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="rounded-xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] p-4 text-center text-sm text-[var(--c-muted)]">
+                                                No custom icons available.
+                                            </div>
+                                        )}
+
+                                        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+                                            <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Add New Icon to Library</p>
+                                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                                <input
+                                                    type="text"
+                                                    value={newIconName}
+                                                    onChange={(event) => setNewIconName(event.target.value)}
+                                                    placeholder="Icon Name (e.g. hotel_portal)"
+                                                    className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-ring)]"
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                                    onChange={handleNewIconFile}
+                                                    className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                                                />
+                                            </div>
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
                                                 <button
-                                                    key={item.iconId}
                                                     type="button"
-                                                    onClick={() => setSelectedIconUrl(isSelected ? '' : item.iconUrl)}
-                                                    title={item.iconId || 'Custom Icon'}
-                                                    className={`aspect-square w-full rounded-xl flex items-center justify-center p-2.5 transition border ${isSelected
-                                                        ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/10 ring-2 ring-[var(--c-accent)] ring-offset-2 ring-offset-[var(--c-surface)]'
-                                                        : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:border-[var(--c-muted)]'
-                                                        }`}
+                                                    onClick={handleAddIconToLibrary}
+                                                    disabled={isAddingIcon}
+                                                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2 text-xs font-bold text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)] disabled:opacity-50"
                                                 >
-                                                    <img
-                                                        src={item.iconUrl}
-                                                        alt="Icon"
-                                                        className="h-full w-full object-contain"
-                                                    />
+                                                    {isAddingIcon ? 'Adding...' : 'Add to Library'}
                                                 </button>
-                                            );
-                                        })}
-                                    </div>
+                                            </div>
+                                        </div>
+                                    </>
                                 ) : (
-                                    <div className="rounded-xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] p-4 text-center text-sm text-[var(--c-muted)]">
-                                        No custom icons available. Go to <span className="font-semibold text-[var(--c-text)]">Settings → Icon Library</span> to add some!
+                                    <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3 text-xs text-[var(--c-muted)]">
+                                        Library is hidden while you edit logo. Click "Show Library" only if you need to pick/add an icon.
                                     </div>
                                 )}
-
-                                <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-                                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Add New Icon to Library</p>
-                                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                        <input
-                                            type="text"
-                                            value={newIconName}
-                                            onChange={(event) => setNewIconName(event.target.value)}
-                                            placeholder="Icon Name (e.g. hotel_portal)"
-                                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-ring)]"
-                                        />
-                                        <input
-                                            type="file"
-                                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                                            onChange={handleNewIconFile}
-                                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
-                                        />
-                                    </div>
-                                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={handleAddIconToLibrary}
-                                            disabled={isAddingIcon}
-                                            className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2 text-xs font-bold text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)] disabled:opacity-50"
-                                        >
-                                            {isAddingIcon ? 'Adding...' : 'Add to Library'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => navigate(`/t/${tenantId}/settings?tab=appIconLibrary`)}
-                                            className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2 text-xs font-bold text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
-                                        >
-                                            Open Icon Library
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
 
                             <div className="space-y-2">
                                 <p className="text-sm font-bold text-[var(--c-muted)] uppercase tracking-wider">Transaction Methods</p>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {transactionMethods.map((m) => {
+                                    {TRANSACTION_METHODS.map((m) => {
                                         const selected = form.methods.includes(m.id);
-                                        const firestoreIcon = methodIconMap[String(m.id).toLowerCase()];
+                                        const firestoreIcon = resolveMethodIconUrl(methodIconMap, m.id);
+                                        const MethodIcon = m.Icon;
                                         return (
                                             <button
                                                 key={m.id}
@@ -450,7 +450,11 @@ const PortalFormPage = () => {
                                                     : 'border-[var(--c-border)] bg-white hover:bg-slate-50'
                                                     }`}
                                             >
-                                                <img src={firestoreIcon || m.icon} alt={m.label} className="h-6 w-6 object-contain" />
+                                                {firestoreIcon ? (
+                                                    <img src={firestoreIcon} alt={m.label} className="h-6 w-6 object-contain" />
+                                                ) : (
+                                                    <MethodIcon className="h-5 w-5 text-slate-600" />
+                                                )}
                                                 <span className="text-xs font-semibold text-slate-600">{m.label}</span>
                                             </button>
                                         );

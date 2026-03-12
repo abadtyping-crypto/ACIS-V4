@@ -138,7 +138,7 @@ const NotificationsPage = () => {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (item.createdBy) navigate(`/t/${tenantId}/profile/${item.createdBy}`);
+                    if (item.createdBy) navigate(`/t/${tenantId}/profile?uid=${encodeURIComponent(item.createdBy)}`);
                   }}
                   className="shrink-0 transition hover:opacity-80"
                   title="View Profile"

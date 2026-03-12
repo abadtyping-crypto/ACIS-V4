@@ -5,6 +5,7 @@ import {
   ExpenseIcon,
   HomeIcon,
   InvoiceIcon,
+  LibraryIcon,
   PortalIcon,
   QuotationIcon,
   ReceiptIcon,
@@ -22,6 +23,7 @@ const SEARCH_FAVORITES_KEY = 'acis_search_favorites_v1';
 const iconByKey = {
   dashboard: HomeIcon,
   settings: SettingsIcon,
+  appIconLibrary: LibraryIcon,
   clientOnboarding: UserPlusIcon,
   dailyTransactions: ReceiptIcon,
   tasksTracking: TasksIcon,
@@ -35,6 +37,7 @@ const iconByKey = {
 
 const categoryByKey = {
   settings: 'Settings',
+  appIconLibrary: 'Settings',
   portalManagement: 'Portals',
   createPortal: 'Portals',
   documentCalendar: 'Calendar',

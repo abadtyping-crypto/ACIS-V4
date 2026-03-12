@@ -19,12 +19,6 @@ import { generateTenantPdf } from '../../lib/pdfGenerator';
 import IconSelect from '../common/IconSelect';
 
 const txMethodLabels = {
-    cashByHand: 'Cash by Hand',
-    bankTransfer: 'Bank Transfer',
-    cdmDeposit: 'CDM Deposit',
-    checqueDeposit: 'Cheque Deposit',
-    onlinePayment: 'Online Payment',
-    cashWithdrawals: 'Cash Withdrawals',
     tabby: 'Tabby',
     Tamara: 'Tamara',
 };
@@ -176,14 +170,15 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
             });
 
             if (res.ok) {
+                const finalTxId = res.displayTxId || displayTxId;
                 const docType = form.type === 'repayment' ? 'paymentReceipt' : 'performerInvoice';
                 setStatus({
-                    message: `Success! ID: ${displayTxId}`,
+                    message: `Success! ID: ${finalTxId}`,
                     type: 'success',
                     download: {
                         docType,
                         data: {
-                            txId: displayTxId,
+                            txId: finalTxId,
                             amount: form.amount,
                             recipientName: selectedPerson?.name || 'Client',
                             description: form.description || `${docType === 'paymentReceipt' ? 'Repayment' : 'Disbursement'} against loan.`,

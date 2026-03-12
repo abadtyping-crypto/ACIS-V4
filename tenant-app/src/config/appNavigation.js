@@ -91,6 +91,13 @@ export const SEARCH_ITEMS = [
     platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
   },
   {
+    key: 'appIconLibrary',
+    label: 'Applications Icon Library',
+    description: 'Manage tenant icon assets for apps and portals',
+    path: 'settings?tab=appIconLibrary',
+    platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
+  },
+  {
     key: 'clientOnboarding',
     label: 'Clients Onboarding',
     description: 'Register companies, individuals, or dependents',

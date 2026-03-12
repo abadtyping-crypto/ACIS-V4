@@ -38,7 +38,7 @@ const IconSelect = ({
                     <span className="flex min-w-0 items-center gap-2">
                         {selected.icon && (
                             typeof selected.icon === 'string' ? (
-                                <img src={selected.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain bg-white p-[2px] border border-[var(--c-border)]/50" />
+                                <img src={selected.icon} alt="" className="h-6 w-6 shrink-0 object-contain" />
                             ) : (
                                 <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-visible">
                                     <selected.icon className="h-5 w-5 text-[var(--c-accent)]" />
@@ -83,7 +83,7 @@ const IconSelect = ({
                             >
                                 {opt.icon && (
                                     typeof opt.icon === 'string' ? (
-                                        <img src={opt.icon} alt="" className="h-6 w-6 shrink-0 rounded object-contain bg-white p-[2px] border border-[var(--c-border)]/50" />
+                                        <img src={opt.icon} alt="" className="h-6 w-6 shrink-0 object-contain" />
                                     ) : (
                                         <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-visible">
                                             <opt.icon className="h-5 w-5" />

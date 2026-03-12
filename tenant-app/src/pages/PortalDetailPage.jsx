@@ -11,6 +11,7 @@ import {
   fetchTenantPortals,
   fetchTenantUsersMap,
   sendTenantDocumentEmail,
+  upsertTenantNotification,
   upsertTenantPortal,
 } from '../lib/backendStore';
 import { createSyncEvent } from '../lib/syncEvents';
@@ -18,25 +19,24 @@ import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore'
 import { generateDisplayTxId } from '../lib/txIdGenerator';
 import { generateTenantPdf } from '../lib/pdfGenerator';
 import { canUserPerformAction } from '../lib/userControlPreferences';
+import { buildNotificationPayload, generateNotificationId } from '../lib/notificationTemplate';
+import {
+  ALLOWED_METHOD_IDS,
+  TRANSACTION_METHODS,
+  TX_METHOD_LABELS,
+  buildMethodIconMap,
+  resolveMethodIconUrl,
+} from '../lib/transactionMethodConfig';
 
 const portalTypes = [
-  { id: 'Bank', label: 'Bank', methods: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'onlinePayment', 'cashWithdrawals'] },
-  { id: 'Card Payment', label: 'Card Payment', methods: ['onlinePayment', 'bankTransfer'] },
-  { id: 'Petty Cash', label: 'Petty Cash', methods: ['cashByHand', 'cdmDeposit', 'cashWithdrawals'] },
-  { id: 'Portals', label: 'Portals', methods: ['cashByHand', 'bankTransfer', 'onlinePayment'] },
-  { id: 'Terminal', label: 'Terminal', methods: ['bankTransfer', 'tabby', 'Tamara'] },
+  { id: 'Bank', label: 'Bank', methods: ALLOWED_METHOD_IDS },
+  { id: 'Card Payment', label: 'Card Payment', methods: ALLOWED_METHOD_IDS },
+  { id: 'Petty Cash', label: 'Petty Cash', methods: ALLOWED_METHOD_IDS },
+  { id: 'Portals', label: 'Portals', methods: ALLOWED_METHOD_IDS },
+  { id: 'Terminal', label: 'Terminal', methods: ALLOWED_METHOD_IDS },
 ];
 
-const transactionMethods = [
-  { id: 'cashByHand', label: 'Cash by Hand', icon: '/portals/methods/cashByHand.png' },
-  { id: 'bankTransfer', label: 'Bank Transfer', icon: '/portals/methods/banktransfer.png' },
-  { id: 'cdmDeposit', label: 'CDM Deposit', icon: '/portals/methods/cdmDeposit.png' },
-  { id: 'checqueDeposit', label: 'Cheque Deposit', icon: '/portals/methods/checqueDeposit.png' },
-  { id: 'onlinePayment', label: 'Online Payment', icon: '/portals/methods/onlinePayment.png' },
-  { id: 'cashWithdrawals', label: 'Cash Withdrawals', icon: '/portals/methods/cashWithdrawal.png' },
-  { id: 'tabby', label: 'Tabby', icon: '/portals/methods/tabby.png' },
-  { id: 'Tamara', label: 'Tamara', icon: '/portals/methods/tamara.png' },
-];
+const transactionMethods = TRANSACTION_METHODS;
 
 const toDateText = (value) => {
   if (!value) return '-';
@@ -46,16 +46,7 @@ const toDateText = (value) => {
   return Number.isNaN(parsed.getTime()) ? '-' : parsed.toLocaleString();
 };
 
-const txMethodLabels = {
-  cashByHand: 'Cash by Hand',
-  bankTransfer: 'Bank Transfer',
-  cdmDeposit: 'CDM Deposit',
-  checqueDeposit: 'Cheque Deposit',
-  onlinePayment: 'Online Payment',
-  cashWithdrawals: 'Cash Withdrawals',
-  tabby: 'Tabby',
-  Tamara: 'Tamara',
-};
+const txMethodLabels = TX_METHOD_LABELS;
 
 const fallbackPortalIcon = (type) => {
   if (type === 'Bank') return '/portals/bank.png';
@@ -167,13 +158,7 @@ const PortalDetailPage = () => {
     }
     if (txRes.ok) setTxRows(txRes.rows || []);
     if (iconRes.ok) {
-      const nextMap = {};
-      (iconRes.rows || []).forEach((row) => {
-        const key = String(row?.iconId || '').trim().toLowerCase();
-        if (!key || !row?.iconUrl) return;
-        nextMap[key] = row.iconUrl;
-      });
-      setMethodIconMap(nextMap);
+      setMethodIconMap(buildMethodIconMap(iconRes.rows || []));
     }
     if (usersRes?.ok) {
       const nextUsers = {};
@@ -324,7 +309,8 @@ const PortalDetailPage = () => {
     transactionMethods.forEach((method) => {
       map[method.id] = {
         label: method.label,
-        icon: methodIconMap[String(method.id).toLowerCase()] || method.icon,
+        icon: resolveMethodIconUrl(methodIconMap, method.id),
+        Icon: method.Icon,
       };
     });
     return map;
@@ -620,8 +606,9 @@ const PortalDetailPage = () => {
       return;
     }
 
+    const finalTxId = res.displayTxId || displayTxId;
     setMessageType('success');
-    setMessage(`Transfer successful. ID: ${displayTxId}`);
+    setMessage(`Transfer successful. ID: ${finalTxId}`);
     setIsTransferSaving(false);
     setIsTransferOpen(false);
     loadData();
@@ -667,6 +654,26 @@ const PortalDetailPage = () => {
       changedFields: Object.keys(payload),
       createdBy: user.uid,
     });
+
+    await upsertTenantNotification(
+      tenantId,
+      generateNotificationId({ topic: 'finance', subTopic: 'portal' }),
+      {
+        ...buildNotificationPayload({
+          topic: 'finance',
+          subTopic: 'portal',
+          type: 'update',
+          title: 'Portal Updated',
+          detail: `${form.name.trim()} settings were updated.`,
+          createdBy: user.uid,
+          routePath: `/t/${tenantId}/portal-management/${portalId}`,
+          actionPresets: ['view'],
+        }),
+        eventType: 'update',
+        entityType: 'portal',
+        entityId: portalId,
+      },
+    ).catch(() => null);
 
     setMessageType('success');
     setMessage('Portal settings saved.');
@@ -789,7 +796,8 @@ const PortalDetailPage = () => {
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                       {transactionMethods.map((method) => {
                         const selected = form.methods.includes(method.id);
-                        const iconUrl = methodIconMap[String(method.id).toLowerCase()] || method.icon;
+                        const iconUrl = resolveMethodIconUrl(methodIconMap, method.id);
+                        const MethodIcon = method.Icon;
                         return (
                           <button
                             key={method.id}
@@ -803,7 +811,15 @@ const PortalDetailPage = () => {
                               : 'border-[var(--c-border)] bg-[var(--c-panel)]'
                               }`}
                           >
-                            <img src={iconUrl} alt={method.label} className="h-5 w-5 object-contain" />
+                            {iconUrl ? (
+                              <img
+                                src={iconUrl}
+                                alt={method.label}
+                                className="h-5 w-5 object-contain"
+                              />
+                            ) : (
+                              <MethodIcon className="h-5 w-5 text-[var(--c-text)]" />
+                            )}
                             <span className="text-xs font-semibold text-[var(--c-text)]">{method.label}</span>
                           </button>
                         );
@@ -873,14 +889,24 @@ const PortalDetailPage = () => {
                         {(portal.methods || []).map((methodId) => {
                           const methodMeta = methodMetaById[methodId] || {
                             label: String(methodId || ''),
-                            icon: '/portals/methods/onlinePayment.png',
+                            icon: '',
+                            Icon: null,
                           };
+                          const MethodIcon = methodMeta.Icon;
                           return (
                             <span
                               key={methodId}
                               className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-panel)_60%,white)] px-2.5 py-1 text-[11px] font-semibold text-[var(--c-text)] shadow-sm"
                             >
-                              <img src={methodMeta.icon} alt={methodMeta.label} className="h-3.5 w-3.5 object-contain" />
+                              {methodMeta.icon ? (
+                                <img
+                                  src={methodMeta.icon}
+                                  alt={methodMeta.label}
+                                  className="h-3.5 w-3.5 object-contain"
+                                />
+                              ) : MethodIcon ? (
+                                <MethodIcon className="h-3.5 w-3.5 text-[var(--c-text)]" />
+                              ) : null}
                               {methodMeta.label}
                             </span>
                           );

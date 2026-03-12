@@ -12,28 +12,12 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import IconSelect from '../common/IconSelect';
+import { TRANSACTION_METHODS, TX_METHOD_LABELS } from '../../lib/transactionMethodConfig';
 
-const txMethodLabels = {
-    cashByHand: 'Cash by Hand',
-    bankTransfer: 'Bank Transfer',
-    cdmDeposit: 'CDM Deposit',
-    checqueDeposit: 'Cheque Deposit',
-    onlinePayment: 'Online Payment',
-    cashWithdrawals: 'Cash Withdrawals',
-    tabby: 'Tabby',
-    Tamara: 'Tamara',
-};
-
-const txMethodIcons = {
-    cashByHand: '/portals/methods/cashByHand.png',
-    bankTransfer: '/portals/methods/banktransfer.png',
-    cdmDeposit: '/portals/methods/cdmDeposit.png',
-    checqueDeposit: '/portals/methods/checqueDeposit.png',
-    onlinePayment: '/portals/methods/onlinePayment.png',
-    cashWithdrawals: '/portals/methods/cashWithdrawal.png',
-    tabby: '/portals/methods/tabby.png',
-    Tamara: '/portals/methods/tamara.png',
-};
+const txMethodMetaById = TRANSACTION_METHODS.reduce((acc, method) => {
+    acc[method.id] = method;
+    return acc;
+}, {});
 
 const identificationMethodOptions = [
     { value: 'emiratesId', label: 'Emirates ID', icon: '/onboardingIcons/emiratesId.svg' },
@@ -260,8 +244,8 @@ const IndividualRegistrationForm = ({ activeType, tenantId, user, onCancel, onSu
     }));
     const methodOptions = (selectedPortal?.methods || []).map((methodId) => ({
         value: methodId,
-        label: txMethodLabels[methodId] || methodId,
-        icon: txMethodIcons[methodId],
+        label: TX_METHOD_LABELS[methodId] || methodId,
+        icon: txMethodMetaById[methodId]?.Icon,
     }));
 
     return (

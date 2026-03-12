@@ -62,6 +62,11 @@ const TAB_ALIAS_MAP = {
   counters: 'counters',
 };
 
+const MOBILE_SETTINGS_SECTIONS = [
+  { key: 'control', label: 'User Control Center' },
+  { key: 'appIconLibrary', label: 'Applications Icon Library' },
+];
+
 const SettingsPage = () => {
   const { tenant } = useTenant();
   const isDesktop = useIsDesktopLayout();
@@ -82,7 +87,10 @@ const SettingsPage = () => {
   };
 
   const sectionContent = useMemo(() => {
-    if (!isDesktop) return <UserControlCenterSection />;
+    if (!isDesktop) {
+      if (activeSection === 'appIconLibrary') return <ApplicationIconLibrarySection />;
+      return <UserControlCenterSection />;
+    }
     if (activeSection === 'brand') return <BrandDetailsSection />;
     if (activeSection === 'notifications') return <NotificationSettingsSection />;
     if (activeSection === 'pdfStudio') return <PdfCustomizationStudioSection />;
@@ -104,12 +112,30 @@ const SettingsPage = () => {
         title={`${tenant.name} Settings`}
         subtitle={isDesktop
           ? `Tenant-scoped configuration for branding, preferences, and security. Currency: ${tenant.currency}`
-          : 'Mobile access: User control only.'}
+          : 'Mobile access: User control and icon library customization.'}
         icon={Settings}
       >
         {!isDesktop ? (
-          <div className="rounded-2xl border border-(--c-border) bg-(--c-surface) p-4">
-            {sectionContent}
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-(--c-muted)">
+                Mobile Section
+                <select
+                  value={activeSection === 'appIconLibrary' ? 'appIconLibrary' : 'control'}
+                  onChange={(event) => handleSectionChange(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-sm text-(--c-text) outline-none ring-1 ring-(--c-border)"
+                >
+                  {MOBILE_SETTINGS_SECTIONS.map((section) => (
+                    <option key={section.key} value={section.key}>
+                      {section.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="rounded-2xl border border-(--c-border) bg-(--c-surface) p-4">
+              {sectionContent}
+            </div>
           </div>
         ) : (
         <div className="grid h-full lg:grid-cols-[auto_1fr] sm:gap-4 overflow-hidden">

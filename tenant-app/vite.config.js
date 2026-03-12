@@ -1,25 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import electron from 'vite-plugin-electron/simple'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
     react(),
-    electron({
-      main: {
-        entry: 'electron/main.js',
-        onstart({ startup }) {
-          const env = { ...process.env }
-          delete env.ELECTRON_RUN_AS_NODE
-          startup(undefined, { env })
-        },
-      },
-      preload: {
-        input: 'electron/preload.mjs',
-      },
-      renderer: {},
-    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],

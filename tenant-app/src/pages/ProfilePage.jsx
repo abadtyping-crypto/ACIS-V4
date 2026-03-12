@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/TenantContext';
@@ -60,6 +61,7 @@ const toPublicProfile = (item) => ({
 });
 
 const ProfilePage = () => {
+  const [searchParams] = useSearchParams();
   const { tenantId } = useTenant();
   const { user, patchSessionUser } = useAuth();
   const runtimePlatform = getRuntimePlatform();
@@ -231,6 +233,21 @@ const ProfilePage = () => {
     () => profiles.filter((item) => item.publicProfile === true),
     [profiles],
   );
+  const focusedProfileUid = String(searchParams.get('uid') || '').trim();
+
+  useEffect(() => {
+    if (!focusedProfileUid) return;
+    const hasTarget = publicProfiles.some((item) => item.uid === focusedProfileUid);
+    if (!hasTarget) return;
+    const selector = `[data-profile-uid="${focusedProfileUid}"]`;
+    const timer = window.setTimeout(() => {
+      const node = document.querySelector(selector);
+      if (node) node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [focusedProfileUid, publicProfiles]);
 
   const onAvatarFileChange = async (event) => {
     const file = event.target.files?.[0];
@@ -578,6 +595,7 @@ const ProfilePage = () => {
                     onFileChange={onAvatarFileChange}
                     onCropComplete={onCropComplete}
                     title="Smart Avatar Studio"
+                    cropShape="round"
                     workspaceHeightClass="h-[260px] sm:h-[300px] lg:h-[340px]"
                     tip="Tip: Use direct interaction to zoom and pan. Changes are saved with the profile."
                   />
@@ -871,7 +889,11 @@ const ProfilePage = () => {
               {publicProfiles.map((item) => (
                 <article
                   key={item.uid}
-                  className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3"
+                  data-profile-uid={item.uid}
+                  className={`rounded-xl border bg-[var(--c-panel)] p-3 transition ${focusedProfileUid === item.uid
+                    ? 'border-[var(--c-accent)] ring-2 ring-[var(--c-accent)]/25'
+                    : 'border-[var(--c-border)]'
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <img

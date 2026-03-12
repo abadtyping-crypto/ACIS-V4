@@ -3,6 +3,7 @@ import SettingCard from './SettingCard';
 import { useTenant } from '../../context/TenantContext';
 import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
+import useIsDesktopLayout from '../../hooks/useIsDesktopLayout';
 import {
   deleteApplicationIcon,
   fetchApplicationIconLibrary,
@@ -20,9 +21,22 @@ import { createSyncEvent } from '../../lib/syncEvents';
 const inputClass =
   'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
 
+const normalizeNameForCompare = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9]/g, '');
+
+const sanitizeIconName = (value) =>
+  String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ');
+
 const ApplicationIconLibrarySection = () => {
   const { tenantId } = useTenant();
   const { user } = useAuth();
+  const isDesktop = useIsDesktopLayout();
 
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +101,7 @@ const ApplicationIconLibrarySection = () => {
   };
 
   const handleSubmit = async () => {
-    const trimmedName = String(iconName || '').trim();
+    const trimmedName = sanitizeIconName(iconName);
     if (!trimmedName) {
       setError('Icon Name is mandatory.');
       return;
@@ -99,6 +113,7 @@ const ApplicationIconLibrarySection = () => {
     }
 
     const nextIconId = toSafeDocId(trimmedName, 'app_icon');
+    const nextNameKey = normalizeNameForCompare(trimmedName);
     setIsSaving(true);
     setError('');
     setStatus('');
@@ -108,6 +123,15 @@ const ApplicationIconLibrarySection = () => {
     const isRename = isEditing && nextIconId !== currentId;
 
     try {
+      const duplicateByNameVariant = rows.some((row) => {
+        if (!row?.iconId) return false;
+        if (isEditing && row.iconId === currentId) return false;
+        return normalizeNameForCompare(row.iconName || row.iconId) === nextNameKey;
+      });
+      if (duplicateByNameVariant) {
+        throw new Error('Another icon already uses this name variant (case/space). Choose a unique name.');
+      }
+
       if (isRename) {
         const existing = await getApplicationIconById(tenantId, nextIconId);
         if (!existing.ok) throw new Error(existing.error || 'Unable to validate target icon id.');
@@ -211,6 +235,8 @@ const ApplicationIconLibrarySection = () => {
     <SettingCard
       title="Applications Icon Library"
       description="Upload reusable app/module icons. Icon Name is mandatory and used as the backend document ID."
+      showHeader={false}
+      showDescription={false}
     >
       <div className="space-y-8">
         {/* Section 1: Add/Edit Icon Form */}
@@ -230,7 +256,7 @@ const ApplicationIconLibrarySection = () => {
                   className={inputClass}
                   value={iconName}
                   onChange={(event) => setIconName(event.target.value)}
-                  placeholder="Example: invoice_management"
+                  placeholder="Example: Invoice Management"
                 />
               </label>
 
@@ -245,11 +271,7 @@ const ApplicationIconLibrarySection = () => {
               </label>
             </div>
 
-            {isEditing && editingRow ? (
-              <p className="mt-2 text-xs text-[var(--c-muted)]">
-                Editing ID: <span className="font-semibold text-[var(--c-text)]">{editingRow.iconId}</span>
-              </p>
-            ) : null}
+            {isEditing && editingRow ? <p className="mt-2 text-xs text-[var(--c-muted)]">Editing selected icon.</p> : null}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
@@ -272,8 +294,16 @@ const ApplicationIconLibrarySection = () => {
               ) : null}
             </div>
             
-            {error ? <p className="mt-3 text-sm font-semibold text-rose-600">{error}</p> : null}
-            {status ? <p className="mt-3 text-sm font-semibold text-emerald-600">{status}</p> : null}
+            {error ? (
+              <p className={`mt-3 rounded-lg border px-3 py-2 text-sm font-semibold ${isDesktop ? 'border-rose-200 bg-white text-rose-600' : 'border-rose-500/30 bg-rose-500/10 text-rose-300'}`}>
+                {error}
+              </p>
+            ) : null}
+            {status ? (
+              <p className={`mt-3 rounded-lg border px-3 py-2 text-sm font-semibold ${isDesktop ? 'border-emerald-200 bg-white text-emerald-700' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'}`}>
+                {status}
+              </p>
+            ) : null}
           </div>
         </section>
 
@@ -294,20 +324,20 @@ const ApplicationIconLibrarySection = () => {
             ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-[var(--c-muted)]">No icons added yet.</p>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className={`grid gap-4 ${isDesktop ? 'md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
                 {rows.map((row) => (
                   <article key={row.iconId} className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 border border-[var(--c-border)]/30">
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg p-1 border border-[var(--c-border)]/30 ${isDesktop ? 'bg-white' : 'bg-[var(--c-panel)]'}`}>
                         {row.iconUrl ? (
-                          <img src={row.iconUrl} alt={row.iconName} className="h-full w-full object-contain" />
+                          <img src={row.iconUrl} alt="Icon preview" className="h-full w-full object-contain" />
                         ) : (
                           <span className="text-[10px] font-semibold text-[var(--c-muted)]">No Icon</span>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-[var(--c-text)]">{row.iconName || row.iconId}</p>
-                        <p className="truncate text-[10px] font-medium text-[var(--c-muted)] uppercase tracking-tight">{row.iconId}</p>
+                        <p className="truncate text-sm font-bold text-[var(--c-text)]">Reusable Icon</p>
+                        <p className="truncate text-[10px] font-medium text-[var(--c-muted)]">Library item</p>
                       </div>
                     </div>
                     <div className="mt-3 flex items-center gap-2">

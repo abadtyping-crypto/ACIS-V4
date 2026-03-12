@@ -17,20 +17,12 @@ import QuickAddServiceTemplateModal from '../components/dailyTransaction/QuickAd
 import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
 import DirhamIcon from '../components/common/DirhamIcon';
 import { Plus, FileText, Calendar } from 'lucide-react';
+import { TRANSACTION_METHODS, buildMethodIconMap, resolveMethodIconUrl } from '../lib/transactionMethodConfig';
 
 const inputClass = "mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5 font-bold";
 const selectClass = "mt-1 w-full rounded-2xl border-2 border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm font-black text-[var(--c-text)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-500/20";
 
-const transactionMethods = [
-    { id: 'cashByHand', label: 'Cash by Hand', icon: '/portals/methods/cashByHand.png' },
-    { id: 'bankTransfer', label: 'Bank Transfer', icon: '/portals/methods/banktransfer.png' },
-    { id: 'cdmDeposit', label: 'CDM Deposit', icon: '/portals/methods/cdmDeposit.png' },
-    { id: 'checqueDeposit', label: 'Cheque Deposit', icon: '/portals/methods/checqueDeposit.png' },
-    { id: 'onlinePayment', label: 'Online Payment', icon: '/portals/methods/onlinePayment.png' },
-    { id: 'cashWithdrawals', label: 'Cash Withdrawals', icon: '/portals/methods/cashWithdrawal.png' },
-    { id: 'tabby', label: 'Tabby', icon: '/portals/methods/tabby.png' },
-    { id: 'Tamara', label: 'Tamara', icon: '/portals/methods/tamara.png' },
-];
+const transactionMethods = TRANSACTION_METHODS;
 
 const DailyTransactionPage = () => {
     const { tenantId } = useTenant();
@@ -126,13 +118,7 @@ const DailyTransactionPage = () => {
         let isMounted = true;
         fetchApplicationIconLibrary(tenantId).then((res) => {
             if (!isMounted || !res.ok) return;
-            const next = {};
-            (res.rows || []).forEach((row) => {
-                const key = String(row?.iconId || '').trim().toLowerCase();
-                if (!key || !row?.iconUrl) return;
-                next[key] = row.iconUrl;
-            });
-            setMethodIconMap(next);
+            setMethodIconMap(buildMethodIconMap(res.rows || []));
         });
         return () => {
             isMounted = false;
@@ -415,7 +401,8 @@ const DailyTransactionPage = () => {
                                 ) : (
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         {portalMethods.map((method) => {
-                                            const iconUrl = methodIconMap[String(method.id).toLowerCase()] || method.icon;
+                                            const iconUrl = resolveMethodIconUrl(methodIconMap, method.id);
+                                            const MethodIcon = method.Icon;
                                             const active = selectedPortalMethod === method.id;
                                             return (
                                                 <button
@@ -424,7 +411,15 @@ const DailyTransactionPage = () => {
                                                     onClick={() => setSelectedPortalMethod(method.id)}
                                                     className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition ${active ? 'border-sky-500 bg-sky-500/10 shadow-sm' : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:border-sky-400/60'}`}
                                                 >
-                                                    <img src={iconUrl} alt={method.label} className="h-6 w-6 object-contain" />
+                                                    {iconUrl ? (
+                                                        <img
+                                                            src={iconUrl}
+                                                            alt={method.label}
+                                                            className="h-6 w-6 object-contain"
+                                                        />
+                                                    ) : (
+                                                        <MethodIcon className="h-6 w-6 text-[var(--c-text)]" />
+                                                    )}
                                                     <span className="text-xs font-black text-[var(--c-text)]">{method.label}</span>
                                                 </button>
                                             );

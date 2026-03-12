@@ -8,6 +8,7 @@ import {
   House,
   Info,
   LayoutGrid,
+  Library,
   ListChecks,
   ReceiptText,
   Search,
@@ -33,6 +34,7 @@ export const UserIcon = withIcon(CircleUserRound, 'h-6 w-6');
 export const SearchIcon = withIcon(Search, 'h-6 w-6');
 export const InfoIcon = withIcon(Info, 'h-4 w-4');
 export const SettingsIcon = withIcon(Settings, 'h-6 w-6');
+export const LibraryIcon = withIcon(Library, 'h-6 w-6');
 export const PortalIcon = withIcon(WalletCards, 'h-6 w-6');
 export const UserPlusIcon = withIcon(UserPlus, 'h-6 w-6');
 export const RecycleBinIcon = withIcon(Trash2, 'h-6 w-6');
@@ -43,3 +45,9 @@ export const InvoiceIcon = withIcon(FileSpreadsheet, 'h-6 w-6');
 export const QuotationIcon = withIcon(FileText, 'h-6 w-6');
 export const ExpenseIcon = withIcon(CircleDollarSign, 'h-6 w-6');
 export const CalendarIcon = withIcon(CalendarDays, 'h-6 w-6');
+export const CashByHandIcon = withIcon(CircleDollarSign, 'h-6 w-6');
+export const BankTransferIcon = withIcon(FileSpreadsheet, 'h-6 w-6');
+export const CdmDepositIcon = withIcon(ReceiptText, 'h-6 w-6');
+export const ChequeDepositIcon = withIcon(FileText, 'h-6 w-6');
+export const OnlinePaymentIcon = withIcon(LayoutGrid, 'h-6 w-6');
+export const CashWithdrawalsIcon = withIcon(WalletCards, 'h-6 w-6');

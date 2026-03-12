@@ -22,25 +22,22 @@ import { toSafeDocId as toSafeIconId } from '../../lib/idUtils';
 import { uploadApplicationIconAsset, validateApplicationIconFile } from '../../lib/applicationIconStorage';
 import ImageStudio from '../common/ImageStudio';
 import { getCroppedImg } from '../../lib/imageStudioUtils';
+import {
+    ALLOWED_METHOD_IDS,
+    TRANSACTION_METHODS,
+    buildMethodIconMap,
+    resolveMethodIconUrl,
+} from '../../lib/transactionMethodConfig';
 
 const portalTypes = [
-    { id: 'Bank', label: 'Bank', icon: '/portals/bank.png', methods: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'onlinePayment', 'cashWithdrawals'] },
-    { id: 'Card Payment', label: 'Card Payment', icon: '/portals/cardpayment.png', methods: ['onlinePayment', 'bankTransfer'] },
-    { id: 'Petty Cash', label: 'Petty Cash', icon: '/portals/pettycash.png', methods: ['cashByHand', 'cdmDeposit', 'cashWithdrawals'] },
-    { id: 'Portals', label: 'Portals', icon: '/portals/portals.png', methods: ['cashByHand', 'bankTransfer', 'onlinePayment'] },
-    { id: 'Terminal', label: 'Terminal', icon: '/portals/terminal.png', methods: ['bankTransfer', 'tabby', 'Tamara'] },
+    { id: 'Bank', label: 'Bank', icon: '/portals/bank.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Card Payment', label: 'Card Payment', icon: '/portals/cardpayment.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Petty Cash', label: 'Petty Cash', icon: '/portals/pettycash.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Portals', label: 'Portals', icon: '/portals/portals.png', methods: ALLOWED_METHOD_IDS },
+    { id: 'Terminal', label: 'Terminal', icon: '/portals/terminal.png', methods: ALLOWED_METHOD_IDS },
 ];
 
-const transactionMethods = [
-    { id: 'cashByHand', label: 'Cash by Hand', icon: '/portals/methods/cashByHand.png' },
-    { id: 'bankTransfer', label: 'Bank Transfer', icon: '/portals/methods/banktransfer.png' },
-    { id: 'cdmDeposit', label: 'CDM Deposit', icon: '/portals/methods/cdmDeposit.png' },
-    { id: 'checqueDeposit', label: 'Cheque Deposit', icon: '/portals/methods/checqueDeposit.png' },
-    { id: 'onlinePayment', label: 'Online Payment', icon: '/portals/methods/onlinePayment.png' },
-    { id: 'cashWithdrawals', label: 'Cash Withdrawals', icon: '/portals/methods/cashWithdrawal.png' },
-    { id: 'tabby', label: 'Tabby', icon: '/portals/methods/tabby.png' },
-    { id: 'Tamara', label: 'Tamara', icon: '/portals/methods/tamara.png' },
-];
+const transactionMethods = TRANSACTION_METHODS;
 
 const fallbackPortalIcon = (type) => {
     if (type === 'Bank') return '/portals/bank.png';
@@ -56,8 +53,7 @@ const iconFilterMap = {
     soft: { label: 'Soft', css: 'brightness(1.05) saturate(0.9)', canvas: 'brightness(105%) saturate(90%)' },
 };
 
-const iconBadgeBaseClass =
-    'inline-flex items-center justify-center rounded-md border border-(--c-border) bg-[color-mix(in_srgb,var(--c-surface)_25%,white_75%)]';
+const iconBadgeBaseClass = 'inline-flex items-center justify-center rounded-md';
 
 const ICON_OUTPUT_SIZE = 256;
 const ICON_MAX_BYTES = 100 * 1024;
@@ -96,6 +92,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     const [newIconFile, setNewIconFile] = useState(null);
     const [isAddingLibraryIcon, setIsAddingLibraryIcon] = useState(false);
     const [isIconStudioOpen, setIsIconStudioOpen] = useState(false);
+    const [isLibraryPanelOpen, setIsLibraryPanelOpen] = useState(false);
 
     const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
         setCroppedAreaPixels(croppedAreaPixels);
@@ -117,13 +114,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     const loadIconLibrary = useCallback(async () => {
         const res = await fetchApplicationIconLibrary(tenantId);
         if (!res.ok) return false;
-        const nextMap = {};
-        (res.rows || []).forEach((row) => {
-            const key = String(row?.iconId || '').trim().toLowerCase();
-            if (!key || !row?.iconUrl) return;
-            nextMap[key] = row.iconUrl;
-        });
-        setMethodIconMap(nextMap);
+        setMethodIconMap(buildMethodIconMap(res.rows || []));
         setIconLibrary((res.rows || []).filter((row) => !!row.iconUrl));
         return true;
     }, [tenantId]);
@@ -158,6 +149,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         setIconDirty(false);
         setCroppedAreaPixels(null);
         setIsIconStudioOpen(false);
+        setIsLibraryPanelOpen(false);
         setNewIconName('');
         setNewIconFile(null);
         setView('form');
@@ -182,6 +174,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         setIconDirty(false);
         setCroppedAreaPixels(null);
         setIsIconStudioOpen(false);
+        setIsLibraryPanelOpen(false);
         setNewIconName('');
         setNewIconFile(null);
         setView('form');
@@ -653,6 +646,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                         previewBgClass="bg-white"
                                         previewFrame={false}
                                         previewRoundedClass="rounded-xl"
+                                        showFilters={false}
                                         compact={true}
                                     />
                                 )}
@@ -664,61 +658,66 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                         </p>
                                         <button
                                             type="button"
-                                            onClick={() => navigate(`/t/${tenantId}/settings?tab=appIconLibrary`)}
+                                            onClick={() => setIsLibraryPanelOpen((prev) => !prev)}
                                             className="rounded-lg border border-(--c-border) bg-(--c-panel) px-2 py-1 text-[10px] font-bold text-(--c-text) transition hover:border-(--c-accent) hover:text-(--c-accent)"
                                         >
-                                            Open Library
+                                            {isLibraryPanelOpen ? 'Hide Library' : 'Show Library'}
                                         </button>
                                     </div>
 
-                                    {iconLibrary.length > 0 ? (
-                                        <div className="mt-2 grid grid-cols-5 gap-2">
-                                            {iconLibrary.map((item) => {
-                                                const isSelected = iconSourceUrl === item.iconUrl;
-                                                return (
-                                                    <button
-                                                        key={item.iconId}
-                                                        type="button"
-                                                        onClick={() => handleSelectLibraryIcon(item.iconUrl)}
-                                                        className={`h-11 w-11 rounded-lg border bg-white p-1 transition ${isSelected ? 'border-(--c-accent) ring-1 ring-(--c-accent)/30' : 'border-(--c-border) hover:border-(--c-accent)/30'}`}
-                                                        title={item.iconName || item.iconId}
-                                                    >
-                                                        <img src={item.iconUrl} alt={item.iconName || item.iconId} className="h-full w-full object-contain" />
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                    {isLibraryPanelOpen ? (
+                                        <>
+                                            {iconLibrary.length > 0 ? (
+                                                <div className="mt-2 grid grid-cols-5 gap-2">
+                                                    {iconLibrary.map((item) => {
+                                                        const isSelected = iconSourceUrl === item.iconUrl;
+                                                        return (
+                                                            <button
+                                                                key={item.iconId}
+                                                                type="button"
+                                                                onClick={() => handleSelectLibraryIcon(item.iconUrl)}
+                                                                className={`h-11 w-11 rounded-lg border border-(--c-border) bg-(--c-panel) p-1 transition ${isSelected ? 'border-(--c-accent) ring-1 ring-(--c-accent)/30' : 'hover:border-(--c-accent)/30'}`}
+                                                            >
+                                                                <img src={item.iconUrl} alt={item.iconName || item.iconId} className="h-full w-full object-contain" />
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <p className="mt-2 text-[11px] text-(--c-muted)">
+                                                    No custom icons available yet.
+                                                </p>
+                                            )}
+
+                                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                <input
+                                                    type="text"
+                                                    value={newIconName}
+                                                    onChange={(event) => setNewIconName(event.target.value)}
+                                                    placeholder="New icon name"
+                                                    className="w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-xs font-bold text-(--c-text) outline-none"
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                                    onChange={handleNewLibraryIconFile}
+                                                    className="w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-xs text-(--c-text)"
+                                                />
+                                            </div>
+                                            <div className="mt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddLibraryIcon}
+                                                    disabled={isAddingLibraryIcon}
+                                                    className="rounded-lg border border-(--c-border) bg-(--c-panel) px-3 py-2 text-[10px] font-bold text-(--c-text) transition hover:border-(--c-accent) hover:text-(--c-accent) disabled:opacity-50"
+                                                >
+                                                    {isAddingLibraryIcon ? 'Adding Icon...' : 'Add Icon to Library'}
+                                                </button>
+                                            </div>
+                                        </>
                                     ) : (
-                                        <p className="mt-2 text-[11px] text-(--c-muted)">
-                                            No custom icons available yet.
-                                        </p>
+                                        <p className="mt-2 text-[11px] text-(--c-muted)">Library is hidden while editing logo. Click "Show Library" only when needed.</p>
                                     )}
-
-                                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                        <input
-                                            type="text"
-                                            value={newIconName}
-                                            onChange={(event) => setNewIconName(event.target.value)}
-                                            placeholder="New icon name"
-                                            className="w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-xs font-bold text-(--c-text) outline-none"
-                                        />
-                                        <input
-                                            type="file"
-                                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                                            onChange={handleNewLibraryIconFile}
-                                            className="w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-xs text-(--c-text)"
-                                        />
-                                    </div>
-                                    <div className="mt-2">
-                                        <button
-                                            type="button"
-                                            onClick={handleAddLibraryIcon}
-                                            disabled={isAddingLibraryIcon}
-                                            className="rounded-lg border border-(--c-border) bg-(--c-panel) px-3 py-2 text-[10px] font-bold text-(--c-text) transition hover:border-(--c-accent) hover:text-(--c-accent) disabled:opacity-50"
-                                        >
-                                            {isAddingLibraryIcon ? 'Adding Icon...' : 'Add Icon to Library'}
-                                        </button>
-                                    </div>
                                 </div>
 
                                 <div>
@@ -729,7 +728,8 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                     <div className="mt-2 grid grid-cols-2 gap-2">
                                         {transactionMethods.map(m => {
                                             const active = form.methods.includes(m.id);
-                                            const firestoreIcon = methodIconMap[String(m.id).toLowerCase()];
+                                            const firestoreIcon = resolveMethodIconUrl(methodIconMap, m.id);
+                                            const MethodIcon = m.Icon;
                                             return (
                                                 <button
                                                     key={m.id}
@@ -740,7 +740,11 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                                     className={`flex items-center gap-2 rounded-xl border bg-(--c-surface) p-2 transition ${active ? 'border-(--c-accent) shadow-sm ring-1 ring-(--c-accent)/20' : 'border-(--c-border) hover:border-(--c-accent)/30'}`}
                                                 >
                                                     <span className={`${iconBadgeBaseClass} h-9 w-9 shrink-0 ${active ? 'ring-1 ring-(--c-accent)/30' : ''}`}>
-                                                        <img src={firestoreIcon || m.icon} alt={m.label} className="h-8 w-8 object-contain" />
+                                                        {firestoreIcon ? (
+                                                            <img src={firestoreIcon} alt={m.label} className="h-8 w-8 object-contain" />
+                                                        ) : (
+                                                            <MethodIcon className="h-5 w-5 text-[var(--c-text)]" />
+                                                        )}
                                                     </span>
                                                     <span className="text-[10px] font-bold text-(--c-text)">{m.label}</span>
                                                 </button>
