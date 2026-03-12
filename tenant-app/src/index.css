@@ -147,11 +147,7 @@ body::before {
   color: transparent;
 }
 
-button[class*='bg-[var(--c-accent)]'],
-a[class*='bg-[var(--c-accent)]'] {
-  background: var(--brand-gradient) !important;
-  color: var(--c-on-accent) !important;
-}
+/* Keep gradients opt-in via .brand-gradient-bg instead of forcing all accent buttons. */
 
 .dirham-icon {
   filter: var(--dirham-filter);

@@ -1,1 +1,11 @@
 node_modules
+.idea/
+.vscode/
+dist-electron/
+dist/
+build/
+*.log
+status.txt
+diff_output.txt
+diff.txt
+ACIS V4.code-workspace

@@ -6,7 +6,10 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import nodemailer from 'nodemailer';
 
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
+import { OAuth2Client } from 'google-auth-library';
+import http from 'http';
+import { parse } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -99,33 +102,50 @@ function createWindow() {
     ipcMain.handle('mail-send', async (_event, payload) => {
         try {
             const smtp = payload?.smtp || {};
+            const google = payload?.google || {};
             const message = payload?.message || {};
             const to = Array.isArray(message.to) ? message.to : [message.to].filter(Boolean);
-            if (!smtp.host || !smtp.port || !smtp.user || !smtp.pass) {
-                return { ok: false, error: 'SMTP configuration is incomplete.' };
-            }
+
             if (!to.length) {
                 return { ok: false, error: 'Recipient email is required.' };
             }
 
-            const transporter = nodemailer.createTransport({
-                host: String(smtp.host),
-                port: Number(smtp.port),
-                secure: Number(smtp.port) === 465,
-                auth: {
-                    user: String(smtp.user),
-                    pass: String(smtp.pass),
-                },
-            });
+            let transporterConfig;
 
-            const smtpUser = String(smtp.user || '').trim();
-            const preferredFromEmail = String(smtp.fromEmail || '').trim();
-            const fromName = String(smtp.fromName || '').trim();
-            const replyToEmail = String(smtp.replyTo || preferredFromEmail || '').trim();
+            if (google.clientId && google.clientSecret && google.refreshToken) {
+                // Gmail OAuth2 mode
+                transporterConfig = {
+                    service: 'gmail',
+                    auth: {
+                        type: 'OAuth2',
+                        user: google.userEmail,
+                        clientId: google.clientId,
+                        clientSecret: google.clientSecret,
+                        refreshToken: google.refreshToken,
+                    }
+                };
+            } else if (smtp.host && smtp.port && smtp.user && smtp.pass) {
+                // Standard SMTP mode
+                transporterConfig = {
+                    host: String(smtp.host),
+                    port: Number(smtp.port),
+                    secure: Number(smtp.port) === 465,
+                    auth: {
+                        user: String(smtp.user),
+                        pass: String(smtp.pass),
+                    },
+                };
+            } else {
+                return { ok: false, error: 'No valid mail configuration provided (SMTP or Gmail OAuth).' };
+            }
 
-            // Use authenticated mailbox as sender to satisfy providers that reject non-owned From addresses.
-            const fromAddress = smtpUser;
-            const fromHeader = fromName ? `"${fromName}" <${fromAddress}>` : fromAddress;
+            const transporter = nodemailer.createTransport(transporterConfig);
+
+            const fromName = String(smtp.fromName || google.fromName || '').trim();
+            const fromEmail = String(smtp.fromEmail || google.userEmail || '').trim();
+            const replyToEmail = String(smtp.replyTo || google.replyTo || fromEmail || '').trim();
+
+            const fromHeader = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
 
             await transporter.sendMail({
                 from: fromHeader,
@@ -147,6 +167,47 @@ function createWindow() {
             }
             return { ok: false, error: rawMessage };
         }
+    });
+
+    // Gmail OAuth Authentication Handler
+    ipcMain.handle('mail-auth-start', async (_event, { clientId, clientSecret, redirectUri }) => {
+        return new Promise((resolve, reject) => {
+            const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+
+            const authUrl = oauth2Client.generateAuthUrl({
+                access_type: 'offline',
+                scope: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/userinfo.email'],
+                prompt: 'consent'
+            });
+
+            shell.openExternal(authUrl);
+
+            // Create a temporary server to listen for the redirect
+            const server = http.createServer(async (req, res) => {
+                try {
+                    const urlParts = parse(req.url, true);
+                    const code = urlParts.query.code;
+
+                    if (code) {
+                        res.writeHead(200, { 'Content-Type': 'text/html' });
+                        res.end('<h1>Authentication Successful!</h1><p>You can close this window now.</p>');
+                        
+                        const { tokens } = await oauth2Client.getToken(code);
+                        resolve({ ok: true, tokens });
+                    } else {
+                        res.writeHead(400, { 'Content-Type': 'text/html' });
+                        res.end('<h1>Authentication Failed</h1><p>No code found in redirect.</p>');
+                        reject(new Error('No code found in redirect'));
+                    }
+                } catch (err) {
+                    res.writeHead(500);
+                    res.end('Internal Server Error');
+                    reject(err);
+                } finally {
+                    server.close();
+                }
+            }).listen(8888); // Ensure this matches the redirectUri port if possible
+        });
     });
 }
 

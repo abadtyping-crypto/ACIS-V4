@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useRecycleBinData } from '../../hooks/useRecycleBinData';
 import { useTenant } from '../../context/TenantContext';
 import { useRecycleBin } from '../../context/RecycleBinContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 
 const domains = [
@@ -217,3 +217,4 @@ const RecycleBinSidebar = () => {
 };
 
 export default RecycleBinSidebar;
+

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import SectionCard from './SectionCard';
 import { useTenant } from '../../context/TenantContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import {
     fetchTenantPortals,
     fetchLoanPersons,
@@ -485,3 +485,4 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
 };
 
 export default LoanManagementSection;
+

@@ -4,7 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import IconSelect from '../components/common/IconSelect';
 import CurrencyValue from '../components/common/CurrencyValue';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import {
   executeInternalTransfer,
   fetchPortalTransactions,
@@ -1215,3 +1215,4 @@ const PortalDetailPage = () => {
 };
 
 export default PortalDetailPage;
+

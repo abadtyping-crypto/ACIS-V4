@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PageShell from '../components/layout/PageShell';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/TenantContext';
 import {
   fetchTenantUsersMap,
@@ -947,3 +947,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+

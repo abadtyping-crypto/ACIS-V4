@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Settings,
@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Hash,
   Bell,
+  HardDrive,
+  MessageSquare,
 } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import NotificationSettingsSection from '../components/settings/NotificationSettingsSection';
@@ -27,6 +29,8 @@ import MailConfigurationSection from '../components/settings/MailConfigurationSe
 import ApplicationIconLibrarySection from '../components/settings/ApplicationIconLibrarySection';
 import ServiceTemplateSection from '../components/settings/ServiceTemplateSection';
 import EmailTemplateSection from '../components/settings/EmailTemplateSection';
+import FileManagerSection from '../components/settings/FileManagerSection';
+import WhatsAppConfigurationSection from '../components/settings/WhatsAppConfigurationSection';
 import { useTenant } from '../context/TenantContext';
 import useIsDesktopLayout from '../hooks/useIsDesktopLayout';
 
@@ -42,6 +46,8 @@ const SETTINGS_SECTIONS = [
   { key: 'mailTemplates', label: 'Email Templates', icon: Mailbox },
   { key: 'security', label: 'Security', icon: ShieldCheck },
   { key: 'counters', label: 'ID Rules & Counters', icon: Hash },
+  { key: 'fileManager', label: 'File Manager', icon: HardDrive },
+  { key: 'whatsapp', label: 'WhatsApp Settings', icon: MessageSquare },
 ];
 
 const TAB_ALIAS_MAP = {
@@ -59,21 +65,21 @@ const TAB_ALIAS_MAP = {
 const SettingsPage = () => {
   const { tenant } = useTenant();
   const isDesktop = useIsDesktopLayout();
-  const [searchParams] = useSearchParams();
-  const [activeSection, setActiveSection] = useState(() => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = useMemo(() => {
     const requestedTab = searchParams.get('tab');
     if (!requestedTab) return 'brand';
     const nextSection = TAB_ALIAS_MAP[requestedTab] || requestedTab;
     return SETTINGS_SECTIONS.some((s) => s.key === nextSection) ? nextSection : 'brand';
-  });
+  }, [searchParams]);
 
-  useEffect(() => {
-    const requestedTab = searchParams.get('tab');
-    if (!requestedTab) return;
-    const nextSection = TAB_ALIAS_MAP[requestedTab] || requestedTab;
-    const exists = SETTINGS_SECTIONS.some((section) => section.key === nextSection);
-    if (exists && activeSection !== nextSection) setActiveSection(nextSection);
-  }, [searchParams, activeSection]);
+  const handleSectionChange = (sectionKey) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', sectionKey);
+      return next;
+    });
+  };
 
   const sectionContent = useMemo(() => {
     if (!isDesktop) return <UserControlCenterSection />;
@@ -87,11 +93,13 @@ const SettingsPage = () => {
     if (activeSection === 'mail') return <MailConfigurationSection />;
     if (activeSection === 'mailTemplates') return <EmailTemplateSection />;
     if (activeSection === 'counters') return <IDRulesSection />;
+    if (activeSection === 'fileManager') return <FileManagerSection />;
+    if (activeSection === 'whatsapp') return <WhatsAppConfigurationSection />;
     return <SecuritySection />;
   }, [activeSection, isDesktop]);
 
   return (
-    <div style={isDesktop ? { '--c-accent': tenant.brandColor } : undefined}>
+    <div className="settings-flat-ui" style={isDesktop ? { '--c-accent': tenant.brandColor } : undefined}>
       <PageShell
         title={`${tenant.name} Settings`}
         subtitle={isDesktop
@@ -119,7 +127,7 @@ const SettingsPage = () => {
                 <button
                   key={section.key}
                   type="button"
-                  onClick={() => setActiveSection(section.key)}
+                  onClick={() => handleSectionChange(section.key)}
                   className={`group relative mx-auto flex w-10 items-center justify-center gap-0 rounded-xl px-0 py-2.5 text-left text-sm font-bold transition-all duration-300 group-hover/sidebar:w-full group-hover/sidebar:justify-start group-hover/sidebar:gap-3 group-hover/sidebar:px-3 overflow-hidden ${
                     activeSection === section.key
                       ? 'bg-(--c-panel) text-(--c-text) ring-1 ring-(--c-accent)/20 shadow-sm'
@@ -151,11 +159,11 @@ const SettingsPage = () => {
           
           <div className="min-w-0 flex-1 overflow-hidden">
             <div className="mb-3 lg:hidden">
-              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--c-muted)]">
+              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-(--c-muted)">
                 Quick Section
                 <select
                   value={activeSection}
-                  onChange={(event) => setActiveSection(event.target.value)}
+                  onChange={(event) => handleSectionChange(event.target.value)}
                   className="mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-sm text-(--c-text) outline-none ring-1 ring-(--c-border)"
                 >
                   {SETTINGS_SECTIONS.map((section) => (

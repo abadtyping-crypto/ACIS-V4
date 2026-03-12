@@ -3,6 +3,7 @@ import {
   BellIcon,
   HomeIcon,
   LauncherIcon,
+  PortalIcon,
   StarIcon,
 } from '../icons/AppIcons';
 
@@ -23,7 +24,7 @@ const MobileBottomBar = () => {
           aria-label="Home"
           title="Home"
         >
-          <HomeIcon className="h-5 w-5" />
+          <HomeIcon className="h-6 w-6" />
         </NavLink>
 
         <NavLink
@@ -36,7 +37,7 @@ const MobileBottomBar = () => {
           aria-label="Notifications"
           title="Notifications"
         >
-          <BellIcon className="h-5 w-5" />
+          <BellIcon className="h-6 w-6" />
         </NavLink>
 
         <button
@@ -46,8 +47,21 @@ const MobileBottomBar = () => {
           aria-label="Menu"
           title="Menu"
         >
-          <LauncherIcon className="h-6 w-6" />
+          <LauncherIcon className="h-7 w-7" />
         </button>
+
+        <NavLink
+          to={`/t/${tenantId}/portal-management/new`}
+          className={({ isActive }) =>
+            `mobile-icon-only flex min-h-12 min-w-14 flex-1 items-center justify-center rounded-xl text-lg transition ${
+              isActive ? 'text-[var(--c-accent)] icon-active' : 'text-[var(--c-muted)]'
+            }`
+          }
+          aria-label="Create Portal"
+          title="Create Portal"
+        >
+          <PortalIcon className="h-6 w-6" />
+        </NavLink>
 
         <NavLink
           to={`/t/${tenantId}/favorites`}
@@ -59,7 +73,7 @@ const MobileBottomBar = () => {
           aria-label="Favorites"
           title="Favorites"
         >
-          <StarIcon className="h-5 w-5" />
+          <StarIcon className="h-6 w-6" />
         </NavLink>
 
         <button

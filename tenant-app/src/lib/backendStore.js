@@ -600,6 +600,9 @@ export const fetchPortalTransactions = async (tenantId, portalId, startDate, end
 };
 
 export const upsertTenantSyncEvent = async (tenantId, eventId, payload) => {
+  void tenantId;
+  void eventId;
+  void payload;
   return { ok: true, skipped: true };
 };
 
@@ -1392,6 +1395,7 @@ export const updateTenantClient = async (tenantId, clientId, payload) => {
 };
 
 export const deleteTenantClientCascade = async (tenantId, clientId, deletedBy) => {
+  void deletedBy;
   try {
     const clientRef = doc(db, 'tenants', tenantId, 'clients', clientId);
     const clientSnap = await getDoc(clientRef);
@@ -1663,7 +1667,8 @@ const trySendViaElectronSmtp = async ({ config, to, subject, html, attachments }
     const send = window?.electron?.mail?.send;
     if (typeof send !== 'function') return { ok: false, skipped: true, reason: 'not_electron' };
 
-    const smtp = {
+    // Build configurations for available mail providers
+    const smtp = { // Mail provider config
       host: config.smtpHost,
       port: config.smtpPort,
       user: config.smtpUser,
@@ -1673,11 +1678,22 @@ const trySendViaElectronSmtp = async ({ config, to, subject, html, attachments }
       replyTo: config.replyTo,
     };
 
+    const google = {
+      clientId: config.gmailClientId,
+      clientSecret: config.gmailClientSecret,
+      refreshToken: config.gmailRefreshToken,
+      userEmail: config.gmailEmail,
+      fromName: config.fromName,
+      replyTo: config.replyTo,
+    };
+
     const hasSmtp = smtp.host && smtp.port && smtp.user && smtp.pass;
-    if (!hasSmtp) return { ok: false, skipped: true, reason: 'smtp_missing' };
+    const hasGoogle = google.clientId && google.clientSecret && google.refreshToken;
+    if (!hasSmtp && !hasGoogle) return { ok: false, skipped: true, reason: 'config_missing' };
 
     const res = await send({
-      smtp,
+      smtp: hasSmtp ? smtp : null,
+      google: hasGoogle ? google : null,
       message: {
         to: Array.isArray(to) ? to : [to],
         subject,
@@ -1687,7 +1703,7 @@ const trySendViaElectronSmtp = async ({ config, to, subject, html, attachments }
     });
 
     if (res?.ok) return { ok: true, skipped: false };
-    return { ok: false, skipped: false, error: res?.error || 'SMTP send failed.' };
+    return { ok: false, skipped: false, error: res?.error || 'Mail send failed.' };
   } catch (error) {
     return { ok: false, skipped: false, error: toSafeError(error) };
   }
@@ -1956,9 +1972,36 @@ export const fetchDailyTransactionsPage = async (tenantId, { pageSize = 50, curs
   }
 };
 
-/**
- * Generates the next formatted Transaction ID based on tenant rules.
- */
+
+
+// ─── Integrations (Drive, etc.) ───────────────────────────────────────────────
+
+export const fetchTenantIntegrationConfig = async (tenantId) => {
+  try {
+    const snap = await getDoc(doc(db, 'tenants', tenantId, 'settings', 'integrations'));
+    return { ok: true, data: snap.exists() ? snap.data() : null };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] integrations read failed tenants/${tenantId}/settings/integrations: ${message}`);
+    return { ok: false, error: message, data: null };
+  }
+};
+
+export const upsertTenantIntegrationConfig = async (tenantId, payload) => {
+  try {
+    await setDoc(
+      doc(db, 'tenants', tenantId, 'settings', 'integrations'),
+      { ...payload, updatedAt: serverTimestamp() },
+      { merge: true },
+    );
+    return { ok: true };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] integrations upsert failed tenants/${tenantId}/settings/integrations: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
 export const generateNextTransactionId = async (tenantId, ruleKey = 'DTID') => {
   try {
     // 1. Fetch customizable rules

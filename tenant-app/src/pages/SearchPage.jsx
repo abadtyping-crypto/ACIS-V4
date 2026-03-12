@@ -29,12 +29,14 @@ const iconByKey = {
   proformaQuotation: QuotationIcon,
   operationExpenses: ExpenseIcon,
   portalManagement: PortalIcon,
+  createPortal: PortalIcon,
   documentCalendar: CalendarIcon,
 };
 
 const categoryByKey = {
   settings: 'Settings',
   portalManagement: 'Portals',
+  createPortal: 'Portals',
   documentCalendar: 'Calendar',
 };
 

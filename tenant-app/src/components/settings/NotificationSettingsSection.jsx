@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { useTenant } from '../../context/TenantContext';
 import { getTenantSettingDoc, upsertTenantSettingDoc } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
@@ -128,3 +128,4 @@ const NotificationSettingsSection = () => {
 };
 
 export default NotificationSettingsSection;
+

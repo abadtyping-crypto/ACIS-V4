@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { Facebook, Instagram, Twitter, Linkedin, Building2 } from 'lucide-react';
 import { deleteField } from 'firebase/firestore';
 import SettingCard from './SettingCard';
@@ -852,3 +852,4 @@ const BrandDetailsSection = () => {
 };
 
 export default BrandDetailsSection;
+

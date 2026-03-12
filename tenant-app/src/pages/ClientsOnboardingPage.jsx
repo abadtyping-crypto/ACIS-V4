@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import PageShell from '../components/layout/PageShell';
 import { useTenant } from '../context/TenantContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { List, UserPlus, Users } from 'lucide-react';
 import CompanyRegistrationForm from '../components/onboarding/CompanyRegistrationForm';
 import IndividualRegistrationForm from '../components/onboarding/IndividualRegistrationForm';
@@ -228,3 +228,4 @@ const ClientsOnboardingPage = () => {
 };
 
 export default ClientsOnboardingPage;
+

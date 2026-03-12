@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { useTenant } from '../../context/TenantContext';
 import {
   fetchTenantPdfTemplates,
@@ -537,3 +537,4 @@ const PdfCustomizationStudioSection = () => {
 };
 
 export default PdfCustomizationStudioSection;
+

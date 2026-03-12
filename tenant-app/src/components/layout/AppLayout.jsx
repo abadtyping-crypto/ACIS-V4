@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { useTenant } from '../../context/TenantContext';
 import useIsDesktopLayout from '../../hooks/useIsDesktopLayout';
 import DesktopLayout from './DesktopLayout';
@@ -83,3 +83,4 @@ const AppLayout = () => {
 };
 
 export default AppLayout;
+

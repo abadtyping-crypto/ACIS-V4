@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useReducer } from 'react';
 import SettingCard from './SettingCard';
 import {
   USER_NOTIFICATION_EVENTS,
@@ -7,21 +7,15 @@ import {
 } from '../../lib/userControlPreferences';
 
 const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
-  const [rules, setRules] = useState(null);
-  const [prevUid, setPrevUid] = useState(null);
-
+  const [, forceRefresh] = useReducer((value) => value + 1, 0);
   if (!selectedUser) return null;
-
-  if (selectedUser.uid !== prevUid) {
-    setPrevUid(selectedUser.uid);
-    setRules(getUserNotificationRules(tenantId, selectedUser.uid));
-  }
+  const rules = getUserNotificationRules(tenantId, selectedUser.uid);
 
   if (!rules) return null;
 
   const save = (nextRules) => {
-    const persisted = saveUserNotificationRules(tenantId, selectedUser.uid, nextRules);
-    setRules(persisted);
+    saveUserNotificationRules(tenantId, selectedUser.uid, nextRules);
+    forceRefresh();
   };
 
   const toggleChannel = (key) => {
@@ -37,9 +31,9 @@ const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
       title="User Notification Rules"
       description="Customize notification behavior per user without changing other users."
     >
-      <div className="mb-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-        <p className="text-sm text-[var(--c-muted)]">
-          Selected: <span className="font-semibold text-[var(--c-text)]">{selectedUser.displayName}</span>
+      <div className="mb-3 rounded-xl border border-(--c-border) bg-(--c-panel) p-3">
+        <p className="text-sm text-(--c-muted)">
+          Selected: <span className="font-semibold text-(--c-text)">{selectedUser.displayName}</span>
         </p>
       </div>
 
@@ -49,43 +43,43 @@ const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
             key={channel}
             onClick={() => toggleChannel(channel)}
             className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition ${rules[channel]
-              ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/5'
-              : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:bg-[var(--c-surface)]'
+              ? 'border-(--c-accent) bg-(--c-accent)/5'
+              : 'border-(--c-border) bg-(--c-panel) hover:bg-(--c-surface)'
               }`}
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-(--c-muted)">
               {channel === 'inApp' ? 'In-App' : channel}
             </span>
-            <div className={`h-1.5 w-1.5 rounded-full ${rules[channel] ? 'bg-[var(--c-accent)] shadow-[0_0_8px_var(--c-accent)]' : 'bg-slate-700'}`} />
+            <div className={`h-1.5 w-1.5 rounded-full ${rules[channel] ? 'bg-(--c-accent) shadow-[0_0_8px_var(--c-accent)]' : 'bg-slate-700'}`} />
           </button>
         ))}
       </div>
 
       <div className="mt-4 grid gap-2">
-        <p className="px-1 text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Event Triggers</p>
+        <p className="px-1 text-[10px] font-bold uppercase tracking-widest text-(--c-muted)">Event Triggers</p>
         {USER_NOTIFICATION_EVENTS.map((item) => (
           <button
             key={item.key}
             type="button"
             onClick={() => toggleEvent(item.key)}
             className={`flex items-center justify-between rounded-xl border p-3 transition ${rules.events[item.key]
-              ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/5'
-              : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:bg-[var(--c-surface)]'
+              ? 'border-(--c-accent) bg-(--c-accent)/5'
+              : 'border-(--c-border) bg-(--c-panel) hover:bg-(--c-surface)'
               }`}
           >
-            <p className="text-sm font-bold text-[var(--c-text)]">{item.label}</p>
-            <div className={`h-1.5 w-1.5 rounded-full ${rules.events[item.key] ? 'bg-[var(--c-accent)] shadow-[0_0_8px_var(--c-accent)]' : 'bg-slate-700'}`} />
+            <p className="text-sm font-bold text-(--c-text)">{item.label}</p>
+            <div className={`h-1.5 w-1.5 rounded-full ${rules.events[item.key] ? 'bg-(--c-accent) shadow-[0_0_8px_var(--c-accent)]' : 'bg-slate-700'}`} />
           </button>
         ))}
       </div>
 
       <div className="mt-4 space-y-3">
         <div className="flex items-center justify-between px-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Quiet Hours</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-(--c-muted)">Quiet Hours</p>
           <button
             type="button"
             onClick={() => save({ ...rules, quietHoursEnabled: !rules.quietHoursEnabled })}
-            className={`relative h-5 w-9 rounded-full transition ${rules.quietHoursEnabled ? 'bg-[var(--c-accent)]' : 'bg-slate-700'
+            className={`relative h-5 w-9 rounded-full transition ${rules.quietHoursEnabled ? 'bg-(--c-accent)' : 'bg-slate-700'
               }`}
           >
             <div
@@ -96,23 +90,23 @@ const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
         </div>
 
         {rules.quietHoursEnabled && (
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+          <div className="grid grid-cols-2 gap-3 rounded-xl border border-(--c-border) bg-(--c-panel) p-3">
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-[var(--c-muted)] uppercase">From</p>
+              <p className="text-[10px] font-bold text-(--c-muted) uppercase">From</p>
               <input
                 type="time"
                 value={rules.quietFrom}
                 onChange={(event) => save({ ...rules, quietFrom: event.target.value })}
-                className="w-full bg-transparent text-sm font-bold text-[var(--c-text)] outline-none"
+                className="w-full bg-transparent text-sm font-bold text-(--c-text) outline-none"
               />
             </div>
             <div className="space-y-1">
-              <p className="text-[10px] font-bold text-[var(--c-muted)] uppercase">To</p>
+              <p className="text-[10px] font-bold text-(--c-muted) uppercase">To</p>
               <input
                 type="time"
                 value={rules.quietTo}
                 onChange={(event) => save({ ...rules, quietTo: event.target.value })}
-                className="w-full bg-transparent text-sm font-bold text-[var(--c-text)] outline-none"
+                className="w-full bg-transparent text-sm font-bold text-(--c-text) outline-none"
               />
             </div>
           </div>

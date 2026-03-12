@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useTenant } from '../context/TenantContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import {
     generateNextTransactionId,
     createDailyTransactionWithFinancials,
@@ -478,3 +478,4 @@ const DailyTransactionPage = () => {
 };
 
 export default DailyTransactionPage;
+

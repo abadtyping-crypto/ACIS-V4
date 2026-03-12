@@ -1,21 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Building2, ImageIcon, Layers, ListChecks, Wallet } from 'lucide-react';
 import SectionCard from './SectionCard';
 import { useTenant } from '../../context/TenantContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import {
     fetchTenantPortals,
     upsertTenantNotification,
     upsertTenantPortal,
     deleteTenantPortal,
-    upsertTenantPortalTransaction
+    upsertTenantPortalTransaction,
+    generateDisplayPortalId,
 } from '../../lib/backendStore';
 import { uploadPortalIcon } from '../../lib/portalStorage';
 import { createSyncEvent } from '../../lib/syncEvents';
 import { buildNotificationPayload, generateNotificationId } from '../../lib/notificationTemplate';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
-import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
+import { fetchApplicationIconLibrary, upsertApplicationIcon } from '../../lib/applicationIconLibraryStore';
+import { toSafeDocId as toSafeIconId } from '../../lib/idUtils';
+import { uploadApplicationIconAsset, validateApplicationIconFile } from '../../lib/applicationIconStorage';
 import ImageStudio from '../common/ImageStudio';
 import { getCroppedImg } from '../../lib/imageStudioUtils';
 
@@ -52,6 +56,9 @@ const iconFilterMap = {
     soft: { label: 'Soft', css: 'brightness(1.05) saturate(0.9)', canvas: 'brightness(105%) saturate(90%)' },
 };
 
+const iconBadgeBaseClass =
+    'inline-flex items-center justify-center rounded-md border border-(--c-border) bg-[color-mix(in_srgb,var(--c-surface)_25%,white_75%)]';
+
 const ICON_OUTPUT_SIZE = 256;
 const ICON_MAX_BYTES = 100 * 1024;
 
@@ -84,6 +91,11 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     const [iconDirty, setIconDirty] = useState(false);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
     const [methodIconMap, setMethodIconMap] = useState({});
+    const [iconLibrary, setIconLibrary] = useState([]);
+    const [newIconName, setNewIconName] = useState('');
+    const [newIconFile, setNewIconFile] = useState(null);
+    const [isAddingLibraryIcon, setIsAddingLibraryIcon] = useState(false);
+    const [isIconStudioOpen, setIsIconStudioOpen] = useState(false);
 
     const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
         setCroppedAreaPixels(croppedAreaPixels);
@@ -102,6 +114,20 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         setIsLoading(false);
     }, [tenantId]);
 
+    const loadIconLibrary = useCallback(async () => {
+        const res = await fetchApplicationIconLibrary(tenantId);
+        if (!res.ok) return false;
+        const nextMap = {};
+        (res.rows || []).forEach((row) => {
+            const key = String(row?.iconId || '').trim().toLowerCase();
+            if (!key || !row?.iconUrl) return;
+            nextMap[key] = row.iconUrl;
+        });
+        setMethodIconMap(nextMap);
+        setIconLibrary((res.rows || []).filter((row) => !!row.iconUrl));
+        return true;
+    }, [tenantId]);
+
     useEffect(() => {
         if (!tenantId || !isOpen) return;
         fetchPortals();
@@ -110,20 +136,13 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     useEffect(() => {
         if (!tenantId || !isOpen) return;
         let isMounted = true;
-        fetchApplicationIconLibrary(tenantId).then((res) => {
-            if (!isMounted || !res.ok) return;
-            const nextMap = {};
-            (res.rows || []).forEach((row) => {
-                const key = String(row?.iconId || '').trim().toLowerCase();
-                if (!key || !row?.iconUrl) return;
-                nextMap[key] = row.iconUrl;
-            });
-            setMethodIconMap(nextMap);
+        loadIconLibrary().then((ok) => {
+            if (!isMounted || !ok) return;
         });
         return () => {
             isMounted = false;
         };
-    }, [tenantId, isOpen, refreshKey]);
+    }, [tenantId, isOpen, refreshKey, loadIconLibrary]);
 
     const handleEdit = (p) => {
         setEditingPortal(p);
@@ -138,6 +157,9 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         setIconRotation(0);
         setIconDirty(false);
         setCroppedAreaPixels(null);
+        setIsIconStudioOpen(false);
+        setNewIconName('');
+        setNewIconFile(null);
         setView('form');
     };
 
@@ -159,6 +181,9 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         setIconRotation(0);
         setIconDirty(false);
         setCroppedAreaPixels(null);
+        setIsIconStudioOpen(false);
+        setNewIconName('');
+        setNewIconFile(null);
         setView('form');
     };
 
@@ -184,6 +209,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
             setIconRotation(0);
             setIconDirty(true);
             setCroppedAreaPixels(null);
+            setIsIconStudioOpen(true);
         } catch (e) {
             console.error(e);
             setStatus({ message: 'Unable to read image file.', type: 'error' });
@@ -198,6 +224,88 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         setIconRotation(0);
         setIconDirty(false);
         setCroppedAreaPixels(null);
+        setIsIconStudioOpen(false);
+    };
+
+    const handleSelectLibraryIcon = (iconUrl) => {
+        if (!iconUrl) return;
+        setIconSourceUrl(iconUrl);
+        setIconRawUrl('');
+        setIconDirty(true);
+        setCroppedAreaPixels(null);
+        setIsIconStudioOpen(false);
+    };
+
+    const handleNewLibraryIconFile = (event) => {
+        const file = event.target.files?.[0] || null;
+        event.target.value = '';
+        if (!file) return;
+        const validationError = validateApplicationIconFile(file);
+        if (validationError) {
+            setStatus({ message: validationError, type: 'error' });
+            return;
+        }
+        setNewIconFile(file);
+        setStatus({ message: '', type: '' });
+    };
+
+    const handleAddLibraryIcon = async () => {
+        const trimmedName = String(newIconName || '').trim();
+        if (!trimmedName) {
+            setStatus({ message: 'Icon name is required.', type: 'error' });
+            return;
+        }
+        if (!newIconFile) {
+            setStatus({ message: 'Choose an icon image first.', type: 'error' });
+            return;
+        }
+
+        const iconId = toSafeIconId(trimmedName, 'app_icon');
+        setIsAddingLibraryIcon(true);
+        try {
+            const uploadRes = await uploadApplicationIconAsset({
+                tenantId,
+                iconId,
+                fileBlob: newIconFile,
+            });
+            if (!uploadRes.ok) {
+                setStatus({ message: uploadRes.error || 'Icon upload failed.', type: 'error' });
+                return;
+            }
+
+            const saveRes = await upsertApplicationIcon(
+                tenantId,
+                iconId,
+                {
+                    iconName: trimmedName,
+                    iconUrl: uploadRes.iconUrl,
+                    createdBy: user.uid,
+                    updatedBy: user.uid,
+                },
+                { isCreate: true },
+            );
+            if (!saveRes.ok) {
+                setStatus({ message: saveRes.error || 'Failed to save icon record.', type: 'error' });
+                return;
+            }
+
+            await createSyncEvent({
+                tenantId,
+                eventType: 'create',
+                entityType: 'applicationIcon',
+                entityId: iconId,
+                changedFields: ['iconName', 'iconUrl', 'updatedBy'],
+                createdBy: user.uid,
+            });
+
+            await loadIconLibrary();
+            handleSelectLibraryIcon(uploadRes.iconUrl);
+            setNewIconName('');
+            setNewIconFile(null);
+            setStatus({ message: 'Icon added to library and selected.', type: 'success' });
+        } finally {
+            setIsAddingLibraryIcon(false);
+        }
     };
 
     const handleSave = async () => {
@@ -207,7 +315,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         }
 
         setIsSaving(true);
-        const targetPortalId = editingPortal?.id || `portal_${Date.now()}`;
+        const targetPortalId = editingPortal?.id || await generateDisplayPortalId(tenantId);
         let iconUrl = iconSourceUrl || portalTypes.find((t) => t.id === form.type)?.icon || '';
 
         if (iconDirty && iconRawUrl && croppedAreaPixels) {
@@ -270,25 +378,40 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
 
         if (!editingPortal) {
             const routePath = `/t/${tenantId}/portal-management/${targetPortalId}`;
-            await upsertTenantNotification(
-                tenantId,
-                generateNotificationId({ topic: 'finance', subTopic: 'portal' }),
-                buildNotificationPayload({
+            const notificationPayload = {
+                ...buildNotificationPayload({
                     topic: 'finance',
                     subTopic: 'portal',
                     type: 'create',
                     title: 'Portal Created',
-                    detail: `${form.name} was created successfully.`,
+                    message: `${form.name} was created successfully.`,
                     createdBy: user.uid,
                     routePath,
                     actionPresets: ['view'],
-                    extra: {
-                        eventType: 'create',
-                        entityType: 'portal',
-                        entityId: targetPortalId,
-                    },
                 }),
+                eventType: 'create',
+                entityType: 'portal',
+                entityId: targetPortalId,
+                entityLabel: form.name,
+                pageKey: 'portalManagement',
+                sectionKey: 'portalSetup',
+            };
+
+            const primaryNotificationId = generateNotificationId({ topic: 'finance', subTopic: 'portal' });
+            const notificationWrite = await upsertTenantNotification(
+                tenantId,
+                primaryNotificationId,
+                notificationPayload,
             );
+
+            // Retry once with a unique timestamp to avoid rare same-millisecond ID collisions.
+            if (!notificationWrite.ok) {
+                await upsertTenantNotification(
+                    tenantId,
+                    generateNotificationId({ topic: 'finance', subTopic: 'portal', at: Date.now() + 1 }),
+                    notificationPayload,
+                );
+            }
         }
 
         await createSyncEvent({
@@ -326,14 +449,14 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
     const primaryAction = view === 'list' ? (
         <button
             onClick={handleAddNew}
-            className="rounded-xl bg-[var(--c-accent)] px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:opacity-90 transition"
+            className="rounded-xl bg-(--c-accent) px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:opacity-90 transition"
         >
             Add New
         </button>
     ) : (
         <button
             onClick={() => { setView('list'); setStatus({ message: '', type: '' }); }}
-            className="rounded-xl border border-[var(--c-border)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--c-text)] hover:bg-slate-50 transition"
+            className="rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-1.5 text-xs font-bold text-(--c-text) transition hover:border-(--c-accent) hover:text-(--c-accent)"
         >
             Back to List
         </button>
@@ -346,17 +469,18 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
             defaultOpen={isOpen}
             onToggle={onToggle}
             primaryAction={primaryAction}
+            titleIcon={Building2}
         >
             <div className="space-y-4">
                 {view === 'list' ? (
                     <div className="grid gap-3 sm:grid-cols-2">
                         {isLoading ? (
-                            <p className="col-span-full py-4 text-center text-xs text-[var(--c-muted)]">Loading portals...</p>
+                            <p className="col-span-full py-4 text-center text-xs text-(--c-muted)">Loading portals...</p>
                         ) : portals.length === 0 ? (
-                            <p className="col-span-full py-4 text-center text-xs text-[var(--c-muted)]">No portals configured yet.</p>
+                            <p className="col-span-full py-4 text-center text-xs text-(--c-muted)">No portals configured yet.</p>
                         ) : (
                             portals.map(p => (
-                                <div key={p.id} className="group flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm transition hover:border-[var(--c-accent)]">
+                                <div key={p.id} className="group flex items-center justify-between rounded-xl border border-(--c-border) bg-(--c-surface) p-3 shadow-sm transition hover:border-(--c-accent)">
                                     <div className="flex items-center gap-3">
                                         <div className="h-9 w-9 overflow-hidden rounded-lg">
                                             <img
@@ -370,14 +494,14 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                             />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="truncate text-xs font-bold text-[var(--c-text)]">{p.name}</p>
-                                            <p className="text-[10px] text-[var(--c-muted)] uppercase tracking-wider">{p.type}</p>
+                                            <p className="truncate text-xs font-bold text-(--c-text)">{p.name}</p>
+                                            <p className="text-[10px] text-(--c-muted) uppercase tracking-wider">{p.type}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         <button
                                             onClick={() => navigate(`/t/${tenantId}/portal-management/${p.id}`)}
-                                            className="rounded-lg bg-[var(--c-panel)] p-1.5 text-[var(--c-muted)] hover:text-[var(--c-accent)] transition"
+                                            className="rounded-lg bg-(--c-panel) p-1.5 text-(--c-muted) hover:text-(--c-accent) transition"
                                             title="Open details"
                                         >
                                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -387,7 +511,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                         </button>
                                         <button
                                             onClick={() => handleEdit(p)}
-                                            className="rounded-lg bg-[var(--c-panel)] p-1.5 text-[var(--c-muted)] hover:text-[var(--c-accent)] transition"
+                                            className="rounded-lg bg-(--c-panel) p-1.5 text-(--c-muted) hover:text-(--c-accent) transition"
                                             title="Edit"
                                         >
                                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -396,7 +520,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                         </button>
                                         <button
                                             onClick={() => handleDelete(p)}
-                                            className="rounded-lg bg-[var(--c-panel)] p-1.5 text-[var(--c-muted)] hover:text-rose-500 transition"
+                                            className="rounded-lg bg-(--c-panel) p-1.5 text-(--c-muted) hover:text-rose-500 transition"
                                             title="Delete"
                                         >
                                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -414,34 +538,40 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                             {/* Left Column: Info */}
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Portal Name</label>
+                                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-(--c-muted)">
+                                        <Building2 className="h-3.5 w-3.5 text-(--c-accent)" />
+                                        Portal Name
+                                    </label>
                                     <input
                                         type="text"
                                         value={form.name}
                                         onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                                        className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                        className="mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-surface) px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-(--c-accent)/20"
                                         placeholder="e.g. Operation Bank A"
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">{editingPortal ? 'Current Balance' : 'Opening Balance'}</label>
+                                        <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-(--c-muted)">
+                                            <Wallet className="h-3.5 w-3.5 text-(--c-accent)" />
+                                            {editingPortal ? 'Current Balance' : 'Opening Balance'}
+                                        </label>
                                         <input
                                             type="number"
                                             value={form.balance}
                                             onChange={(e) => setForm(f => ({ ...f, balance: e.target.value }))}
                                             disabled={!!editingPortal}
-                                            className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20 disabled:opacity-50"
+                                            className="mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-surface) px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-(--c-accent)/20 disabled:opacity-50"
                                         />
                                     </div>
                                     {!editingPortal && Number(form.balance) > 0 && (
                                         <div>
-                                            <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Type</label>
+                                            <label className="text-[10px] font-bold uppercase text-(--c-muted)">Type</label>
                                             <select
                                                 value={form.balanceType}
                                                 onChange={(e) => setForm(f => ({ ...f, balanceType: e.target.value }))}
-                                                className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none"
+                                                className="mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-surface) px-3 py-2 text-xs font-bold outline-none"
                                             >
                                                 <option value="positive">Positive (+)</option>
                                                 <option value="negative">Negative (-)</option>
@@ -451,16 +581,21 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Portal Category</label>
+                                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-(--c-muted)">
+                                        <Layers className="h-3.5 w-3.5 text-(--c-accent)" />
+                                        Portal Category
+                                    </label>
                                     <div className="mt-2 grid grid-cols-3 gap-2">
                                         {portalTypes.map(t => (
                                             <button
                                                 key={t.id}
                                                 onClick={() => onTypeChange(t.id)}
-                                                className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition ${form.type === t.id ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/5' : 'border-[var(--c-border)] bg-white hover:bg-slate-50'}`}
+                                                className={`flex flex-col items-center gap-1.5 rounded-xl border bg-(--c-surface) p-2 transition ${form.type === t.id ? 'border-(--c-accent) shadow-sm ring-1 ring-(--c-accent)/20' : 'border-(--c-border) hover:border-(--c-accent)/30'}`}
                                             >
-                                                <img src={t.icon} alt={t.label} className="h-6 w-6 object-contain" />
-                                                <span className="text-[9px] font-bold uppercase text-[var(--c-muted)]">{t.label}</span>
+                                                <span className={`${iconBadgeBaseClass} h-11 w-11 rounded-lg ${form.type === t.id ? 'ring-1 ring-(--c-accent)/30' : ''}`}>
+                                                    <img src={t.icon} alt={t.label} className="h-10 w-10 object-contain" />
+                                                </span>
+                                                <span className="text-[9px] font-bold uppercase text-(--c-text)">{t.label}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -469,27 +604,128 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
 
                             {/* Right Column: Icon & Methods */}
                             <div className="space-y-4">
-                                <ImageStudio
-                                    sourceUrl={iconSourceUrl}
-                                    onReset={onIconReset}
-                                    zoom={iconZoom}
-                                    setZoom={setIconZoom}
-                                    rotation={iconRotation}
-                                    setRotation={setRotationWrapper}
-                                    filter={iconFilter}
-                                    setFilter={setIconFilter}
-                                    filterMap={iconFilterMap}
-                                    onFileChange={onIconFileChange}
-                                    onCropComplete={onCropComplete}
-                                    title="Portal Icon Studio"
-                                    previewBgClass="bg-white"
-                                    previewFrame={false}
-                                    previewRoundedClass="rounded-xl"
-                                    compact={true}
-                                />
+                                <div className="rounded-xl border border-(--c-border) bg-(--c-surface) p-3">
+                                    <div className="mb-2 flex items-center justify-between gap-2">
+                                        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-(--c-muted)">
+                                            <ImageIcon className="h-3.5 w-3.5 text-(--c-accent)" />
+                                            Portal Logo
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsIconStudioOpen((prev) => !prev)}
+                                            className="rounded-lg border border-(--c-border) bg-(--c-panel) px-2.5 py-1 text-[10px] font-bold text-(--c-text) transition hover:border-(--c-accent) hover:text-(--c-accent)"
+                                        >
+                                            {isIconStudioOpen ? 'Close Studio' : 'Change Logo'}
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-15 w-15 overflow-hidden rounded-lg border border-(--c-border) bg-[color-mix(in_srgb,var(--c-surface)_20%,white_80%)]">
+                                            <img
+                                                src={iconSourceUrl || fallbackPortalIcon(form.type)}
+                                                alt="Portal logo preview"
+                                                className="h-full w-full object-contain p-0"
+                                                onError={(event) => {
+                                                    event.currentTarget.onerror = null;
+                                                    event.currentTarget.src = fallbackPortalIcon(form.type);
+                                                }}
+                                            />
+                                        </div>
+                                        <p className="text-[11px] text-(--c-muted)">
+                                            Existing logo remains unchanged unless you explicitly update it.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {isIconStudioOpen && (
+                                    <ImageStudio
+                                        sourceUrl={iconSourceUrl}
+                                        onReset={onIconReset}
+                                        zoom={iconZoom}
+                                        setZoom={setIconZoom}
+                                        rotation={iconRotation}
+                                        setRotation={setRotationWrapper}
+                                        filter={iconFilter}
+                                        setFilter={setIconFilter}
+                                        filterMap={iconFilterMap}
+                                        onFileChange={onIconFileChange}
+                                        onCropComplete={onCropComplete}
+                                        title="Portal Icon Studio"
+                                        previewBgClass="bg-white"
+                                        previewFrame={false}
+                                        previewRoundedClass="rounded-xl"
+                                        compact={true}
+                                    />
+                                )}
+
+                                <div className="rounded-xl border border-(--c-border) bg-(--c-surface) p-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-(--c-muted)">
+                                            Icon Library
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/t/${tenantId}/settings?tab=appIconLibrary`)}
+                                            className="rounded-lg border border-(--c-border) bg-(--c-panel) px-2 py-1 text-[10px] font-bold text-(--c-text) transition hover:border-(--c-accent) hover:text-(--c-accent)"
+                                        >
+                                            Open Library
+                                        </button>
+                                    </div>
+
+                                    {iconLibrary.length > 0 ? (
+                                        <div className="mt-2 grid grid-cols-5 gap-2">
+                                            {iconLibrary.map((item) => {
+                                                const isSelected = iconSourceUrl === item.iconUrl;
+                                                return (
+                                                    <button
+                                                        key={item.iconId}
+                                                        type="button"
+                                                        onClick={() => handleSelectLibraryIcon(item.iconUrl)}
+                                                        className={`h-11 w-11 rounded-lg border bg-white p-1 transition ${isSelected ? 'border-(--c-accent) ring-1 ring-(--c-accent)/30' : 'border-(--c-border) hover:border-(--c-accent)/30'}`}
+                                                        title={item.iconName || item.iconId}
+                                                    >
+                                                        <img src={item.iconUrl} alt={item.iconName || item.iconId} className="h-full w-full object-contain" />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="mt-2 text-[11px] text-(--c-muted)">
+                                            No custom icons available yet.
+                                        </p>
+                                    )}
+
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                        <input
+                                            type="text"
+                                            value={newIconName}
+                                            onChange={(event) => setNewIconName(event.target.value)}
+                                            placeholder="New icon name"
+                                            className="w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-xs font-bold text-(--c-text) outline-none"
+                                        />
+                                        <input
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                            onChange={handleNewLibraryIconFile}
+                                            className="w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2 text-xs text-(--c-text)"
+                                        />
+                                    </div>
+                                    <div className="mt-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleAddLibraryIcon}
+                                            disabled={isAddingLibraryIcon}
+                                            className="rounded-lg border border-(--c-border) bg-(--c-panel) px-3 py-2 text-[10px] font-bold text-(--c-text) transition hover:border-(--c-accent) hover:text-(--c-accent) disabled:opacity-50"
+                                        >
+                                            {isAddingLibraryIcon ? 'Adding Icon...' : 'Add Icon to Library'}
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Allowed Methods</label>
+                                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-(--c-muted)">
+                                        <ListChecks className="h-3.5 w-3.5 text-(--c-accent)" />
+                                        Allowed Methods
+                                    </label>
                                     <div className="mt-2 grid grid-cols-2 gap-2">
                                         {transactionMethods.map(m => {
                                             const active = form.methods.includes(m.id);
@@ -501,10 +737,12 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                                                         ...f,
                                                         methods: active ? f.methods.filter(id => id !== m.id) : [...f.methods, m.id]
                                                     }))}
-                                                    className={`flex items-center gap-2 rounded-xl border p-2 transition ${active ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/5' : 'border-[var(--c-border)] bg-white hover:bg-slate-50'}`}
+                                                    className={`flex items-center gap-2 rounded-xl border bg-(--c-surface) p-2 transition ${active ? 'border-(--c-accent) shadow-sm ring-1 ring-(--c-accent)/20' : 'border-(--c-border) hover:border-(--c-accent)/30'}`}
                                                 >
-                                                    <img src={firestoreIcon || m.icon} alt={m.label} className="h-4 w-4 object-contain" />
-                                                    <span className="text-[10px] font-bold text-[var(--c-text)]">{m.label}</span>
+                                                    <span className={`${iconBadgeBaseClass} h-9 w-9 shrink-0 ${active ? 'ring-1 ring-(--c-accent)/30' : ''}`}>
+                                                        <img src={firestoreIcon || m.icon} alt={m.label} className="h-8 w-8 object-contain" />
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-(--c-text)">{m.label}</span>
                                                 </button>
                                             );
                                         })}
@@ -521,17 +759,17 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-3 pt-4 border-t border-[var(--c-border)]">
+                        <div className="flex gap-3 pt-4 border-t border-(--c-border)">
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving}
-                                className="flex-1 rounded-xl bg-[var(--c-accent)] py-3 text-sm font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 hover:opacity-90 disabled:opacity-50 transition"
+                                className="flex-1 rounded-xl bg-(--c-accent) py-3 text-sm font-bold text-white shadow-lg shadow-(--c-accent)/20 hover:opacity-90 disabled:opacity-50 transition"
                             >
                                 {isSaving ? 'Saving...' : editingPortal ? 'Update Portal' : 'Create Portal'}
                             </button>
                             <button
                                 onClick={() => setView('list')}
-                                className="flex-1 rounded-xl border border-[var(--c-border)] py-3 text-sm font-bold text-[var(--c-text)] hover:bg-[var(--c-panel)] transition"
+                                className="flex-1 rounded-xl border border-(--c-border) py-3 text-sm font-bold text-(--c-text) hover:bg-(--c-panel) transition"
                             >
                                 Cancel
                             </button>
@@ -544,3 +782,4 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
 };
 
 export default PortalSetupSection;
+

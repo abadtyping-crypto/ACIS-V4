@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { useTenant } from '../../context/TenantContext';
 import { fetchTenantMailConfig, sendTenantWelcomeEmail, upsertTenantMailConfig } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
@@ -380,3 +380,4 @@ const EmailTemplateSection = () => {
 };
 
 export default EmailTemplateSection;
+

@@ -1,10 +1,11 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { fetchTenantUsersMap, upsertTenantUserMap } from '../lib/backendStore';
+import { sendWhatsAppOTP } from '../lib/whatsappAuth';
 import { auth } from '../lib/firebaseConfig';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { AuthContext } from './AuthContextValue';
 
 const AUTH_STORAGE_KEY = 'acis_auth_session_v1';
-const AuthContext = createContext(null);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_ROLES = new Set(['Super Admin', 'Admin', 'Manager', 'Accountant', 'Staff']);
 const ALLOWED_STATUS = new Set(['Active', 'Frozen', 'Invited']);
@@ -71,7 +72,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithUid = async (tenantId, inputId, password) => {
-    // We fetch all users first to ensure case-insensitive matching for legacy users who might have mixed case
     const usersRes = await fetchTenantUsersMap(tenantId);
     if (!usersRes.ok) return { ok: false, error: 'Failed to access tenant users.' };
 
@@ -84,7 +84,6 @@ export const AuthProvider = ({ children }) => {
 
     if (!matchedUser) return { ok: false, error: 'User not found in this tenant workspace.' };
 
-    // Set result.data as if it just came from a getDoc call
     const result = { data: matchedUser };
     if (result.data.password) {
       if (!password || password !== result.data.password) {
@@ -200,6 +199,55 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const initiateWhatsAppLogin = async (tenantId, phoneNumber, otpCode) => {
+    const usersRes = await fetchTenantUsersMap(tenantId);
+    if (!usersRes.ok) return { ok: false, error: 'Failed to access tenant users.' };
+
+    const searchStr = String(phoneNumber).replace(/\D/g, '');
+    const matchedUser = usersRes.rows.find(u => 
+      (u.mobile && String(u.mobile).replace(/\D/g, '') === searchStr) ||
+      (u.email && u.email.includes(searchStr))
+    );
+
+    if (!matchedUser) {
+      return { ok: false, error: 'User with this phone number not found in this tenant.' };
+    }
+
+    const res = await sendWhatsAppOTP(tenantId, phoneNumber, otpCode);
+    if (!res.ok) return res;
+
+    return { ok: true, matchedUser };
+  };
+
+  const completeWhatsAppLogin = async (tenantId, matchedUser) => {
+    const rawUser = {
+      uid: matchedUser.uid,
+      displayName: matchedUser.displayName || 'User',
+      role: matchedUser.role || 'Staff',
+      email: matchedUser.email || '',
+      photoURL: matchedUser.photoURL || '/avatar.png',
+      status: matchedUser.status || 'Active',
+    };
+
+    if (String(rawUser.status).toLowerCase() === 'invited') {
+      const activated = {
+        ...matchedUser,
+        status: 'Active',
+        invitedAcceptedAt: new Date().toISOString(),
+      };
+      await upsertTenantUserMap(tenantId, rawUser.uid, activated);
+      rawUser.status = 'Active';
+    }
+
+    const validated = toValidatedUser(rawUser);
+    if (!validated.ok) return validated;
+
+    const nextSession = { tenantId, user: validated.user };
+    setSession(nextSession);
+    writeSession(nextSession);
+    return { ok: true, user: validated.user };
+  };
+
   const logout = () => {
     setSession(null);
     writeSession(null);
@@ -220,26 +268,18 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const value = useMemo(
-    () => ({
-      session,
-      user: session?.user || null,
-      tenantId: session?.tenantId || null,
-      isAuthenticated: Boolean(session?.user && session?.tenantId),
-      loginWithUid,
-      loginWithGoogle,
-      logout,
-      patchSessionUser,
-    }),
-    [session],
-  );
+  const value = {
+    session,
+    user: session?.user || null,
+    tenantId: session?.tenantId || null,
+    isAuthenticated: Boolean(session?.user && session?.tenantId),
+    loginWithUid,
+    loginWithGoogle,
+    initiateWhatsAppLogin,
+    completeWhatsAppLogin,
+    logout,
+    patchSessionUser,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used inside AuthProvider');
-  return context;
 };

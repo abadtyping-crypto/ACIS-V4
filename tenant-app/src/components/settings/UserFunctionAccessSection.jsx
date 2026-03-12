@@ -37,14 +37,14 @@ const UserFunctionAccessSection = ({ tenantId, selectedUser }) => {
       title="User Function Access"
       description="User-wise function permissions. Page can remain visible; action can still be blocked."
     >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
-        <p className="text-sm text-[var(--c-muted)]">
-          Selected: <span className="font-semibold text-[var(--c-text)]">{selectedUser.displayName}</span> ({selectedUser.role})
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-(--c-border) bg-(--c-panel) p-3">
+        <p className="text-sm text-(--c-muted)">
+          Selected: <span className="font-semibold text-(--c-text)">{selectedUser.displayName}</span> ({selectedUser.role})
         </p>
         <button
           type="button"
           onClick={onReset}
-          className="rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--c-text)]"
+          className="rounded-lg border border-(--c-border) bg-(--c-surface) px-3 py-1.5 text-xs font-semibold text-(--c-text)"
         >
           Reset Overrides
         </button>
@@ -58,19 +58,19 @@ const UserFunctionAccessSection = ({ tenantId, selectedUser }) => {
           return (
             <div
               key={item.key}
-              className={`flex items-center justify-between rounded-xl border p-3 transition ${hasOverride ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/5' : 'border-[var(--c-border)] bg-[var(--c-panel)]'
+              className={`flex items-center justify-between rounded-xl border p-3 transition ${hasOverride ? 'border-(--c-accent) bg-(--c-accent)/5' : 'border-(--c-border) bg-(--c-panel)'
                 }`}
             >
               <div>
-                <p className="text-sm font-bold text-[var(--c-text)]">{item.label}</p>
-                <p className="text-[10px] uppercase font-bold text-[var(--c-muted)]">
+                <p className="text-sm font-bold text-(--c-text)">{item.label}</p>
+                <p className="text-[10px] uppercase font-bold text-(--c-muted)">
                   {hasOverride ? 'Custom Override' : `Role Default (${roleDefaults[item.key] ? 'Enabled' : 'Disabled'})`}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => onToggle(item.key, effectiveValue)}
-                className={`relative h-6 w-11 rounded-full transition ${effectiveValue ? 'bg-[var(--c-accent)]' : 'bg-slate-700'
+                className={`relative h-6 w-11 rounded-full transition ${effectiveValue ? 'bg-(--c-accent)' : 'bg-slate-700'
                   }`}
               >
                 <div

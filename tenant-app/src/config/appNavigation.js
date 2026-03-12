@@ -140,6 +140,13 @@ export const SEARCH_ITEMS = [
     platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
   },
   {
+    key: 'createPortal',
+    label: 'Create Portal',
+    description: 'Open dedicated page to create a new portal',
+    path: 'portal-management/new',
+    platforms: [PLATFORM_WEB, PLATFORM_ELECTRON],
+  },
+  {
     key: 'documentCalendar',
     label: 'Document Calendar',
     description: 'Document due-date calendar view',

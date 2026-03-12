@@ -71,13 +71,22 @@ const PortalSummarySection = ({ onQuickAction, refreshKey }) => {
 
                 {/* Quick Action Navigation */}
                 <div className="mt-4 flex flex-wrap gap-2">
-                    <button onClick={() => onQuickAction('loan')} className="flex items-center gap-2 rounded-xl bg-[var(--c-accent)]/10 px-4 py-2 text-xs font-bold text-[var(--c-accent)] hover:bg-[var(--c-accent)] hover:text-white transition">
+                    <button
+                        onClick={() => onQuickAction('loan')}
+                        className="flex items-center gap-2 rounded-xl border border-[var(--c-accent)]/35 bg-[color:color-mix(in_srgb,var(--c-accent)_12%,transparent)] px-4 py-2 text-xs font-bold text-[var(--c-accent)] hover:bg-[var(--c-accent)] hover:text-white transition"
+                    >
                         + New Loan
                     </button>
-                    <button onClick={() => onQuickAction('transfer')} className="flex items-center gap-2 rounded-xl bg-[var(--c-accent)]/10 px-4 py-2 text-xs font-bold text-[var(--c-accent)] hover:bg-[var(--c-accent)] hover:text-white transition">
+                    <button
+                        onClick={() => onQuickAction('transfer')}
+                        className="flex items-center gap-2 rounded-xl border border-[var(--c-accent)]/35 bg-[color:color-mix(in_srgb,var(--c-accent)_12%,transparent)] px-4 py-2 text-xs font-bold text-[var(--c-accent)] hover:bg-[var(--c-accent)] hover:text-white transition"
+                    >
                         ⇄ Internal Transfer
                     </button>
-                    <button onClick={() => onQuickAction('setup')} className="flex items-center gap-2 rounded-xl bg-[var(--c-accent)]/10 px-4 py-2 text-xs font-bold text-[var(--c-accent)] hover:bg-[var(--c-accent)] hover:text-white transition">
+                    <button
+                        onClick={() => onQuickAction('setup')}
+                        className="flex items-center gap-2 rounded-xl border border-[var(--c-accent)]/35 bg-[color:color-mix(in_srgb,var(--c-accent)_12%,transparent)] px-4 py-2 text-xs font-bold text-[var(--c-accent)] hover:bg-[var(--c-accent)] hover:text-white transition"
+                    >
                         ⚙️ Portal Setup
                     </button>
                 </div>

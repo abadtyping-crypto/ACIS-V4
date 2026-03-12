@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { requestPasswordReset, getTenantLoginSettings, submitSupportTicket } from '../lib/backendStore';
+import { generateOTP } from '../lib/whatsappAuth';
 import { findTenantById } from '../config/tenants';
-import { Eye, EyeOff, Lock, User, Mail, ArrowLeft, CheckCircle2, ShieldAlert, X, AlertTriangle, FileText, LifeBuoy, BellRing } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, Mail, ArrowLeft, CheckCircle2, ShieldAlert, X, AlertTriangle, FileText, LifeBuoy, BellRing, Phone, Send, ShieldCheck, RefreshCw } from 'lucide-react';
 import { getRuntimePlatform, PLATFORM_ELECTRON } from '../lib/runtimePlatform';
+
+const WhatsAppIcon = ({ className }) => (
+  <svg viewBox="0 0 16 16" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M13.601 2.326A7.854 7.854 0 0 0 8.034 0C3.641 0 .067 3.574.065 7.965A7.902 7.902 0 0 0 1.141 12L0 16l4.111-1.074a7.9 7.9 0 0 0 3.923 1.007h.003c4.393 0 7.967-3.573 7.968-7.965a7.9 7.9 0 0 0-2.404-5.642zM8.037 14.54h-.003a6.49 6.49 0 0 1-3.312-.908l-.237-.14-2.438.637.651-2.373-.154-.243a6.51 6.51 0 0 1-1.007-3.496C1.539 4.43 4.459 1.51 8.038 1.51c1.73 0 3.356.674 4.578 1.896a6.44 6.44 0 0 1 1.895 4.576c-.002 3.58-2.922 6.498-6.474 6.498z" />
+    <path d="M11.615 9.401c-.196-.098-1.16-.572-1.34-.638-.18-.066-.312-.098-.443.098-.131.196-.508.638-.623.77-.115.131-.23.147-.426.049-.195-.098-.824-.304-1.57-.97-.58-.517-.972-1.156-1.087-1.352-.115-.196-.012-.302.086-.4.088-.087.196-.23.295-.345.098-.114.131-.196.196-.327.066-.131.033-.245-.016-.344-.05-.098-.443-1.068-.607-1.463-.16-.386-.322-.333-.442-.339l-.377-.007a.727.727 0 0 0-.525.245c-.18.196-.689.672-.689 1.639s.705 1.902.803 2.033c.098.131 1.388 2.12 3.363 2.971.47.203.837.324 1.123.414.472.151.902.13 1.242.079.379-.057 1.16-.474 1.324-.932.163-.458.163-.85.114-.932-.05-.082-.18-.131-.377-.229z" />
+  </svg>
+);
 
 const LoginPage = () => {
   const { tenantId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, tenantId: sessionTenantId, loginWithUid, loginWithGoogle } = useAuth();
+  const { isAuthenticated, tenantId: sessionTenantId, loginWithUid, loginWithGoogle, initiateWhatsAppLogin, completeWhatsAppLogin } = useAuth();
 
   const tenant = findTenantById(tenantId);
   const displayTenantName = tenant ? tenant.name : tenantId;
@@ -33,6 +41,14 @@ const LoginPage = () => {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
   const [showAnnouncement, setShowAnnouncement] = useState(true);
+  
+  // WhatsApp Auth State
+  const [whatsappMode, setWhatsappMode] = useState('none'); // 'none' | 'phone' | 'otp'
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [whatsappOtp, setWhatsappOtp] = useState('');
+  const [pendingOtp, setPendingOtp] = useState('');
+  const [whatsappMatchedUser, setWhatsappMatchedUser] = useState(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [supportForm, setSupportForm] = useState({ name: '', email: '', phone: '', priority: 'Normal', message: '' });
   const [supportStatus, setSupportStatus] = useState({ loading: false, error: '', success: '' });
@@ -139,10 +155,62 @@ const LoginPage = () => {
       setSupportStatus({ loading: false, error: '', success: 'Support ticket submitted successfully! We will get back to you.' });
       setSupportForm({ name: '', email: '', phone: '', priority: 'Normal', message: '' });
       setTimeout(() => setShowSupport(false), 3000);
-    } else {
-      setSupportStatus({ loading: false, error: res.error || 'Failed to submit.', success: '' });
     }
   };
+
+  const onStartWhatsAppAuth = async (e) => {
+    e?.preventDefault();
+    if (!whatsappPhone) {
+      setErrorMessage('Please enter your phone number.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+    
+    const newOtp = generateOTP();
+    const result = await initiateWhatsAppLogin(tenantId, whatsappPhone, newOtp);
+    setLoading(false);
+
+    if (!result.ok) {
+      setErrorMessage(result.error || 'Failed to send OTP.');
+      return;
+    }
+
+    setPendingOtp(newOtp);
+    setWhatsappMatchedUser(result.matchedUser);
+    setWhatsappMode('otp');
+    setResendCooldown(60);
+  };
+
+  const onVerifyWhatsAppOtp = async (e) => {
+    e?.preventDefault();
+    if (whatsappOtp !== pendingOtp) {
+      setErrorMessage('Invalid OTP code. Please try again.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+
+    const result = await completeWhatsAppLogin(tenantId, whatsappMatchedUser);
+    setLoading(false);
+
+    if (!result.ok) {
+      setErrorMessage(result.error || 'Authentication failed.');
+      return;
+    }
+
+    navigate(`/t/${tenantId}/dashboard`, { replace: true });
+  };
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
 
   const authBody = forgotPasswordMode ? (
     <div className="animate-in slide-in-from-right fade-in duration-500">
@@ -205,6 +273,126 @@ const LoginPage = () => {
             )}
           </div>
         </button>
+      </form>
+    </div>
+  ) : whatsappMode === 'phone' ? (
+    <div className="animate-in slide-in-from-right fade-in duration-500">
+      <button
+        type="button"
+        onClick={() => {
+          setWhatsappMode('none');
+          setErrorMessage('');
+        }}
+        className="mb-4 flex items-center gap-2 text-sm font-bold text-[var(--c-muted)] hover:text-[var(--c-text)] transition"
+      >
+        <ArrowLeft size={16} /> Back to Sign In
+      </button>
+      <div className="mb-6 space-y-2 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-500 shadow-inner">
+          <WhatsAppIcon className="h-8 w-8" />
+        </div>
+        <h3 className="text-lg font-black text-[var(--c-text)]">WhatsApp Sign In</h3>
+        <p className="text-xs font-semibold text-[var(--c-muted)]">We'll send a secure one-time code to your registered number.</p>
+      </div>
+      <form onSubmit={onStartWhatsAppAuth} className="space-y-5">
+        <div className="space-y-1">
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Phone Number</label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[var(--c-muted)]">
+              <Phone size={18} />
+            </div>
+            <input
+              type="tel"
+              value={whatsappPhone}
+              onChange={(e) => setWhatsappPhone(e.target.value)}
+              className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)]/50 py-3.5 pl-11 pr-4 text-sm font-semibold text-[var(--c-text)] shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:bg-[var(--c-surface)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+              placeholder="e.g. 971500000000"
+            />
+          </div>
+        </div>
+
+        {errorMessage && (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-center text-sm font-bold text-rose-500 animate-in shake">
+            {errorMessage}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || !whatsappPhone}
+          className={`relative w-full overflow-hidden rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition-all ${loading ? 'bg-slate-500 opacity-80 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5'
+            }`}
+        >
+          <div className="relative z-10 flex items-center justify-center gap-2">
+            {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send size={18} />}
+            {loading ? 'Sending OTP...' : 'Send OTP via WhatsApp'}
+          </div>
+        </button>
+      </form>
+    </div>
+  ) : whatsappMode === 'otp' ? (
+    <div className="animate-in slide-in-from-right fade-in duration-500">
+      <button
+        type="button"
+        onClick={() => {
+          setWhatsappMode('phone');
+          setErrorMessage('');
+        }}
+        className="mb-4 flex items-center gap-2 text-sm font-bold text-[var(--c-muted)] hover:text-[var(--c-text)] transition"
+      >
+        <ArrowLeft size={16} /> Back
+      </button>
+      <div className="mb-6 space-y-2 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--c-accent)]/10 text-[var(--c-accent)] shadow-inner">
+          <ShieldCheck size={32} />
+        </div>
+        <h3 className="text-lg font-black text-[var(--c-text)]">Verify OTP</h3>
+        <p className="text-xs font-semibold text-[var(--c-muted)]">
+          Enter the 6-digit code sent to <span className="font-bold text-[var(--c-text)]">+{whatsappPhone}</span>
+        </p>
+      </div>
+      <form onSubmit={onVerifyWhatsAppOtp} className="space-y-6">
+        <div className="flex justify-center">
+          <input
+            type="text"
+            maxLength={6}
+            value={whatsappOtp}
+            onChange={(e) => setWhatsappOtp(e.target.value.replace(/\D/g, ''))}
+            className="w-full max-w-[200px] text-center text-3xl font-black tracking-[0.5em] rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)]/50 py-4 text-[var(--c-accent)] shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:bg-[var(--c-surface)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
+            placeholder="000000"
+          />
+        </div>
+
+        {errorMessage && (
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-center text-sm font-bold text-rose-500 animate-in shake">
+            {errorMessage}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          <button
+            type="submit"
+            disabled={loading || whatsappOtp.length !== 6}
+            className={`relative w-full overflow-hidden rounded-xl py-3.5 text-sm font-bold text-white shadow-lg transition-all ${loading ? 'bg-slate-500 opacity-80 cursor-not-allowed' : 'bg-[var(--c-accent)] hover:opacity-90 shadow-[var(--c-accent)]/25 hover:shadow-[var(--c-accent)]/40 hover:-translate-y-0.5'
+              }`}
+          >
+            {loading ? 'Verifying...' : 'Verify & Sign In'}
+          </button>
+          
+          <div className="text-center">
+            {resendCooldown > 0 ? (
+              <p className="text-xs font-bold text-[var(--c-muted)]">Resend code in {resendCooldown}s</p>
+            ) : (
+              <button
+                type="button"
+                onClick={onStartWhatsAppAuth}
+                className="text-xs font-bold text-[var(--c-accent)] hover:underline"
+              >
+                Resend Code
+              </button>
+            )}
+          </div>
+        </div>
       </form>
     </div>
   ) : (
@@ -324,6 +512,16 @@ const LoginPage = () => {
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
         </svg>
         Continue with Google
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setWhatsappMode('phone')}
+        disabled={loading}
+        className={`flex w-full items-center justify-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 py-3.5 text-sm font-bold text-emerald-500 shadow-sm transition-all hover:bg-emerald-500/10 hover:shadow-md ${loading ? 'cursor-not-allowed opacity-50' : ''}`}
+      >
+        <WhatsAppIcon className="h-5 w-5" />
+        Sign in with WhatsApp
       </button>
     </form>
   );
@@ -647,3 +845,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+

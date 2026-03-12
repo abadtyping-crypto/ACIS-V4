@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { fetchDailyTransactionsPage, fetchTenantClients, softDeleteTransaction } from '../../lib/backendStore';
 import { fetchServiceTemplates } from '../../lib/serviceTemplateStore';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import CurrencyValue from '../common/CurrencyValue';
 import { Trash2, Lock, Clock } from 'lucide-react';
@@ -236,3 +236,4 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
 };
 
 export default memo(TransactionLiveList);
+

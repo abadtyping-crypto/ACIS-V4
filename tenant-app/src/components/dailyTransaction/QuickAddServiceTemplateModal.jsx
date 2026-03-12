@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { useTenant } from '../../context/TenantContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
 import { createSyncEvent } from '../../lib/syncEvents';
 import ImageStudio from '../common/ImageStudio';
@@ -390,3 +390,4 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
 };
 
 export default QuickAddServiceTemplateModal;
+

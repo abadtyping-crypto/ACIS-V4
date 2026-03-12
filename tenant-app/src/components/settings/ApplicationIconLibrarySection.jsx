@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import SettingCard from './SettingCard';
 import { useTenant } from '../../context/TenantContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
 import {
   deleteApplicationIcon,
@@ -338,3 +338,4 @@ const ApplicationIconLibrarySection = () => {
 };
 
 export default ApplicationIconLibrarySection;
+

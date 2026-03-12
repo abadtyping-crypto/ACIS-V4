@@ -21,18 +21,18 @@ import { useRecycleBin } from '../../context/RecycleBinContext';
 import { useRecycleBinSummary } from '../../hooks/useRecycleBinSummary';
 
 const renderNavIcon = (iconKey) => {
-  if (iconKey === 'home') return <HomeIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'bell') return <BellIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'star') return <StarIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'user') return <UserIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'portal') return <PortalIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'user-plus') return <UserPlusIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'receipt') return <ReceiptIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'tasks') return <TasksIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'invoice') return <InvoiceIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'quotation') return <QuotationIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'expense') return <ExpenseIcon className="h-[1.15rem] w-[1.15rem]" />;
-  if (iconKey === 'calendar') return <CalendarIcon className="h-[1.15rem] w-[1.15rem]" />;
+  if (iconKey === 'home') return <HomeIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'bell') return <BellIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'star') return <StarIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'user') return <UserIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'portal') return <PortalIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'user-plus') return <UserPlusIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'receipt') return <ReceiptIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'tasks') return <TasksIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'invoice') return <InvoiceIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'quotation') return <QuotationIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'expense') return <ExpenseIcon className="h-[1.3rem] w-[1.3rem]" />;
+  if (iconKey === 'calendar') return <CalendarIcon className="h-[1.3rem] w-[1.3rem]" />;
   return null;
 };
 
@@ -89,7 +89,7 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
               title="Universal Recycle Bin"
               className={`relative mb-1.5 flex min-h-11 w-full items-center gap-2.5 rounded-xl px-2.5 text-[13px] font-semibold text-[var(--c-muted)] transition hover:bg-[var(--c-surface)] hover:text-[var(--c-text)] ${isCollapsed ? 'justify-center' : 'justify-start'}`}
             >
-              <RecycleBinIcon className="h-4.5 w-4.5 shrink-0" />
+              <RecycleBinIcon className="h-5 w-5 shrink-0" />
               <span className={isCollapsed ? 'hidden' : 'inline'}>Recycle Bin</span>
               {recycleTotal > 0 ? (
                 <span className={`rounded-full bg-[var(--c-accent)] px-1.5 py-0.5 text-[10px] font-bold text-white ${isCollapsed ? 'absolute right-1.5 top-1.5' : 'ml-auto'}`}>
@@ -108,7 +108,7 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
                 } ${isCollapsed ? 'justify-center' : 'justify-start'}`
               }
             >
-              <SettingsIcon className="h-4.5 w-4.5 shrink-0" />
+              <SettingsIcon className="h-5 w-5 shrink-0" />
               <span className={isCollapsed ? 'hidden' : 'inline'}>Settings</span>
             </NavLink>
           </div>

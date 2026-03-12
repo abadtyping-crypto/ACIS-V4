@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Hash } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { useTenant } from '../../context/TenantContext';
 import { getTenantSettingDoc, upsertTenantSettingDoc } from '../../lib/backendStore';
 import { formatDisplayId, normalizeIdRule } from '../../lib/idFormat';
@@ -648,4 +648,5 @@ const IDRulesSection = () => {
 };
 
 export default IDRulesSection;
+
 

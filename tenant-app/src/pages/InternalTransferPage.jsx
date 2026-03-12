@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useTenant } from '../context/TenantContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { fetchTenantPortals, executeInternalTransfer } from '../lib/backendStore';
 import { generateDisplayTxId } from '../lib/txIdGenerator';
 import { canUserPerformAction } from '../lib/userControlPreferences';
@@ -208,3 +208,4 @@ const InternalTransferPage = () => {
 };
 
 export default InternalTransferPage;
+

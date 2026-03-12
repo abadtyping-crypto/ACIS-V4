@@ -1,6 +1,6 @@
 import PageShell from '../components/layout/PageShell';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/TenantContext';
 import { useTenantNotifications } from '../hooks/useTenantNotifications';
 import {
@@ -223,4 +223,5 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
+
 

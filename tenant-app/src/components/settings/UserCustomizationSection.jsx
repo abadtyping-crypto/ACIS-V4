@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { useTenant } from '../../context/TenantContext';
 import {
   addTenantUser,
@@ -11,9 +11,9 @@ import {
 import SettingCard from './SettingCard';
 
 const inputClass =
-  'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
+  'mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2.5 text-sm text-(--c-text) outline-none transition focus:border-(--c-accent) focus:ring-2 focus:ring-(--c-ring)';
 
-const labelClass = 'text-sm text-[var(--c-muted)]';
+const labelClass = 'text-sm text-(--c-muted)';
 
 const roleOptions = ['Admin', 'Staff', 'Accountant', 'Manager'];
 
@@ -141,7 +141,7 @@ const UserCustomizationSection = () => {
             onChange={(event) => updateField('displayName', event.target.value)}
             placeholder="Display Name"
           />
-          <p className="mt-1 text-[11px] text-[var(--c-muted)]">
+          <p className="mt-1 text-[11px] text-(--c-muted)">
             This name appears on transactions created by this user.
           </p>
           {errors.displayName ? <p className="mt-1 text-xs text-rose-600">{errors.displayName}</p> : null}
@@ -172,7 +172,7 @@ const UserCustomizationSection = () => {
             onChange={(event) => updateField('email', event.target.value.toLowerCase())}
             placeholder="email@domain.com"
           />
-          <p className="mt-1 text-[11px] text-[var(--c-muted)]">
+          <p className="mt-1 text-[11px] text-(--c-muted)">
             Invite-safe access is tied to this email. User must log in with this exact email.
           </p>
           {errors.email ? <p className="mt-1 text-xs text-rose-600">{errors.email}</p> : null}
@@ -180,10 +180,10 @@ const UserCustomizationSection = () => {
 
         <label className={labelClass}>
           Mobile Number
-          <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
-            <span className="pr-2 text-sm text-[var(--c-muted)]">+971</span>
+          <div className="mt-1 flex items-center rounded-xl border border-(--c-border) bg-(--c-panel) px-3">
+            <span className="pr-2 text-sm text-(--c-muted)">+971</span>
             <input
-              className="w-full bg-transparent py-2.5 text-sm text-[var(--c-text)] outline-none"
+              className="w-full bg-transparent py-2.5 text-sm text-(--c-text) outline-none"
               value={form.mobile}
               onChange={(event) => updateField('mobile', toDigits(event.target.value).slice(0, 9))}
               inputMode="numeric"
@@ -199,21 +199,21 @@ const UserCustomizationSection = () => {
         <button
           type="button"
           onClick={onSave}
-          className="rounded-xl bg-[var(--c-accent)] px-4 py-2.5 text-sm font-semibold text-white"
+          className="rounded-xl bg-(--c-accent) px-4 py-2.5 text-sm font-semibold text-white"
         >
           Create User
         </button>
-        {saveMessage ? <p className="text-sm text-[var(--c-muted)]">{saveMessage}</p> : null}
+        {saveMessage ? <p className="text-sm text-(--c-muted)">{saveMessage}</p> : null}
       </div>
 
-      <div className="mt-5 border-t border-[var(--c-border)] pt-4">
+      <div className="mt-5 border-t border-(--c-border) pt-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-[var(--c-text)]">Manage Existing Users</p>
-          <p className="text-xs text-[var(--c-muted)]">{users.length} user(s)</p>
+          <p className="text-sm font-semibold text-(--c-text)">Manage Existing Users</p>
+          <p className="text-xs text-(--c-muted)">{users.length} user(s)</p>
         </div>
 
         {users.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] p-3 text-sm text-[var(--c-muted)]">
+          <p className="rounded-xl border border-dashed border-(--c-border) bg-(--c-panel) p-3 text-sm text-(--c-muted)">
             No users added yet for this tenant.
           </p>
         ) : (
@@ -224,14 +224,14 @@ const UserCustomizationSection = () => {
               return (
                 <article
                   key={user.uid}
-                  className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3"
+                  className="rounded-xl border border-(--c-border) bg-(--c-panel) p-3"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--c-text)]">{user.displayName}</p>
-                      <p className="truncate text-xs text-[var(--c-muted)]">{user.email}</p>
-                      <p className="mt-1 text-xs text-[var(--c-muted)]">
-                        Role: <span className={isSuperAdmin ? 'font-bold text-[var(--c-accent)]' : ''}>{user.role}</span> • Status: {user.status}
+                      <p className="truncate text-sm font-semibold text-(--c-text)">{user.displayName}</p>
+                      <p className="truncate text-xs text-(--c-muted)">{user.email}</p>
+                      <p className="mt-1 text-xs text-(--c-muted)">
+                        Role: <span className={isSuperAdmin ? 'font-bold text-(--c-accent)' : ''}>{user.role}</span> • Status: {user.status}
                       </p>
                     </div>
                     {!isSuperAdmin && (
@@ -267,3 +267,4 @@ const UserCustomizationSection = () => {
 };
 
 export default UserCustomizationSection;
+

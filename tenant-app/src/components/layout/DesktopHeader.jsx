@@ -98,7 +98,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
             aria-label={`Toggle theme (currently ${themeLabel})`}
             title={`Theme: ${themeLabel} (${theme === 'system' ? 'Auto' : 'Manual'})`}
           >
-            <ThemeIcon className="h-5 w-5" />
+            <ThemeIcon className="h-6 w-6" />
           </button>
 
           <button
@@ -108,7 +108,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
             aria-label="Search clients and dependants"
             title="Search Workspace"
           >
-            <SearchIcon className="h-5 w-5" />
+            <SearchIcon className="h-6 w-6" />
           </button>
 
           <div className="relative" ref={notificationsRef}>
@@ -120,7 +120,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
               aria-expanded={notificationsOpen}
               aria-haspopup="menu"
             >
-              <BellIcon className="h-5 w-5" />
+              <BellIcon className="h-6 w-6" />
               {notificationCount > 0 ? (
                 <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
                   {notificationCount}

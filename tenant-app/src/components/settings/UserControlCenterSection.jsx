@@ -24,15 +24,15 @@ const UserControlCenterSection = () => {
 
   const selectedUser = decoratedUsers.find((u) => u.uid === selectedUid);
 
-  if (isLoading) return <p className="text-xs text-[var(--c-muted)]">Loading users...</p>;
+  if (isLoading) return <p className="text-xs text-(--c-muted)">Loading users...</p>;
 
   return (
     <div className="space-y-6">
       {/* User Selection Row */}
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Select Tenant User</p>
-          <span className="text-[10px] font-bold text-[var(--c-accent)] bg-[var(--c-accent)]/10 px-2 py-0.5 rounded-full">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-(--c-muted)">Select Tenant User</p>
+          <span className="text-[10px] font-bold text-(--c-accent) bg-(--c-accent)/10 px-2 py-0.5 rounded-full">
             {decoratedUsers.length} Total
           </span>
         </div>
@@ -44,19 +44,19 @@ const UserControlCenterSection = () => {
               type="button"
               onClick={() => setSelectedUid(u.uid)}
               className={`flex min-w-[180px] max-w-[220px] items-center gap-3 rounded-2xl border p-3 transition text-left ${selectedUid === u.uid
-                ? 'border-[var(--c-accent)] bg-[var(--c-accent)]/5 shadow-sm'
-                : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:border-[var(--c-muted)]'
+                ? 'border-(--c-accent) bg-(--c-accent)/5 shadow-sm'
+                : 'border-(--c-border) bg-(--c-panel) hover:border-(--c-muted)'
                 }`}
             >
-              <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl font-bold transition ${selectedUid === u.uid ? 'bg-[var(--c-accent)] text-white' : 'bg-[var(--c-surface)] text-[var(--c-text)]'
+              <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl font-bold transition ${selectedUid === u.uid ? 'bg-(--c-accent) text-white' : 'bg-(--c-surface) text-(--c-text)'
                 }`}>
                 {String(u.displayName || u.email || '?').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className={`text-sm font-bold truncate ${selectedUid === u.uid ? 'text-[var(--c-accent)]' : 'text-[var(--c-text)]'}`}>
+                <p className={`text-sm font-bold truncate ${selectedUid === u.uid ? 'text-(--c-accent)' : 'text-(--c-text)'}`}>
                   {u.displayName || 'Unnamed'}
                 </p>
-                <p className="text-[10px] uppercase font-bold text-[var(--c-muted)]">
+                <p className="text-[10px] uppercase font-bold text-(--c-muted)">
                   {u.role || 'Staff'}
                 </p>
               </div>
@@ -68,15 +68,15 @@ const UserControlCenterSection = () => {
       {/* Content Area */}
       {selectedUser ? (
         <div className="space-y-6">
-          <div className="flex items-center justify-between rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-2 shadow-sm">
+          <div className="flex items-center justify-between rounded-2xl border border-(--c-border) bg-(--c-surface) p-2 shadow-sm">
             <div className="flex gap-1.5">
               {['access', 'notifications'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`rounded-xl px-5 py-2.5 text-xs font-bold transition capitalize ${activeTab === tab
-                    ? 'bg-[var(--c-accent)] text-white shadow-md'
-                    : 'text-[var(--c-muted)] hover:bg-[var(--c-panel)] hover:text-[var(--c-text)]'
+                    ? 'bg-(--c-accent) text-white shadow-md'
+                    : 'text-(--c-muted) hover:bg-(--c-panel) hover:text-(--c-text)'
                     }`}
                 >
                   {tab === 'access' ? 'Function Access' : 'Notification Rules'}
@@ -84,8 +84,8 @@ const UserControlCenterSection = () => {
               ))}
             </div>
             <div className="hidden pr-4 sm:flex flex-col items-end">
-              <p className="text-sm font-bold text-[var(--c-text)]">{selectedUser.displayName}</p>
-              <p className="text-[10px] uppercase font-bold text-[var(--c-muted)]">{selectedUser.email || selectedUser.role}</p>
+              <p className="text-sm font-bold text-(--c-text)">{selectedUser.displayName}</p>
+              <p className="text-[10px] uppercase font-bold text-(--c-muted)">{selectedUser.email || selectedUser.role}</p>
             </div>
           </div>
 
@@ -98,10 +98,10 @@ const UserControlCenterSection = () => {
           </div>
         </div>
       ) : (
-        <div className="flex h-64 items-center justify-center rounded-3xl border-2 border-dashed border-[var(--c-border)] bg-[var(--c-panel)]/30">
+        <div className="flex h-64 items-center justify-center rounded-3xl border-2 border-dashed border-(--c-border) bg-(--c-panel)/30">
           <div className="text-center">
-            <p className="text-sm font-bold text-[var(--c-muted)]">No User Selected</p>
-            <p className="text-xs text-[var(--c-muted)]/60">Choose a user from the row above to manage preferences</p>
+            <p className="text-sm font-bold text-(--c-muted)">No User Selected</p>
+            <p className="text-xs text-(--c-muted)/60">Choose a user from the row above to manage preferences</p>
           </div>
         </div>
       )}

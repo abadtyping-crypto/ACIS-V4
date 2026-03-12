@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld(
     },
     mail: {
         send: (payload) => ipcRenderer.invoke('mail-send', payload),
+        authStart: (config) => ipcRenderer.invoke('mail-auth-start', config),
     },
     // We can add specific event subscription methods here later
     onSyncEvent: (callback) => ipcRenderer.on('sync-event', (event, data) => callback(data))

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const SectionCard = ({ title, subtitle, children, defaultOpen = true, primaryAction }) => {
+const SectionCard = ({ title, subtitle, children, defaultOpen = true, primaryAction, titleIcon: TitleIcon = null }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
@@ -11,6 +11,11 @@ const SectionCard = ({ title, subtitle, children, defaultOpen = true, primaryAct
                     className="flex flex-1 cursor-pointer items-center gap-3"
                     onClick={() => setIsOpen(!isOpen)}
                 >
+                    {TitleIcon ? (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-accent)]">
+                            <TitleIcon className="h-4 w-4" />
+                        </div>
+                    ) : null}
                     <div className={`flex h-8 w-8 items-center justify-center rounded-xl border transition ${isOpen ? 'border-[var(--c-accent)] bg-[var(--c-accent)] text-white' : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]'}`}>
                         <svg className={`h-4 w-4 transition-transform duration-300 ${isOpen ? '' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />

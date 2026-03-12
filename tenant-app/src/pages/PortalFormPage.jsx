@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/TenantContext';
 import { createSyncEvent } from '../lib/syncEvents';
 import { buildNotificationPayload, generateNotificationId } from '../lib/notificationTemplate';
@@ -14,7 +14,9 @@ import {
 } from '../lib/backendStore';
 import { canUserPerformAction } from '../lib/userControlPreferences';
 import { generateDisplayTxId, toSafeDocId } from '../lib/txIdGenerator';
-import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
+import { fetchApplicationIconLibrary, upsertApplicationIcon } from '../lib/applicationIconLibraryStore';
+import { toSafeDocId as toSafeIconId } from '../lib/idUtils';
+import { uploadApplicationIconAsset, validateApplicationIconFile } from '../lib/applicationIconStorage';
 
 const portalTypes = [
     { id: 'Bank', label: 'Bank', icon: '/portals/bank.png', methods: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'onlinePayment', 'cashWithdrawals'] },
@@ -61,6 +63,23 @@ const PortalFormPage = () => {
     const [selectedIconUrl, setSelectedIconUrl] = useState('');
     const [methodIconMap, setMethodIconMap] = useState({});
     const [iconLibrary, setIconLibrary] = useState([]);
+    const [newIconName, setNewIconName] = useState('');
+    const [newIconFile, setNewIconFile] = useState(null);
+    const [isAddingIcon, setIsAddingIcon] = useState(false);
+
+    const loadIconLibrary = useCallback(async () => {
+        const res = await fetchApplicationIconLibrary(tenantId);
+        if (!res.ok) return false;
+        const nextMap = {};
+        (res.rows || []).forEach((row) => {
+            const key = String(row?.iconId || '').trim().toLowerCase();
+            if (!key || !row?.iconUrl) return;
+            nextMap[key] = row.iconUrl;
+        });
+        setMethodIconMap(nextMap);
+        setIconLibrary((res.rows || []).filter((r) => !!r.iconUrl));
+        return true;
+    }, [tenantId]);
 
     useEffect(() => {
         if (!tenantId || !portalId) return;
@@ -86,21 +105,92 @@ const PortalFormPage = () => {
     useEffect(() => {
         if (!tenantId) return;
         let isMounted = true;
-        fetchApplicationIconLibrary(tenantId).then((res) => {
-            if (!isMounted || !res.ok) return;
-            const nextMap = {};
-            (res.rows || []).forEach((row) => {
-                const key = String(row?.iconId || '').trim().toLowerCase();
-                if (!key || !row?.iconUrl) return;
-                nextMap[key] = row.iconUrl;
-            });
-            setMethodIconMap(nextMap);
-            setIconLibrary((res.rows || []).filter((r) => !!r.iconUrl));
+        loadIconLibrary().then((ok) => {
+            if (!isMounted || !ok) return;
         });
         return () => {
             isMounted = false;
         };
-    }, [tenantId]);
+    }, [tenantId, loadIconLibrary]);
+
+    const handleNewIconFile = (event) => {
+        const file = event.target.files?.[0] || null;
+        event.target.value = '';
+        if (!file) return;
+        const validationError = validateApplicationIconFile(file);
+        if (validationError) {
+            setStatusMessage(validationError);
+            setStatusType('error');
+            return;
+        }
+        setNewIconFile(file);
+        setStatusMessage('');
+        setStatusType('info');
+    };
+
+    const handleAddIconToLibrary = async () => {
+        const trimmedName = String(newIconName || '').trim();
+        if (!trimmedName) {
+            setStatusMessage('Icon name is required.');
+            setStatusType('error');
+            return;
+        }
+        if (!newIconFile) {
+            setStatusMessage('Choose an icon image to upload.');
+            setStatusType('error');
+            return;
+        }
+
+        const iconId = toSafeIconId(trimmedName, 'app_icon');
+        setIsAddingIcon(true);
+        try {
+            const uploadRes = await uploadApplicationIconAsset({
+                tenantId,
+                iconId,
+                fileBlob: newIconFile,
+            });
+            if (!uploadRes.ok) {
+                setStatusMessage(uploadRes.error || 'Icon upload failed.');
+                setStatusType('error');
+                return;
+            }
+
+            const saveRes = await upsertApplicationIcon(
+                tenantId,
+                iconId,
+                {
+                    iconName: trimmedName,
+                    iconUrl: uploadRes.iconUrl,
+                    createdBy: user.uid,
+                    updatedBy: user.uid,
+                },
+                { isCreate: true },
+            );
+            if (!saveRes.ok) {
+                setStatusMessage(saveRes.error || 'Failed to save icon library record.');
+                setStatusType('error');
+                return;
+            }
+
+            await createSyncEvent({
+                tenantId,
+                eventType: 'create',
+                entityType: 'applicationIcon',
+                entityId: iconId,
+                changedFields: ['iconName', 'iconUrl', 'updatedBy'],
+                createdBy: user.uid,
+            });
+
+            await loadIconLibrary();
+            setSelectedIconUrl(uploadRes.iconUrl);
+            setNewIconName('');
+            setNewIconFile(null);
+            setStatusMessage('Icon added to library and selected.');
+            setStatusType('success');
+        } finally {
+            setIsAddingIcon(false);
+        }
+    };
 
     const onTypeChange = (newType) => {
         const typeObj = portalTypes.find((t) => t.id === newType);
@@ -278,7 +368,7 @@ const PortalFormPage = () => {
                                             const isSelected = selectedIconUrl === item.iconUrl;
                                             return (
                                                 <button
-                                                    key={item.id}
+                                                    key={item.iconId}
                                                     type="button"
                                                     onClick={() => setSelectedIconUrl(isSelected ? '' : item.iconUrl)}
                                                     title={item.iconId || 'Custom Icon'}
@@ -301,6 +391,42 @@ const PortalFormPage = () => {
                                         No custom icons available. Go to <span className="font-semibold text-[var(--c-text)]">Settings → Icon Library</span> to add some!
                                     </div>
                                 )}
+
+                                <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Add New Icon to Library</p>
+                                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                        <input
+                                            type="text"
+                                            value={newIconName}
+                                            onChange={(event) => setNewIconName(event.target.value)}
+                                            placeholder="Icon Name (e.g. hotel_portal)"
+                                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-ring)]"
+                                        />
+                                        <input
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                            onChange={handleNewIconFile}
+                                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
+                                        />
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleAddIconToLibrary}
+                                            disabled={isAddingIcon}
+                                            className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2 text-xs font-bold text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)] disabled:opacity-50"
+                                        >
+                                            {isAddingIcon ? 'Adding...' : 'Add to Library'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/t/${tenantId}/settings?tab=appIconLibrary`)}
+                                            className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-2 text-xs font-bold text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
+                                        >
+                                            Open Icon Library
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -369,3 +495,4 @@ const PortalFormPage = () => {
 };
 
 export default PortalFormPage;
+

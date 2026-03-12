@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import UserControlCenterSection from '../components/settings/UserControlCenterSection';
 import {
   DESKTOP_WALLPAPERS,
@@ -247,3 +247,4 @@ const MobileProfilePage = () => {
 };
 
 export default MobileProfilePage;
+
