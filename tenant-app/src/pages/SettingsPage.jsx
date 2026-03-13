@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Settings,
@@ -70,6 +70,7 @@ const MOBILE_SETTINGS_SECTIONS = [
 const SettingsPage = () => {
   const { tenant } = useTenant();
   const isDesktop = useIsDesktopLayout();
+  const [isNavExpanded, setIsNavExpanded] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeSection = useMemo(() => {
     const requestedTab = searchParams.get('tab');
@@ -140,11 +141,13 @@ const SettingsPage = () => {
         ) : (
         <div className="grid h-full lg:grid-cols-[auto_1fr] sm:gap-4 overflow-hidden">
           <aside 
-            className="group/sidebar sticky top-4 z-20 h-fit w-[64px] hover:w-[260px] rounded-2xl border border-(--c-border) bg-(--c-surface) p-2 shadow-sm transition-all duration-300 ease-in-out hidden lg:block"
+            onMouseEnter={() => setIsNavExpanded(true)}
+            onMouseLeave={() => setIsNavExpanded(false)}
+            className={`sticky top-4 z-20 h-fit rounded-2xl border border-(--c-border) bg-(--c-surface) p-2 shadow-sm transition-all duration-300 ease-in-out hidden lg:block ${isNavExpanded ? 'w-[260px]' : 'w-[64px]'}`}
           >
             <div className="mb-2 flex items-center gap-3 px-3 py-1">
               <Settings className="h-4 w-4 shrink-0 text-(--c-accent)" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-(--c-muted) opacity-0 group-hover/sidebar:opacity-100 transition-all duration-300 whitespace-nowrap overflow-hidden">
+              <p className={`text-[10px] font-bold uppercase tracking-widest text-(--c-muted) transition-all duration-300 whitespace-nowrap overflow-hidden ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
                 Settings
               </p>
             </div>
@@ -154,7 +157,9 @@ const SettingsPage = () => {
                   key={section.key}
                   type="button"
                   onClick={() => handleSectionChange(section.key)}
-                  className={`group relative mx-auto flex w-10 items-center justify-center gap-0 rounded-xl px-0 py-2.5 text-left text-sm font-bold transition-all duration-300 group-hover/sidebar:w-full group-hover/sidebar:justify-start group-hover/sidebar:gap-3 group-hover/sidebar:px-3 overflow-hidden ${
+                  className={`group relative mx-auto flex items-center rounded-xl py-2.5 text-left text-sm font-bold transition-all duration-300 overflow-hidden ${
+                    isNavExpanded ? 'w-full justify-start gap-3 px-3' : 'w-10 justify-center gap-0 px-0'
+                  } ${
                     activeSection === section.key
                       ? 'bg-(--c-panel) text-(--c-text) ring-1 ring-(--c-accent)/20 shadow-sm'
                       : 'text-(--c-muted) hover:bg-(--c-panel) hover:text-(--c-text)'
@@ -170,12 +175,12 @@ const SettingsPage = () => {
                       strokeWidth={2.2}
                     />
                   </div>
-                  <span className="hidden whitespace-nowrap group-hover/sidebar:inline">
+                  <span className={`${isNavExpanded ? 'inline' : 'hidden'} whitespace-nowrap`}>
                     {section.label}
                   </span>
                   
                   {/* Tooltip for collapsed state */}
-                  <div className="absolute left-full ml-3 hidden group-hover/sidebar:hidden group-hover:block rounded-lg bg-(--c-surface) border border-(--c-border) px-3 py-2 text-xs font-bold text-(--c-text) shadow-2xl z-50 whitespace-nowrap ring-1 ring-black/5">
+                  <div className={`${isNavExpanded ? 'hidden' : 'block'} absolute left-full ml-3 hidden group-hover:block rounded-lg bg-(--c-surface) border border-(--c-border) px-3 py-2 text-xs font-bold text-(--c-text) shadow-2xl z-50 whitespace-nowrap ring-1 ring-black/5`}>
                     {section.label}
                   </div>
                 </button>

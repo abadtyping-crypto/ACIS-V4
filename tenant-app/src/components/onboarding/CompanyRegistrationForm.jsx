@@ -4,16 +4,17 @@ import {
     upsertClient,
     checkTradeLicenseDuplicate,
     generateDisplayClientId,
-    getTenantSettingDoc,
+    previewDisplayClientId,
     upsertTenantPortalTransaction,
     sendTenantWelcomeEmail,
-    db
 } from '../../lib/backendStore';
-import { doc, getDoc } from 'firebase/firestore';
 import SectionCard from '../portal/SectionCard';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import IconSelect from '../common/IconSelect';
 import { TRANSACTION_METHODS, TX_METHOD_LABELS } from '../../lib/transactionMethodConfig';
+import { canUserPerformAction } from '../../lib/userControlPreferences';
+import { sendUniversalNotification } from '../../lib/notificationDrafting';
+import { createSyncEvent } from '../../lib/syncEvents';
 
 const txMethodMetaById = TRANSACTION_METHODS.reduce((acc, method) => {
     acc[method.id] = method;
@@ -83,16 +84,8 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
             fetchTenantPortals(tenantId).then(res => {
                 if (res.ok) setPortals(res.rows);
             });
-
-            // Logic to preview next ID without incrementing
-            const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
-            const rules = settingsRes.ok && settingsRes.data ? settingsRes.data['CLID'] || {} : {};
-            const prefix = rules.prefix || 'CLID';
-            const padding = Number(rules.padding) || 4;
-
-            const counterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'clients'));
-            const currentSeq = counterSnap.exists() ? counterSnap.data().lastClientSeq || 0 : 0;
-            setNextId(`${prefix}${String(currentSeq + 1).padStart(padding, '0')}`);
+            const previewId = await previewDisplayClientId(tenantId, 'company');
+            setNextId(previewId);
         };
         loadInitialData();
     }, [tenantId]);
@@ -121,6 +114,11 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
         setStatus({ type: 'info', message: 'Validating data...' });
 
         try {
+            if (!canUserPerformAction(tenantId, user, 'createClient')) {
+                setStatus({ type: 'error', message: "You don't have permission to create clients." });
+                return;
+            }
+
             // Normalization
             const normalized = {
                 ...form,
@@ -171,8 +169,16 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
             setStatus({ type: 'info', message: 'Generating Client ID...' });
             const displayId = await generateDisplayClientId(tenantId, 'company');
 
+            const {
+                createPortalTransaction: _createPortalTransaction,
+                portalId: _portalId,
+                portalMethod: _portalMethod,
+                sendWelcomeEmail: _sendWelcomeEmail,
+                ...clientFields
+            } = normalized;
+
             const finalPayload = {
-                ...normalized,
+                ...clientFields,
                 displayClientId: displayId,
                 type: 'company'
             };
@@ -181,6 +187,15 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
             const res = await upsertClient(tenantId, null, finalPayload);
 
             if (res.ok) {
+                await createSyncEvent({
+                    tenantId,
+                    eventType: 'create',
+                    entityType: 'client',
+                    entityId: res.id,
+                    createdBy: user.uid,
+                    changedFields: Object.keys(finalPayload),
+                });
+
                 if (normalized.createPortalTransaction && normalized.portalId && normalized.openingBalance > 0) {
                     const displayTxId = await generateDisplayTxId(tenantId, 'POR');
                     const portalTxId = toSafeDocId(displayTxId, 'tx');
@@ -216,6 +231,37 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                         setStatus({ type: 'error', message: mailRes.error || 'Welcome email failed after registration.' });
                         return;
                     }
+                }
+                if (canUserPerformAction(tenantId, user, 'notifyCreateClient')) {
+                    await sendUniversalNotification({
+                        tenantId,
+                        topic: 'users',
+                        subTopic: 'client',
+                        type: 'create',
+                        title: 'Company Client Added',
+                        message: `${normalized.tradeName} was added successfully.`,
+                        createdBy: user.uid,
+                        routePath: `/t/${tenantId}/clients/${res.id}`,
+                        actionPresets: ['view'],
+                        eventType: 'create',
+                        entityType: 'client',
+                        entityId: res.id,
+                        entityLabel: normalized.tradeName,
+                        pageKey: 'clientOnboarding',
+                        sectionKey: 'companyRegistration',
+                        quickView: {
+                            badge: 'Company',
+                            title: normalized.tradeName,
+                            subtitle: displayId,
+                            description: 'Company client created from onboarding.',
+                            fields: [
+                                { label: 'Client ID', value: displayId },
+                                { label: 'Trade License', value: normalized.tradeLicenseNumber },
+                                { label: 'Mobile', value: normalized.primaryMobile },
+                                { label: 'Opening Balance', value: String(normalized.openingBalance || 0) },
+                            ],
+                        },
+                    });
                 }
                 shouldUnlock = false;
                 setStatus({ type: 'success', message: `Successfully registered as ${displayId} !` });

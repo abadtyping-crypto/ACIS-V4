@@ -1161,6 +1161,47 @@ export const generateDisplayClientId = async (tenantId, type) => {
   });
 };
 
+export const previewDisplayClientId = async (tenantId, type) => {
+  const normalizedType = String(type || '').toLowerCase();
+  const isDependent = normalizedType === 'dependent';
+
+  const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
+  const allRules = settingsRes.ok && settingsRes.data ? settingsRes.data : {};
+  const clientIdMode = String(allRules.clientIdMode || 'unified').toLowerCase() === 'separate' ? 'separate' : 'unified';
+
+  let ruleKey = 'CLID';
+  let sequenceKey = 'lastClientSeq';
+  let fallbackPrefix = 'CLID';
+
+  if (isDependent) {
+    ruleKey = 'DPID';
+    sequenceKey = 'lastDependentSeq';
+    fallbackPrefix = 'DPID';
+  } else if (clientIdMode === 'separate' && normalizedType === 'company') {
+    ruleKey = 'CCID';
+    sequenceKey = 'lastCompanySeq';
+    fallbackPrefix = 'CCID';
+  } else if (clientIdMode === 'separate' && normalizedType === 'individual') {
+    ruleKey = 'ICID';
+    sequenceKey = 'lastIndividualSeq';
+    fallbackPrefix = 'ICID';
+  }
+
+  const selectedRule = allRules[ruleKey] || (!isDependent ? allRules.CLID || {} : {});
+  const normalizedRule = normalizeIdRule(selectedRule, fallbackPrefix);
+  const actualSeqKey = buildSequenceKey(sequenceKey, normalizedRule);
+  const currentSeq = await getTransactionSequence(tenantId, actualSeqKey);
+  const nextSeq = Math.max(currentSeq + 1, Number(normalizedRule.sequenceStart || 1));
+
+  return formatDisplayId({
+    prefix: normalizedRule.prefix,
+    seq: nextSeq,
+    padding: normalizedRule.padding,
+    dateFormat: normalizedRule.dateEnabled ? normalizedRule.dateFormat : 'NONE',
+    useSeparator: normalizedRule.useSeparator,
+  });
+};
+
 export const generateDisplayPortalId = async (tenantId) => {
   const sequenceKey = 'lastPortalSeq';
   const ruleKey = 'PID';

@@ -8,11 +8,13 @@ import IndividualRegistrationForm from '../components/onboarding/IndividualRegis
 import DependentRegistrationForm from '../components/onboarding/DependentRegistrationForm';
 import ClientLiveListSection from '../components/onboarding/ClientLiveListSection';
 import useIsDesktopLayout from '../hooks/useIsDesktopLayout';
+import { canUserPerformAction } from '../lib/userControlPreferences';
 
 const ClientsOnboardingPage = () => {
     const { tenantId } = useTenant();
     const { user } = useAuth();
     const isDesktop = useIsDesktopLayout();
+    const canCreateClient = canUserPerformAction(tenantId, user, 'createClient');
     const [activeType, setActiveType] = useState(null); // 'company', 'individual', 'dependent'
     const [mobileView, setMobileView] = useState('actions'); // actions | list | company | individual | dependent
     const [flash, setFlash] = useState(null);
@@ -95,8 +97,9 @@ const ClientsOnboardingPage = () => {
                                     <button
                                         key={type.id}
                                         type="button"
-                                        onClick={() => setMobileView(type.id)}
-                                        className="flex min-h-14 items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-left hover:border-[var(--c-accent)]"
+                                        onClick={() => canCreateClient && setMobileView(type.id)}
+                                        disabled={!canCreateClient}
+                                        className="flex min-h-14 items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-left hover:border-[var(--c-accent)] disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <img src={type.icon} alt={type.label} className="h-8 w-8 rounded-lg object-cover" />
                                         <span className="text-sm font-bold text-[var(--c-text)]">{type.label}</span>
@@ -182,13 +185,19 @@ const ClientsOnboardingPage = () => {
                         <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm">
                             <h2 className="text-lg font-bold text-[var(--c-text)]">Client Registration</h2>
                             <p className="text-sm text-[var(--c-muted)]">Select a client type to begin the onboarding process.</p>
+                            {!canCreateClient ? (
+                                <p className="mt-3 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                                    You do not have permission to create clients.
+                                </p>
+                            ) : null}
 
                             <div className="mt-8 grid gap-4 sm:grid-cols-3">
                                 {onboardingTypeConfig.map(type => (
                                     <button
                                         key={type.id}
-                                        onClick={() => setActiveType(type.id)}
-                                        className="group flex flex-col items-center gap-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-6 transition hover:border-[var(--c-accent)] hover:bg-[var(--c-accent)]/5"
+                                        onClick={() => canCreateClient && setActiveType(type.id)}
+                                        disabled={!canCreateClient}
+                                        className="group flex flex-col items-center gap-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-6 transition hover:border-[var(--c-accent)] hover:bg-[var(--c-accent)]/5 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-[var(--c-surface)] shadow-sm transition group-hover:scale-110">
                                             <img src={type.icon} alt={type.label} className="h-full w-full object-cover" />

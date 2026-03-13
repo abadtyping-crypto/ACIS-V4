@@ -5,6 +5,8 @@ import {
 const STORE_KEY = 'acis_user_control_prefs_v1';
 
 const ACTION_KEYS = [
+  'createClient',
+  'notifyCreateClient',
   'createPortal',
   'notifyCreatePortal',
   'directBalanceAdjust',
@@ -22,6 +24,8 @@ const ACTION_KEYS = [
 
 const defaultRolePermissions = {
   'super admin': {
+    createClient: true,
+    notifyCreateClient: true,
     createPortal: true,
     notifyCreatePortal: true,
     directBalanceAdjust: true,
@@ -37,6 +41,8 @@ const defaultRolePermissions = {
     hardDeleteTransaction: true,
   },
   staff: {
+    createClient: true,
+    notifyCreateClient: true,
     createPortal: false,
     notifyCreatePortal: false,
     directBalanceAdjust: false,
@@ -52,6 +58,8 @@ const defaultRolePermissions = {
     hardDeleteTransaction: false,
   },
   accountant: {
+    createClient: true,
+    notifyCreateClient: true,
     createPortal: false,
     notifyCreatePortal: true,
     directBalanceAdjust: true,
@@ -67,6 +75,8 @@ const defaultRolePermissions = {
     hardDeleteTransaction: false,
   },
   manager: {
+    createClient: true,
+    notifyCreateClient: true,
     createPortal: false,
     notifyCreatePortal: true,
     directBalanceAdjust: false,
@@ -82,6 +92,8 @@ const defaultRolePermissions = {
     hardDeleteTransaction: true,
   },
   admin: {
+    createClient: true,
+    notifyCreateClient: true,
     createPortal: true,
     notifyCreatePortal: true,
     directBalanceAdjust: true,
@@ -103,6 +115,7 @@ const defaultNotificationRules = {
   email: false,
   flash: true,
   events: {
+    createClient: true,
     createPortal: true,
     directBalanceAdjust: true,
     loanManagement: true,
@@ -261,6 +274,8 @@ export const saveUserNotificationRules = (tenantId, uid, rules) => {
 };
 
 export const USER_ACCESS_ACTIONS = [
+  { key: 'createClient', label: 'Create New Client' },
+  { key: 'notifyCreateClient', label: 'Create New Client Notification' },
   { key: 'createPortal', label: 'Create New Portal' },
   { key: 'notifyCreatePortal', label: 'Create New Portal Notification' },
   { key: 'directBalanceAdjust', label: 'Direct Balance Adjustment' },
@@ -277,6 +292,7 @@ export const USER_ACCESS_ACTIONS = [
 ];
 
 export const USER_NOTIFICATION_EVENTS = [
+  { key: 'createClient', label: 'Create Client' },
   { key: 'createPortal', label: 'Create Portal' },
   { key: 'directBalanceAdjust', label: 'Direct Balance Adjustment' },
   { key: 'loanManagement', label: 'Loan Management' },

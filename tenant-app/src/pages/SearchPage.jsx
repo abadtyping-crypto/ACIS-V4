@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   CalendarIcon,
@@ -16,6 +16,7 @@ import {
 } from '../components/icons/AppIcons';
 import PageShell from '../components/layout/PageShell';
 import { isVisibleOnPlatform, SEARCH_ITEMS } from '../config/appNavigation';
+import { fetchTenantPortals } from '../lib/backendStore';
 import { getRuntimePlatform } from '../lib/runtimePlatform';
 
 const SEARCH_FAVORITES_KEY = 'acis_search_favorites_v1';
@@ -43,6 +44,14 @@ const categoryByKey = {
   documentCalendar: 'Calendar',
 };
 
+const fallbackPortalIcon = (type) => {
+  if (type === 'Bank') return '/portals/bank.png';
+  if (type === 'Card Payment') return '/portals/cardpayment.png';
+  if (type === 'Petty Cash') return '/portals/pettycash.png';
+  if (type === 'Terminal') return '/portals/terminal.png';
+  return '/portals/portals.png';
+};
+
 const readFavorites = () => {
   if (typeof window === 'undefined') return [];
   try {
@@ -60,11 +69,42 @@ const SearchPage = () => {
   const { tenantId } = useParams();
   const [query, setQuery] = useState('');
   const [favoriteKeys, setFavoriteKeys] = useState(() => readFavorites());
+  const [portalItems, setPortalItems] = useState([]);
   const runtimePlatform = getRuntimePlatform();
 
+  useEffect(() => {
+    if (!tenantId) return;
+    let active = true;
+    fetchTenantPortals(tenantId).then((res) => {
+      if (!active || !res.ok) return;
+      const nextPortals = (res.rows || []).map((portal) => ({
+        key: `portal:${portal.id}`,
+        label: portal.name || portal.displayPortalId || portal.id,
+        description: `${portal.type || 'Portal'} portal`,
+        path: `portal-management/${portal.id}`,
+        icon: portal.iconUrl || fallbackPortalIcon(portal.type),
+        category: 'Portal Records',
+        searchText: [
+          portal.name,
+          portal.displayPortalId,
+          portal.id,
+          portal.type,
+          portal.status,
+        ].filter(Boolean).join(' '),
+      }));
+      setPortalItems(nextPortals);
+    });
+    return () => {
+      active = false;
+    };
+  }, [tenantId]);
+
   const visibleSearchItems = useMemo(
-    () => SEARCH_ITEMS.filter((item) => isVisibleOnPlatform(item, runtimePlatform)),
-    [runtimePlatform],
+    () => [
+      ...SEARCH_ITEMS.filter((item) => isVisibleOnPlatform(item, runtimePlatform)),
+      ...portalItems,
+    ],
+    [runtimePlatform, portalItems],
   );
 
   const favoriteSet = useMemo(() => new Set(favoriteKeys), [favoriteKeys]);
@@ -88,7 +128,7 @@ const SearchPage = () => {
     const filtered = !q
       ? visibleSearchItems
       : visibleSearchItems.filter((item) =>
-        `${item.label} ${item.description}`.toLowerCase().includes(q),
+        `${item.label} ${item.description} ${item.searchText || ''}`.toLowerCase().includes(q),
       );
 
     return [...filtered].sort((a, b) => {
@@ -117,7 +157,7 @@ const SearchPage = () => {
 
       <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {results.map((item) => {
-          const Icon = iconByKey[item.key] || SettingsIcon;
+          const Icon = typeof item.icon === 'string' ? null : (iconByKey[item.key] || SettingsIcon);
           return (
             <article
               key={item.path}
@@ -139,10 +179,14 @@ const SearchPage = () => {
 
               <Link to={`/t/${tenantId}/${item.path}`} className="block">
                 <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-accent)]">
-                  <Icon className="h-5 w-5" />
+                  {typeof item.icon === 'string' ? (
+                    <img src={item.icon} alt="" className="h-6 w-6 object-contain" />
+                  ) : (
+                    <Icon className="h-5 w-5" />
+                  )}
                 </div>
                 <p className="mt-2 line-clamp-2 text-[13px] font-bold leading-tight text-[var(--c-text)]">{item.label}</p>
-                <p className="mt-0.5 text-[11px] font-medium text-[var(--c-muted)]">{categoryByKey[item.key] || 'All Pages'}</p>
+                <p className="mt-0.5 text-[11px] font-medium text-[var(--c-muted)]">{item.category || categoryByKey[item.key] || 'All Pages'}</p>
               </Link>
             </article>
           );

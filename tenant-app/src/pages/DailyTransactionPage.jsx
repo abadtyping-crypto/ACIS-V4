@@ -17,12 +17,10 @@ import QuickAddServiceTemplateModal from '../components/dailyTransaction/QuickAd
 import { fetchApplicationIconLibrary } from '../lib/applicationIconLibraryStore';
 import DirhamIcon from '../components/common/DirhamIcon';
 import { Plus, FileText, Calendar } from 'lucide-react';
-import { TRANSACTION_METHODS, buildMethodIconMap, resolveMethodIconUrl } from '../lib/transactionMethodConfig';
+import { buildMethodIconMap, resolveMethodIconUrl, resolvePortalMethodDefinitions } from '../lib/transactionMethodConfig';
 
 const inputClass = "mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5 font-bold";
 const selectClass = "mt-1 w-full rounded-2xl border-2 border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm font-black text-[var(--c-text)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-500/20";
-
-const transactionMethods = TRANSACTION_METHODS;
 
 const DailyTransactionPage = () => {
     const { tenantId } = useTenant();
@@ -136,7 +134,10 @@ const DailyTransactionPage = () => {
         [portals, selectedPortalId],
     );
     const portalMethods = useMemo(
-        () => transactionMethods.filter((method) => (selectedPortal?.methods || []).includes(method.id)),
+        () => {
+            const methodPool = resolvePortalMethodDefinitions(selectedPortal?.customMethods || []);
+            return methodPool.filter((method) => (selectedPortal?.methods || []).includes(method.id));
+        },
         [selectedPortal],
     );
 

@@ -144,6 +144,7 @@ const PortalManagementPage = () => {
   const { registerRestoreListener } = useRecycleBin();
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [activeFunction, setActiveFunction] = useState('summary');
+  const [isNavExpanded, setIsNavExpanded] = useState(false);
 
   useEffect(() => {
     const unsubscribe = registerRestoreListener(() => {
@@ -193,9 +194,13 @@ const PortalManagementPage = () => {
       subtitle="Unified workspace for portal setup, transactions, adjustments, and reporting."
       icon={PortalIcon}
     >
-      <div className="grid h-full gap-4 overflow-hidden lg:grid-cols-[260px_1fr]">
-        <aside className="hidden lg:block">
-          <div className="sticky top-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm">
+      <div className="grid h-full gap-4 overflow-hidden lg:grid-cols-[auto_1fr]">
+        <aside
+          onMouseEnter={() => setIsNavExpanded(true)}
+          onMouseLeave={() => setIsNavExpanded(false)}
+          className={`sticky top-4 hidden h-fit rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm transition-all duration-300 ease-in-out lg:block ${isNavExpanded ? 'w-[260px]' : 'w-[72px]'}`}
+        >
+          <div>
             <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">
               Portal Functions
             </p>
@@ -207,16 +212,20 @@ const PortalManagementPage = () => {
                     key={item.key}
                     type="button"
                     onClick={() => setActiveFunction(item.key)}
-                    className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${isActive
+                    className={`group relative flex items-center rounded-xl border py-2 text-left transition ${
+                      isNavExpanded ? 'justify-start gap-2.5 px-3' : 'justify-center gap-0 px-0'
+                    } ${isActive
                       ? 'border-[var(--c-accent)] bg-[color:color-mix(in_srgb,var(--c-accent)_12%,transparent)] text-[var(--c-text)]'
                       : 'border-transparent text-[var(--c-muted)] hover:border-[var(--c-border)] hover:bg-[var(--c-panel)]'
                       }`}
-                    title={item.label}
                   >
                     <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${isActive ? 'border-[var(--c-accent)]/30 bg-[color:color-mix(in_srgb,var(--c-accent)_16%,transparent)] text-[var(--c-accent)]' : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]'}`}>
                       <item.Icon className="h-4 w-4" />
                     </span>
-                    <span className="text-xs font-bold">{item.label}</span>
+                    <span className={`${isNavExpanded ? 'inline' : 'hidden'} text-xs font-bold whitespace-nowrap`}>{item.label}</span>
+                    <div className={`${isNavExpanded ? 'hidden' : 'block'} absolute left-full ml-3 hidden group-hover:block rounded-lg bg-[var(--c-surface)] border border-[var(--c-border)] px-3 py-2 text-xs font-bold text-[var(--c-text)] shadow-2xl z-50 whitespace-nowrap ring-1 ring-black/5`}>
+                      {item.label}
+                    </div>
                   </button>
                 );
               })}

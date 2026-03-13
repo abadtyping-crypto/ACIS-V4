@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/TenantContext';
+import DirhamIcon from '../components/common/DirhamIcon';
 import { createSyncEvent } from '../lib/syncEvents';
 import { buildNotificationPayload, generateNotificationId } from '../lib/notificationTemplate';
 import {
@@ -304,13 +305,16 @@ const PortalFormPage = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <label className={`block text-sm font-bold text-[var(--c-muted)] uppercase tracking-wider ${portalId ? 'opacity-50' : ''}`}>
                                     {portalId ? 'Current Balance' : 'Opening Balance'}
-                                    <input
-                                        type="number"
-                                        value={form.balance}
-                                        onChange={(e) => setForm((p) => ({ ...p, balance: e.target.value }))}
-                                        disabled={!!portalId}
-                                        className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5 text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-ring)] disabled:cursor-not-allowed"
-                                    />
+                                    <div className="relative mt-1">
+                                        <DirhamIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--c-muted)]" />
+                                        <input
+                                            type="number"
+                                            value={form.balance}
+                                            onChange={(e) => setForm((p) => ({ ...p, balance: e.target.value }))}
+                                            disabled={!!portalId}
+                                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] pl-9 pr-4 py-2.5 text-[var(--c-text)] outline-none focus:ring-2 focus:ring-[var(--c-ring)] disabled:cursor-not-allowed"
+                                        />
+                                    </div>
                                 </label>
                                 {!portalId && Number(form.balance) > 0 && (
                                     <label className={`block text-sm font-bold text-[var(--c-muted)] uppercase tracking-wider ${portalId ? 'opacity-50' : ''}`}>

@@ -319,35 +319,39 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                 </div>
 
                                 {showQuickAdd ? (
-                                    <div className="mt-2 space-y-2 rounded-xl border border-[var(--c-accent)]/20 bg-[var(--c-accent)]/5 p-3 animate-in fade-in slide-in-from-top-2">
+                                    <div className="mt-2 space-y-3 rounded-2xl border border-[var(--c-accent)]/20 bg-[color:color-mix(in_srgb,var(--c-accent)_7%,var(--c-surface))] p-3 animate-in fade-in slide-in-from-top-2">
+                                        <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--c-accent)]">Quick Add</p>
+                                            <p className="mt-1 text-xs font-semibold text-[var(--c-text)]">Create a loan person without leaving this page.</p>
+                                        </div>
                                         <input
                                             type="text"
                                             placeholder="Full Name"
                                             value={newPerson.name}
                                             onChange={e => setNewPerson(p => ({ ...p, name: e.target.value }))}
-                                            className="w-full rounded-lg border border-[var(--c-border)] bg-white px-3 py-1.5 text-xs font-bold outline-none"
+                                            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/15 placeholder:text-[var(--c-muted)]"
                                         />
-                                        <div className="flex gap-2">
+                                        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                                             <input
                                                 type="text"
                                                 placeholder="Phone"
                                                 value={newPerson.phone}
                                                 onChange={e => setNewPerson(p => ({ ...p, phone: e.target.value }))}
-                                                className="w-1/2 rounded-lg border border-[var(--c-border)] bg-white px-3 py-1.5 text-xs font-bold outline-none"
+                                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/15 placeholder:text-[var(--c-muted)]"
                                             />
                                             <input
                                                 type="email"
                                                 placeholder="Email"
                                                 value={newPerson.email}
                                                 onChange={e => setNewPerson(p => ({ ...p, email: e.target.value }))}
-                                                className="w-1/2 rounded-lg border border-[var(--c-border)] bg-white px-3 py-1.5 text-xs font-bold outline-none"
+                                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/15 placeholder:text-[var(--c-muted)]"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={handleQuickAdd}
-                                                className="rounded-lg bg-[var(--c-accent)] px-3 py-1.5 text-xs font-bold text-white shadow-sm"
+                                                className="rounded-xl bg-[var(--c-accent)] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:opacity-90"
                                             >
-                                                Add
+                                                Add Person
                                             </button>
                                         </div>
                                     </div>

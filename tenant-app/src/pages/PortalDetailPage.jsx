@@ -21,22 +21,13 @@ import { generateTenantPdf } from '../lib/pdfGenerator';
 import { canUserPerformAction } from '../lib/userControlPreferences';
 import { buildNotificationPayload, generateNotificationId } from '../lib/notificationTemplate';
 import {
-  ALLOWED_METHOD_IDS,
-  TRANSACTION_METHODS,
   TX_METHOD_LABELS,
   buildMethodIconMap,
+  resolvePortalCategories,
+  resolvePortalCategory,
+  resolvePortalMethodDefinitions,
   resolveMethodIconUrl,
 } from '../lib/transactionMethodConfig';
-
-const portalTypes = [
-  { id: 'Bank', label: 'Bank', methods: ALLOWED_METHOD_IDS },
-  { id: 'Card Payment', label: 'Card Payment', methods: ALLOWED_METHOD_IDS },
-  { id: 'Petty Cash', label: 'Petty Cash', methods: ALLOWED_METHOD_IDS },
-  { id: 'Portals', label: 'Portals', methods: ALLOWED_METHOD_IDS },
-  { id: 'Terminal', label: 'Terminal', methods: ALLOWED_METHOD_IDS },
-];
-
-const transactionMethods = TRANSACTION_METHODS;
 
 const toDateText = (value) => {
   if (!value) return '-';
@@ -93,7 +84,14 @@ const PortalDetailPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [portal, setPortal] = useState(null);
-  const [form, setForm] = useState({ name: '', type: 'Bank', status: 'active', methods: [] });
+  const [form, setForm] = useState({
+    name: '',
+    type: 'Bank',
+    status: 'active',
+    methods: [],
+    customCategories: [],
+    customMethods: [],
+  });
   const [txRows, setTxRows] = useState([]);
   const [usersByUid, setUsersByUid] = useState({});
   const [portalsById, setPortalsById] = useState({});
@@ -153,6 +151,8 @@ const PortalDetailPage = () => {
           type: selected.type || 'Bank',
           status: selected.status || 'active',
           methods: Array.isArray(selected.methods) ? selected.methods : [],
+          customCategories: Array.isArray(selected.customCategories) ? selected.customCategories : [],
+          customMethods: Array.isArray(selected.customMethods) ? selected.customMethods : [],
         });
       }
     }
@@ -302,19 +302,18 @@ const PortalDetailPage = () => {
     loadData();
   }, [loadData]);
 
-
-
   const methodMetaById = useMemo(() => {
+    const methodPool = resolvePortalMethodDefinitions(portal?.customMethods || []);
     const map = {};
-    transactionMethods.forEach((method) => {
+    methodPool.forEach((method) => {
       map[method.id] = {
         label: method.label,
-        icon: resolveMethodIconUrl(methodIconMap, method.id),
+        icon: method.iconUrl || resolveMethodIconUrl(methodIconMap, method.id),
         Icon: method.Icon,
       };
     });
     return map;
-  }, [methodIconMap]);
+  }, [methodIconMap, portal?.customMethods]);
 
   const portalOptions = useMemo(() => {
     const rows = Object.entries(portalsById).map(([id, p]) => ({ id, ...(p || {}) }));
@@ -322,9 +321,24 @@ const PortalDetailPage = () => {
       value: p.id,
       label: `${p.name || p.id} (AED ${(Number(p.balance || 0)).toLocaleString()})`,
       icon: p.iconUrl || fallbackPortalIcon(p.type),
-      meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
+      meta: (Array.isArray(p.methods)
+        ? p.methods.map((id) => {
+          const custom = (Array.isArray(p.customMethods) ? p.customMethods : []).find((item) => item.id === id);
+          return custom?.label || txMethodLabels[id] || id;
+        })
+        : []).join(' | '),
     }));
   }, [portalsById]);
+
+  const portalTypes = useMemo(
+    () => resolvePortalCategories(form.customCategories).map((item) => ({ id: item.id, label: item.label, methods: item.methodIds || [] })),
+    [form.customCategories],
+  );
+
+  const transactionMethods = useMemo(
+    () => resolvePortalMethodDefinitions(form.customMethods),
+    [form.customMethods],
+  );
 
   const monthOptions = useMemo(() => {
     const result = [];
@@ -615,11 +629,11 @@ const PortalDetailPage = () => {
   };
 
   const onTypeChange = (nextType) => {
-    const typeConfig = portalTypes.find((item) => item.id === nextType);
+    const typeConfig = resolvePortalCategory(nextType, form.customCategories);
     setForm((prev) => ({
       ...prev,
       type: nextType,
-      methods: typeConfig ? typeConfig.methods : prev.methods,
+      methods: typeConfig ? (typeConfig.methodIds || []) : prev.methods,
     }));
   };
 
@@ -636,6 +650,8 @@ const PortalDetailPage = () => {
       type: form.type,
       status: form.status,
       methods: form.methods,
+      customCategories: form.customCategories,
+      customMethods: form.customMethods,
       updatedBy: user.uid,
     };
     const res = await upsertTenantPortal(tenantId, portalId, payload);
@@ -796,7 +812,7 @@ const PortalDetailPage = () => {
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                       {transactionMethods.map((method) => {
                         const selected = form.methods.includes(method.id);
-                        const iconUrl = resolveMethodIconUrl(methodIconMap, method.id);
+                        const iconUrl = method.iconUrl || resolveMethodIconUrl(methodIconMap, method.id);
                         const MethodIcon = method.Icon;
                         return (
                           <button
@@ -846,6 +862,8 @@ const PortalDetailPage = () => {
                             type: portal.type || 'Bank',
                             status: portal.status || 'active',
                             methods: Array.isArray(portal.methods) ? portal.methods : [],
+                            customCategories: Array.isArray(portal.customCategories) ? portal.customCategories : [],
+                            customMethods: Array.isArray(portal.customMethods) ? portal.customMethods : [],
                           });
                         }
                       }}
@@ -865,7 +883,7 @@ const PortalDetailPage = () => {
                     <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Type</p>
                     <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-panel)_55%,white)] px-2 py-1 shadow-sm">
                       <img
-                        src={fallbackPortalIcon(portal.type)}
+                        src={resolvePortalCategory(portal.type, portal.customCategories)?.icon || fallbackPortalIcon(portal.type)}
                         alt={portal.type || 'Portal'}
                         className="h-5 w-5 rounded object-cover"
                         onError={(event) => {

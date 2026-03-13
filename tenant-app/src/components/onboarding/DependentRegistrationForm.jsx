@@ -2,14 +2,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
     searchClients,
     generateDisplayClientId,
-    getTenantSettingDoc,
-    db,
+    previewDisplayClientId,
     checkIndividualDuplicate,
     upsertDependentUnderParent
 } from '../../lib/backendStore';
-import { doc, getDoc } from 'firebase/firestore';
 import IconSelect from '../common/IconSelect';
 import { resolveClientTypeIcon } from '../../lib/clientIcons';
+import { canUserPerformAction } from '../../lib/userControlPreferences';
 
 const relationOptionsByParent = {
     company: [
@@ -68,14 +67,8 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
     useEffect(() => {
         if (!parent) return;
         const loadNextId = async () => {
-            const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
-            const rules = settingsRes.ok && settingsRes.data ? settingsRes.data.DPID || {} : {};
-            const prefix = rules.prefix || 'DPID';
-            const padding = Number(rules.padding) || 4;
-
-            const counterSnap = await getDoc(doc(db, 'tenants', tenantId, 'counters', 'clients'));
-            const currentSeq = counterSnap.exists() ? counterSnap.data().lastDependentSeq || 0 : 0;
-            setNextId(`${prefix}${String(currentSeq + 1).padStart(padding, '0')}`);
+            const previewId = await previewDisplayClientId(tenantId, 'dependent');
+            setNextId(previewId);
         };
         loadNextId();
     }, [tenantId, parent]);
@@ -159,6 +152,11 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
         setStatus({ type: 'info', message: 'Validating dependent data...' });
 
         try {
+            if (!canUserPerformAction(tenantId, user, 'createClient')) {
+                setStatus({ type: 'error', message: "You don't have permission to create clients." });
+                return;
+            }
+
             const normalized = {
                 ...form,
                 fullName: form.fullName.toUpperCase().trim(),

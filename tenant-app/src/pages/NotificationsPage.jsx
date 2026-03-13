@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/TenantContext';
 import { useTenantNotifications } from '../hooks/useTenantNotifications';
+import QuickViewModal from '../components/common/QuickViewModal';
 import {
   Settings,
   Users,
@@ -11,6 +12,7 @@ import {
   Bell,
   CheckCircle2,
 } from 'lucide-react';
+import { useState } from 'react';
 
 const TOPIC_ICONS = {
   settings: Settings,
@@ -83,13 +85,19 @@ const NotificationsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { notifications, isLoading, markAsRead, markActionTaken } = useTenantNotifications(tenantId, user);
+  const [activeQuickView, setActiveQuickView] = useState(null);
 
   const handleActionClick = async (e, action, item) => {
     e.stopPropagation(); // Avoid triggering the main card click
     if (!item || item.actionTakenBy) return;
     
     const notificationId = item.id;
-    if (action.actionType === 'link' && action.route) {
+    if (action.actionType === 'quickView') {
+      if (!item.isRead) {
+        await markAsRead(notificationId);
+      }
+      setActiveQuickView(item.quickView || null);
+    } else if (action.actionType === 'link' && action.route) {
       if (!item.isRead) {
          await markAsRead(notificationId);
       }
@@ -129,6 +137,8 @@ const NotificationsPage = () => {
               if (item.routePath) {
                 const targetRoute = resolveTenantRoute(tenantId, item.routePath);
                 if (targetRoute) navigate(targetRoute);
+              } else if (item.quickView) {
+                setActiveQuickView(item.quickView);
               }
             }}
           >
@@ -218,6 +228,11 @@ const NotificationsPage = () => {
           </article>
         )})}
       </div>
+      <QuickViewModal
+        isOpen={Boolean(activeQuickView)}
+        quickView={activeQuickView}
+        onClose={() => setActiveQuickView(null)}
+      />
     </PageShell>
   );
 };
