@@ -12,7 +12,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { fetchTenantIntegrationConfig, upsertTenantIntegrationConfig } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import SettingCard from './SettingCard';

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/useAuth';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import {
   addTenantUser,
   deleteTenantUser,
@@ -14,6 +14,13 @@ const inputClass =
   'mt-1 w-full rounded-xl border border-(--c-border) bg-(--c-panel) px-3 py-2.5 text-sm text-(--c-text) outline-none transition focus:border-(--c-accent) focus:ring-2 focus:ring-(--c-ring)';
 
 const labelClass = 'text-sm text-(--c-muted)';
+const errorTextClass = 'mt-1 text-xs text-[var(--c-danger)]';
+const freezeActionClass =
+  'rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:opacity-80 bg-[var(--c-warning-soft)] text-[var(--c-warning)]';
+const unfreezeActionClass =
+  'rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:opacity-80 bg-[var(--c-success-soft)] text-[var(--c-success)]';
+const deleteActionClass =
+  'rounded-lg bg-[var(--c-danger-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--c-danger)] transition hover:opacity-80';
 
 const roleOptions = ['Admin', 'Staff', 'Accountant', 'Manager'];
 
@@ -144,7 +151,7 @@ const UserCustomizationSection = () => {
           <p className="mt-1 text-[11px] text-(--c-muted)">
             This name appears on transactions created by this user.
           </p>
-          {errors.displayName ? <p className="mt-1 text-xs text-rose-600">{errors.displayName}</p> : null}
+          {errors.displayName ? <p className={errorTextClass}>{errors.displayName}</p> : null}
         </label>
 
         <label className={labelClass}>
@@ -161,7 +168,7 @@ const UserCustomizationSection = () => {
               </option>
             ))}
           </select>
-          {errors.role ? <p className="mt-1 text-xs text-rose-600">{errors.role}</p> : null}
+          {errors.role ? <p className={errorTextClass}>{errors.role}</p> : null}
         </label>
 
         <label className={`${labelClass} sm:col-span-2`}>
@@ -175,7 +182,7 @@ const UserCustomizationSection = () => {
           <p className="mt-1 text-[11px] text-(--c-muted)">
             Invite-safe access is tied to this email. User must log in with this exact email.
           </p>
-          {errors.email ? <p className="mt-1 text-xs text-rose-600">{errors.email}</p> : null}
+          {errors.email ? <p className={errorTextClass}>{errors.email}</p> : null}
         </label>
 
         <label className={labelClass}>
@@ -191,7 +198,7 @@ const UserCustomizationSection = () => {
               placeholder="5xxxxxxxx"
             />
           </div>
-          {errors.mobile ? <p className="mt-1 text-xs text-rose-600">{errors.mobile}</p> : null}
+          {errors.mobile ? <p className={errorTextClass}>{errors.mobile}</p> : null}
         </label>
       </div>
 
@@ -239,9 +246,9 @@ const UserCustomizationSection = () => {
                         <button
                           type="button"
                           onClick={() => onToggleFreeze(user.uid)}
-                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition hover:opacity-80 ${isFrozen
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                          className={`${isFrozen
+                              ? unfreezeActionClass
+                              : freezeActionClass
                             }`}
                         >
                           {isFrozen ? 'Unfreeze' : 'Freeze'}
@@ -249,7 +256,7 @@ const UserCustomizationSection = () => {
                         <button
                           type="button"
                           onClick={() => onDelete(user.uid)}
-                          className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:opacity-80 dark:bg-rose-900/40 dark:text-rose-300"
+                          className={deleteActionClass}
                         >
                           Delete
                         </button>

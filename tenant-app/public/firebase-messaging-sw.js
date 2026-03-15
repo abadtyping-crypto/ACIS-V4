@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js');
+self.importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js');
+self.importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js');
 
 // Required configuration for background messages
 const firebaseConfig = {
@@ -13,8 +13,9 @@ const firebaseConfig = {
 };
 
 try {
-    firebase.initializeApp(firebaseConfig);
-    const messaging = firebase.messaging();
+    const firebaseApp = self.firebase;
+    firebaseApp.initializeApp(firebaseConfig);
+    const messaging = firebaseApp.messaging();
 
     messaging.onBackgroundMessage((payload) => {
         console.log('[firebase-messaging-sw.js] Received background message ', payload);

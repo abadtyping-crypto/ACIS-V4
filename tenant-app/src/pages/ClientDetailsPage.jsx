@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { fetchTenantClients, fetchTenantTransactions } from '../lib/backendStore';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import CurrencyValue from '../components/common/CurrencyValue';
 
 const toDateLabel = (value) => {
@@ -22,8 +22,14 @@ const ClientDetailsPage = () => {
 
   useEffect(() => {
     if (!tenantId || !clientId) return;
-    setIsLoading(true);
-    Promise.all([fetchTenantClients(tenantId), fetchTenantTransactions(tenantId)]).then(([clientsRes, txRes]) => {
+    let active = true;
+    const loadData = async () => {
+      setIsLoading(true);
+      const [clientsRes, txRes] = await Promise.all([
+        fetchTenantClients(tenantId),
+        fetchTenantTransactions(tenantId),
+      ]);
+      if (!active) return;
       if (clientsRes.ok) {
         const allRows = clientsRes.rows || [];
         setRows(allRows);
@@ -33,7 +39,14 @@ const ClientDetailsPage = () => {
         setTransactions((txRes.rows || []).filter((tx) => !tx.deletedAt && tx.clientId === clientId));
       }
       setIsLoading(false);
+    };
+    const frame = requestAnimationFrame(() => {
+      void loadData();
     });
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+    };
   }, [tenantId, clientId]);
 
   const dependents = useMemo(

@@ -333,6 +333,10 @@ export const createDailyTransactionWithFinancials = async (tenantId, txId, paylo
     const portalRef = doc(db, 'tenants', tenantId, 'portals', portalId);
 
     const transactionId = String(payload?.transactionId || txId).trim() || txId;
+    const externalTransactionId = String(payload?.externalTransactionId || '').trim();
+    const trackingId = String(payload?.trackingId || '').trim();
+    const trackingNumber = String(payload?.trackingNumber || '').trim();
+    const trackingVisibility = String(payload?.trackingVisibility || '').trim();
     const portalTxId = toSafeDocId(`${transactionId}-PORT`, 'portal_tx');
     const portalTxRef = doc(db, 'tenants', tenantId, 'portalTransactions', portalTxId);
     const negativeBalanceNotificationId = toSafeDocId(`negative_client_balance_${txId}`, 'ntf');
@@ -376,11 +380,16 @@ export const createDailyTransactionWithFinancials = async (tenantId, txId, paylo
           createdAt: String(payload?.createdAt || new Date().toISOString()),
           createdBy,
           dependentId: payload?.dependentId || null,
+          externalTransactionId: externalTransactionId || null,
           govCharge: safeGovernmentCharge,
           invoiced: payload?.invoiced === true,
           paidPortalId: portalId,
           portalTransactionMethod: String(payload?.portalTransactionMethod || ''),
           profit: Number.isFinite(Number(payload?.profit)) ? Number(payload.profit) : safeClientCharge - safeGovernmentCharge,
+          trackingEnabled: payload?.trackingEnabled === true,
+          trackingId: trackingId || null,
+          trackingNumber: trackingNumber || null,
+          trackingVisibility: trackingVisibility || null,
           status: payload?.status || 'active',
         },
         { merge: false },
@@ -440,12 +449,13 @@ export const createDailyTransactionWithFinancials = async (tenantId, txId, paylo
             message: `Transaction ${transactionId} resulted in a negative balance.`,
             eventKey: 'negativeClientBalance',
             tenantId,
-          transactionId: txId,
-          clientId,
-          routePath: `/t/${tenantId}/daily-transactions`,
-          status: 'unread',
-          createdAt: serverTimestamp(),
-          createdBy,
+            transactionId: txId,
+            clientId,
+            clientBalanceAfter: nextClientBalance,
+            routePath: `/t/${tenantId}/daily-transactions`,
+            status: 'unread',
+            createdAt: serverTimestamp(),
+            createdBy,
           },
           { merge: true },
         );
@@ -1224,6 +1234,569 @@ export const generateDisplayPortalId = async (tenantId) => {
   });
 };
 
+export const generateDisplayDocumentRef = async (tenantId, docKey = 'quotation') => {
+  try {
+    const settingsRes = await getTenantSettingDoc(tenantId, 'transactionIdRules');
+    const allRules = settingsRes.ok && settingsRes.data ? settingsRes.data : {};
+    const storedRule = allRules.docRefCodes?.[docKey] || {};
+    const fallbackPrefix = docKey === 'proformaInvoice' ? 'PRO' : 'QUOT';
+    const normalizedRule = normalizeIdRule(storedRule, fallbackPrefix);
+    const sequenceKey = buildSequenceKey(`docRef_${docKey}`, normalizedRule);
+    await ensureTransactionSequenceStart(tenantId, sequenceKey, normalizedRule.sequenceStart);
+    const seq = await incrementTransactionSequence(tenantId, sequenceKey);
+    return formatDisplayId({
+      prefix: normalizedRule.prefix,
+      seq,
+      padding: normalizedRule.padding,
+      dateFormat: normalizedRule.dateEnabled ? normalizedRule.dateFormat : 'NONE',
+      useSeparator: normalizedRule.useSeparator,
+    });
+  } catch (error) {
+    console.warn(`[backendStore] document ref generation failed for ${docKey}:`, error);
+    return `${String(docKey || 'DOC').toUpperCase()}-${Date.now()}`;
+  }
+};
+
+export const fetchTenantQuotations = async (tenantId) => {
+  try {
+    const snap = await getDocs(collection(db, 'tenants', tenantId, 'quotations'));
+    const rows = snap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item.deletedAt)
+      .sort((a, b) => toDateMillis(b.createdAt || b.updatedAt) - toDateMillis(a.createdAt || a.updatedAt));
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] quotations read failed tenants/${tenantId}/quotations: ${message}`);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
+export const upsertTenantQuotation = async (tenantId, quotationId, payload) => {
+  try {
+    if (!tenantId || !quotationId) return { ok: false, error: 'Missing tenantId or quotationId.' };
+    await setDoc(
+      doc(db, 'tenants', tenantId, 'quotations', quotationId),
+      {
+        ...payload,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return { ok: true, id: quotationId };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] quotation upsert failed tenants/${tenantId}/quotations/${quotationId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const fetchTenantProformaInvoices = async (tenantId) => {
+  try {
+    const snap = await getDocs(collection(db, 'tenants', tenantId, 'proformaInvoices'));
+    const rows = snap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => !item.deletedAt)
+      .sort((a, b) => toDateMillis(b.createdAt || b.updatedAt) - toDateMillis(a.createdAt || a.updatedAt));
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] proforma read failed tenants/${tenantId}/proformaInvoices: ${message}`);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
+export const upsertTenantProformaInvoice = async (tenantId, proformaId, payload) => {
+  try {
+    if (!tenantId || !proformaId) return { ok: false, error: 'Missing tenantId or proformaId.' };
+    const ref = doc(db, 'tenants', tenantId, 'proformaInvoices', proformaId);
+    const snap = await getDoc(ref);
+    await setDoc(
+      ref,
+      {
+        ...payload,
+        updatedAt: serverTimestamp(),
+        ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
+      },
+      { merge: true },
+    );
+    return { ok: true, id: proformaId };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] proforma upsert failed tenants/${tenantId}/proformaInvoices/${proformaId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const fetchTenantClientPayments = async (tenantId, filters = {}) => {
+  try {
+    const snap = await getDocs(collection(db, 'tenants', tenantId, 'clientPayments'));
+    const normalizedClientId = String(filters?.clientId || '').trim();
+    const normalizedType = String(filters?.type || '').trim().toLowerCase();
+    const rows = snap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => {
+        if (item.deletedAt) return false;
+        if (normalizedClientId && String(item.clientId || '').trim() !== normalizedClientId) return false;
+        if (normalizedType && String(item.type || '').trim().toLowerCase() !== normalizedType) return false;
+        return true;
+      })
+      .sort((a, b) => toDateMillis(b.receivedAt || b.createdAt || b.updatedAt) - toDateMillis(a.receivedAt || a.createdAt || a.updatedAt));
+    return { ok: true, rows };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] client payment read failed tenants/${tenantId}/clientPayments: ${message}`);
+    return { ok: false, error: message, rows: [] };
+  }
+};
+
+export const upsertTenantClientPayment = async (tenantId, paymentId, payload) => {
+  try {
+    if (!tenantId || !paymentId) return { ok: false, error: 'Missing tenantId or paymentId.' };
+    const ref = doc(db, 'tenants', tenantId, 'clientPayments', paymentId);
+    const snap = await getDoc(ref);
+    await setDoc(
+      ref,
+      {
+        ...payload,
+        updatedAt: serverTimestamp(),
+        ...(snap.exists() ? {} : { createdAt: serverTimestamp() }),
+      },
+      { merge: true },
+    );
+    return { ok: true, id: paymentId };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] client payment upsert failed tenants/${tenantId}/clientPayments/${paymentId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const convertQuotationToProforma = async (tenantId, quotationId, conversionPayload = {}) => {
+  try {
+    if (!tenantId || !quotationId) return { ok: false, error: 'Missing tenantId or quotationId.' };
+
+    const quotationRef = doc(db, 'tenants', tenantId, 'quotations', quotationId);
+    const quotationSnap = await getDoc(quotationRef);
+    if (!quotationSnap.exists()) return { ok: false, error: 'Quotation not found.' };
+
+    const quotation = quotationSnap.data() || {};
+    if (quotation.proformaId) {
+      return {
+        ok: true,
+        alreadyConverted: true,
+        proformaId: String(quotation.proformaId || ''),
+        proformaDisplayRef: String(quotation.proformaDisplayRef || ''),
+      };
+    }
+
+    const actor = String(conversionPayload?.createdBy || quotation?.updatedBy || quotation?.createdBy || '').trim();
+    const nextDisplayRef = String(conversionPayload?.displayRef || '').trim() || await generateDisplayDocumentRef(tenantId, 'proformaInvoice');
+    const nextProformaId = toSafeDocId(nextDisplayRef, 'proforma');
+    const proformaRef = doc(db, 'tenants', tenantId, 'proformaInvoices', nextProformaId);
+
+    const sourceItems = Array.isArray(conversionPayload?.items) && conversionPayload.items.length
+      ? conversionPayload.items
+      : (Array.isArray(quotation.items) ? quotation.items : []);
+    const normalizedItems = sourceItems.map((item, index) => {
+      const qty = Math.max(1, Number(item?.qty || 1));
+      const amount = Math.max(0, Number(item?.amount || 0));
+      const lineTotal = Number.isFinite(Number(item?.lineTotal)) ? Number(item.lineTotal) : qty * amount;
+      return {
+        rowId: String(item?.rowId || `${index + 1}`),
+        applicationId: String(item?.applicationId || ''),
+        name: String(item?.name || ''),
+        description: String(item?.description || ''),
+        qty,
+        amount,
+        govCharge: Number(item?.govCharge || 0) || 0,
+        lineTotal,
+      };
+    });
+    const totalAmount = normalizedItems.reduce((sum, item) => sum + (Number(item.lineTotal) || 0), 0);
+    const amountPaid = Math.max(0, Number(conversionPayload?.amountPaid || 0));
+    const balanceDue = Math.max(0, totalAmount - amountPaid);
+
+    await runTransaction(db, async (txn) => {
+      const txQuotationSnap = await txn.get(quotationRef);
+      if (!txQuotationSnap.exists()) throw new Error('Quotation not found.');
+      const txQuotation = txQuotationSnap.data() || {};
+      if (txQuotation.proformaId) throw new Error('Quotation is already converted.');
+
+      txn.set(
+        proformaRef,
+        {
+          displayRef: nextDisplayRef,
+          sourceQuotationId: quotationId,
+          sourceQuotationRef: String(txQuotation.displayRef || ''),
+          quoteDate: txQuotation.quoteDate || '',
+          clientId: txQuotation.clientId || null,
+          clientSnapshot: txQuotation.clientSnapshot || {},
+          dependentIds: txQuotation.dependentIds || [],
+          dependentNames: txQuotation.dependentNames || [],
+          items: normalizedItems,
+          totalAmount,
+          amountPaid,
+          balanceDue,
+          status: conversionPayload?.status || 'drafted',
+          sentAt: null,
+          canceledAt: null,
+          canceledBy: '',
+          createdBy: actor || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          updatedBy: actor || '',
+        },
+        { merge: false },
+      );
+
+      txn.set(
+        quotationRef,
+        {
+          status: 'converted',
+          proformaId: nextProformaId,
+          proformaDisplayRef: nextDisplayRef,
+          acceptedAt: txQuotation.acceptedAt || serverTimestamp(),
+          acceptedBy: txQuotation.acceptedBy || actor || '',
+          convertedAt: serverTimestamp(),
+          convertedBy: actor || '',
+          updatedAt: serverTimestamp(),
+          updatedBy: actor || '',
+        },
+        { merge: true },
+      );
+    });
+
+    return {
+      ok: true,
+      proformaId: nextProformaId,
+      proformaDisplayRef: nextDisplayRef,
+      totalAmount,
+      balanceDue,
+    };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] quotation->proforma conversion failed tenants/${tenantId}/quotations/${quotationId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const recordClientPaymentWithFinancials = async (tenantId, paymentId, payload) => {
+  try {
+    if (!tenantId || !paymentId) return { ok: false, error: 'Missing tenantId or paymentId.' };
+
+    const clientId = String(payload?.clientId || '').trim();
+    const portalId = String(payload?.portalId || '').trim();
+    const methodId = String(payload?.methodId || '').trim();
+    const proformaId = String(payload?.proformaId || '').trim();
+    const actor = String(payload?.createdBy || '').trim();
+    const amount = Math.max(0, Number(payload?.amount || 0));
+
+    if (!clientId || !portalId || !actor) {
+      return { ok: false, error: 'Missing required fields (clientId, portalId, createdBy).' };
+    }
+    if (!(amount > 0)) return { ok: false, error: 'Payment amount must be greater than zero.' };
+
+    const displayRef = String(payload?.displayRef || paymentId).trim() || paymentId;
+    const referenceType = String(payload?.referenceType || (proformaId ? 'proforma_linked' : 'general_balance')).trim() || 'general_balance';
+    const receivedAt = String(payload?.receivedAt || new Date().toISOString());
+
+    const paymentRef = doc(db, 'tenants', tenantId, 'clientPayments', paymentId);
+    const clientRef = doc(db, 'tenants', tenantId, 'clients', clientId);
+    const portalRef = doc(db, 'tenants', tenantId, 'portals', portalId);
+    const portalTxId = toSafeDocId(`${displayRef}-PAY`, 'portal_tx');
+    const portalTxRef = doc(db, 'tenants', tenantId, 'portalTransactions', portalTxId);
+    const proformaRef = proformaId ? doc(db, 'tenants', tenantId, 'proformaInvoices', proformaId) : null;
+
+    const result = {
+      ok: true,
+      clientBalanceAfter: 0,
+      portalBalanceAfter: 0,
+      proformaStatusAfter: '',
+      proformaBalanceDueAfter: null,
+    };
+
+    await runTransaction(db, async (txn) => {
+      const [clientSnap, portalSnap, proformaSnap] = await Promise.all([
+        txn.get(clientRef),
+        txn.get(portalRef),
+        proformaRef ? txn.get(proformaRef) : Promise.resolve(null),
+      ]);
+
+      if (!clientSnap.exists()) throw new Error('Selected client not found.');
+      if (!portalSnap.exists()) throw new Error('Selected portal not found.');
+      if (proformaRef && proformaSnap && !proformaSnap.exists()) throw new Error('Linked proforma not found.');
+
+      const clientData = clientSnap.data() || {};
+      const portalData = portalSnap.data() || {};
+      const currentClientBalance = Number(clientData.balance ?? clientData.openingBalance ?? 0) || 0;
+      const currentPortalBalance = Number(portalData.balance ?? 0) || 0;
+      const nextClientBalance = currentClientBalance + amount;
+      const nextPortalBalance = currentPortalBalance + amount;
+
+      txn.set(
+        paymentRef,
+        {
+          displayRef,
+          type: 'payment',
+          amount,
+          clientId,
+          portalId,
+          methodId,
+          proformaId: proformaId || null,
+          referenceType,
+          note: String(payload?.note || '').trim(),
+          receivedAt,
+          createdBy: actor,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: false },
+      );
+
+      txn.set(
+        clientRef,
+        {
+          openingBalance: nextClientBalance,
+          balance: nextClientBalance,
+          updatedAt: serverTimestamp(),
+          updatedBy: actor,
+        },
+        { merge: true },
+      );
+
+      txn.set(
+        portalRef,
+        {
+          balance: nextPortalBalance,
+          balanceType: nextPortalBalance < 0 ? 'negative' : 'positive',
+          updatedAt: serverTimestamp(),
+          updatedBy: actor,
+        },
+        { merge: true },
+      );
+
+      txn.set(
+        portalTxRef,
+        {
+          portalId,
+          displayTransactionId: displayRef,
+          amount,
+          type: 'Client Payment',
+          category: 'Client Collection',
+          method: methodId || '',
+          description: `Client payment ${displayRef}`,
+          date: receivedAt,
+          entityType: 'clientPayment',
+          entityId: paymentId,
+          affectsPortalBalance: true,
+          status: 'active',
+          createdAt: serverTimestamp(),
+          createdBy: actor,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      if (proformaRef && proformaSnap && proformaSnap.exists()) {
+        const proformaData = proformaSnap.data() || {};
+        const totalAmount = Number(proformaData.totalAmount || 0) || 0;
+        const currentPaid = Math.max(0, Number(proformaData.amountPaid || 0) || 0);
+        const nextPaid = Math.max(0, currentPaid + amount);
+        const nextBalanceDue = Math.max(0, totalAmount - nextPaid);
+        const nextStatus = nextBalanceDue <= 0 ? 'paid' : (nextPaid > 0 ? 'partially_paid' : (proformaData.status || 'sent'));
+
+        txn.set(
+          proformaRef,
+          {
+            amountPaid: nextPaid,
+            balanceDue: nextBalanceDue,
+            status: nextStatus,
+            lastPaymentId: paymentId,
+            lastPaymentAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            updatedBy: actor,
+          },
+          { merge: true },
+        );
+
+        result.proformaStatusAfter = nextStatus;
+        result.proformaBalanceDueAfter = nextBalanceDue;
+      }
+
+      result.clientBalanceAfter = nextClientBalance;
+      result.portalBalanceAfter = nextPortalBalance;
+    });
+
+    return result;
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] client payment record failed tenants/${tenantId}/clientPayments/${paymentId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
+export const recordClientRefundWithFinancials = async (tenantId, refundId, payload) => {
+  try {
+    if (!tenantId || !refundId) return { ok: false, error: 'Missing tenantId or refundId.' };
+
+    const clientId = String(payload?.clientId || '').trim();
+    const portalId = String(payload?.portalId || '').trim();
+    const methodId = String(payload?.methodId || '').trim();
+    const proformaId = String(payload?.proformaId || '').trim();
+    const actor = String(payload?.createdBy || '').trim();
+    const amount = Math.max(0, Number(payload?.amount || 0));
+
+    if (!clientId || !portalId || !actor) {
+      return { ok: false, error: 'Missing required fields (clientId, portalId, createdBy).' };
+    }
+    if (!(amount > 0)) return { ok: false, error: 'Refund amount must be greater than zero.' };
+
+    const displayRef = String(payload?.displayRef || refundId).trim() || refundId;
+    const referenceType = String(payload?.referenceType || (proformaId ? 'proforma_linked' : 'general_balance')).trim() || 'general_balance';
+    const receivedAt = String(payload?.receivedAt || new Date().toISOString());
+
+    const refundRef = doc(db, 'tenants', tenantId, 'clientPayments', refundId);
+    const clientRef = doc(db, 'tenants', tenantId, 'clients', clientId);
+    const portalRef = doc(db, 'tenants', tenantId, 'portals', portalId);
+    const portalTxId = toSafeDocId(`${displayRef}-REFUND`, 'portal_tx');
+    const portalTxRef = doc(db, 'tenants', tenantId, 'portalTransactions', portalTxId);
+    const proformaRef = proformaId ? doc(db, 'tenants', tenantId, 'proformaInvoices', proformaId) : null;
+
+    const result = {
+      ok: true,
+      clientBalanceAfter: 0,
+      portalBalanceAfter: 0,
+      proformaStatusAfter: '',
+      proformaBalanceDueAfter: null,
+    };
+
+    await runTransaction(db, async (txn) => {
+      const [clientSnap, portalSnap, proformaSnap] = await Promise.all([
+        txn.get(clientRef),
+        txn.get(portalRef),
+        proformaRef ? txn.get(proformaRef) : Promise.resolve(null),
+      ]);
+
+      if (!clientSnap.exists()) throw new Error('Selected client not found.');
+      if (!portalSnap.exists()) throw new Error('Selected portal not found.');
+      if (proformaRef && proformaSnap && !proformaSnap.exists()) throw new Error('Linked proforma not found.');
+
+      const clientData = clientSnap.data() || {};
+      const portalData = portalSnap.data() || {};
+      const currentClientBalance = Number(clientData.balance ?? clientData.openingBalance ?? 0) || 0;
+      const currentPortalBalance = Number(portalData.balance ?? 0) || 0;
+      if (currentClientBalance < amount) throw new Error('Refund blocked. Client balance is not sufficient.');
+      if (currentPortalBalance < amount) throw new Error('Refund blocked. Portal balance is not sufficient.');
+
+      const nextClientBalance = currentClientBalance - amount;
+      const nextPortalBalance = currentPortalBalance - amount;
+
+      txn.set(
+        refundRef,
+        {
+          displayRef,
+          type: 'refund',
+          amount,
+          clientId,
+          portalId,
+          methodId,
+          proformaId: proformaId || null,
+          referenceType,
+          note: String(payload?.note || '').trim(),
+          receivedAt,
+          createdBy: actor,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: false },
+      );
+
+      txn.set(
+        clientRef,
+        {
+          openingBalance: nextClientBalance,
+          balance: nextClientBalance,
+          updatedAt: serverTimestamp(),
+          updatedBy: actor,
+        },
+        { merge: true },
+      );
+
+      txn.set(
+        portalRef,
+        {
+          balance: nextPortalBalance,
+          balanceType: nextPortalBalance < 0 ? 'negative' : 'positive',
+          updatedAt: serverTimestamp(),
+          updatedBy: actor,
+        },
+        { merge: true },
+      );
+
+      txn.set(
+        portalTxRef,
+        {
+          portalId,
+          displayTransactionId: displayRef,
+          amount: -amount,
+          type: 'Client Refund',
+          category: 'Refund',
+          method: methodId || '',
+          description: `Client refund ${displayRef}`,
+          date: receivedAt,
+          entityType: 'clientPayment',
+          entityId: refundId,
+          affectsPortalBalance: true,
+          status: 'active',
+          createdAt: serverTimestamp(),
+          createdBy: actor,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      if (proformaRef && proformaSnap && proformaSnap.exists()) {
+        const proformaData = proformaSnap.data() || {};
+        const totalAmount = Number(proformaData.totalAmount || 0) || 0;
+        const currentPaid = Math.max(0, Number(proformaData.amountPaid || 0) || 0);
+        const nextPaid = Math.max(0, currentPaid - amount);
+        const nextBalanceDue = Math.max(0, totalAmount - nextPaid);
+        const existingStatus = String(proformaData.status || '').toLowerCase();
+        const nextStatus = existingStatus === 'canceled'
+          ? 'canceled'
+          : (nextBalanceDue <= 0 ? 'paid' : (nextPaid > 0 ? 'partially_paid' : 'sent'));
+
+        txn.set(
+          proformaRef,
+          {
+            amountPaid: nextPaid,
+            balanceDue: nextBalanceDue,
+            status: nextStatus,
+            lastRefundId: refundId,
+            lastRefundAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            updatedBy: actor,
+          },
+          { merge: true },
+        );
+
+        result.proformaStatusAfter = nextStatus;
+        result.proformaBalanceDueAfter = nextBalanceDue;
+      }
+
+      result.clientBalanceAfter = nextClientBalance;
+      result.portalBalanceAfter = nextPortalBalance;
+    });
+
+    return result;
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] client refund record failed tenants/${tenantId}/clientPayments/${refundId}: ${message}`);
+    return { ok: false, error: message };
+  }
+};
+
 export const checkTradeLicenseDuplicate = async (tenantId, licenseNumber) => {
   const q = query(collection(db, 'tenants', tenantId, 'clients'), where('tradeLicenseNumber', '==', licenseNumber));
   const snap = await getDocs(q);
@@ -1654,7 +2227,7 @@ export const sendTenantDocumentEmail = async (tenantId, email, documentType, pdf
     const tenantSnap = await getDoc(tenantRef);
     const tenantData = tenantSnap.exists() ? tenantSnap.data() : {};
     const tenantName = tenantData.name || 'ACIS Platform';
-    const brandColor = tenantData.brandColor || '#0074e8';
+    const brandColor = tenantData.brandColor || '#e67e22';
 
     const cleanType = documentType.replace(/([A-Z])/g, ' $1').toLowerCase();
 
@@ -1823,7 +2396,7 @@ export const sendTenantWelcomeEmail = async (
     const tenantSnap = await getDoc(doc(db, 'tenants', tenantId));
     const tenantData = tenantSnap.exists() ? tenantSnap.data() : {};
     const tenantName = tenantData.name || 'Our Organization';
-    const brandColor = tenantData.brandColor || '#0074e8';
+    const brandColor = tenantData.brandColor || '#e67e22';
 
     const tokens = {
       tenantName,
@@ -2008,11 +2581,23 @@ export const softDeleteTransaction = async (tenantId, txId, deletedBy) => {
 };
 
 export const updateDailyTransactionReference = async (tenantId, txId, referenceValue, updatedBy) => {
-  void tenantId;
-  void txId;
-  void referenceValue;
-  void updatedBy;
-  return { ok: false, error: 'Tracking write is disabled in this phase.' };
+  try {
+    if (!tenantId || !txId) return { ok: false, error: 'Missing tenantId or transaction id.' };
+    await setDoc(
+      doc(db, 'tenants', tenantId, 'dailyTransactions', txId),
+      {
+        trackingNumber: String(referenceValue || '').trim(),
+        updatedAt: serverTimestamp(),
+        updatedBy: String(updatedBy || '').trim(),
+      },
+      { merge: true },
+    );
+    return { ok: true };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] daily transaction reference update failed for ${txId}: ${message}`);
+    return { ok: false, error: message };
+  }
 };
 
 /**

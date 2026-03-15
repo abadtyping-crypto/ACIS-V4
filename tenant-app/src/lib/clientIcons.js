@@ -12,13 +12,14 @@ const relationIconByKey = {
   employee: '/employee.png',
   investor: '/onboardingIcons/investor.svg',
   partner: '/onboardingIcons/partner.svg',
-  wife: '/onboardingIcons/wife.svg',
-  husband: '/onboardingIcons/husband.svg',
-  son: '/onboardingIcons/son.svg',
-  daughter: '/onboardingIcons/daughter.svg',
-  father: '/onboardingIcons/father.svg',
-  mother: '/onboardingIcons/mother.svg',
-  domesticworker: '/onboardingIcons/domesticWorker.svg',
+  wife: '/individualRelations/wife.png',
+  husband: '/individualRelations/husband.png',
+  son: '/individualRelations/son.png',
+  daughter: '/individualRelations/daughter.png',
+  father: '/individualRelations/father.png',
+  mother: '/individualRelations/mother.png',
+  domesticworker: '/individualRelations/domestic worker.png',
+  boy: '/individualRelations/boy.png',
 };
 
 export const normalizeEmirateKey = (value) =>

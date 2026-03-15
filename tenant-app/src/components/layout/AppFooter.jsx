@@ -1,6 +1,11 @@
+import { useTenant } from '../../context/useTenant';
+import { useTenantBrandingLogos } from '../../hooks/useTenantBrandingLogos';
+
 const AppFooter = ({ tenantName, tenantLogoUrl }) => {
+  const { tenantId } = useTenant();
   const year = new Date().getFullYear();
-  const logoSrc = tenantLogoUrl || '/logo.png';
+  const { footerLogoUrl } = useTenantBrandingLogos(tenantId, tenantLogoUrl);
+  const logoSrc = footerLogoUrl || tenantLogoUrl || '/logo.png';
   const logoAlt = tenantName || 'Tenant';
 
   return (
@@ -9,7 +14,7 @@ const AppFooter = ({ tenantName, tenantLogoUrl }) => {
         <img
           src={logoSrc}
           alt={logoAlt}
-          className="h-7 w-7 rounded-lg border border-white/70 bg-white object-cover shadow-sm"
+          className="h-7 w-7 rounded-lg border border-[var(--glass-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_88%,transparent)] object-cover shadow-sm"
         />
         <p className="text-xs text-[var(--c-muted)]">
           {tenantName} Admin Workspace • {year}

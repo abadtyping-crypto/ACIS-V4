@@ -7,25 +7,16 @@ import {
     upsertDependentUnderParent
 } from '../../lib/backendStore';
 import IconSelect from '../common/IconSelect';
+import RelationSelect from '../common/RelationSelect';
+import MobileContactsField from '../common/MobileContactsField';
 import { resolveClientTypeIcon } from '../../lib/clientIcons';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
-
-const relationOptionsByParent = {
-    company: [
-        { value: 'employee', label: 'Employee', icon: '/employee.png' },
-        { value: 'investor', label: 'Investor', icon: '/onboardingIcons/investor.svg' },
-        { value: 'partner', label: 'Partner', icon: '/onboardingIcons/partner.svg' },
-    ],
-    individual: [
-        { value: 'wife', label: 'Wife', icon: '/onboardingIcons/wife.svg' },
-        { value: 'husband', label: 'Husband', icon: '/onboardingIcons/husband.svg' },
-        { value: 'son', label: 'Son', icon: '/onboardingIcons/son.svg' },
-        { value: 'daughter', label: 'Daughter', icon: '/onboardingIcons/daughter.svg' },
-        { value: 'father', label: 'Father', icon: '/onboardingIcons/father.svg' },
-        { value: 'mother', label: 'Mother', icon: '/onboardingIcons/mother.svg' },
-        { value: 'domestic worker', label: 'Domestic Worker', icon: '/onboardingIcons/domesticWorker.svg' },
-    ],
-};
+import {
+    createMobileContact,
+    getPrimaryMobileContact,
+    serializeMobileContacts,
+    validateMobileContact,
+} from '../../lib/mobileContactUtils';
 
 const baseIdentificationOptions = [
     { value: 'emiratesId', label: 'Emirates ID', icon: '/onboardingIcons/emiratesId.svg' },
@@ -53,6 +44,7 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
         workPermitNumber: '',
         personCode: '',
         mobile: '',
+        mobileContacts: [createMobileContact()],
         email: ''
     });
 
@@ -100,11 +92,6 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
         icon: resolveClientTypeIcon(item, null),
         meta: `${item.displayClientId || item.id} • ${item.type}`,
     })), [searchResults]);
-
-    const relationOptions = useMemo(() => {
-        if (isCompanyParent) return relationOptionsByParent.company;
-        return relationOptionsByParent.individual;
-    }, [isCompanyParent]);
 
     const identificationOptions = useMemo(() => {
         if (isEmployeeRelation) return [...baseIdentificationOptions, ...employeeExtraIdentificationOptions];
@@ -166,7 +153,8 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                 passportNumber: String(form.passportNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
                 workPermitNumber: String(form.workPermitNumber || '').replace(/\D/g, '').slice(0, 10),
                 personCode: String(form.personCode || '').replace(/\D/g, '').slice(0, 14),
-                mobile: String(form.mobile || '').replace(/\D/g, ''),
+                mobile: getPrimaryMobileContact(form.mobileContacts).value,
+                mobileContacts: serializeMobileContacts(form.mobileContacts),
                 email: String(form.email || '').trim().toLowerCase(),
                 tenantId,
                 parentId: parent.id,
@@ -189,6 +177,12 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
             }
             if (!normalized.relationship) {
                 setStatus({ type: 'error', message: 'Relation is required.' });
+                return;
+            }
+
+            const mobileError = validateMobileContact(normalized.mobile, getPrimaryMobileContact(form.mobileContacts).countryIso2, 'Mobile number');
+            if (mobileError) {
+                setStatus({ type: 'error', message: mobileError });
                 return;
             }
 
@@ -366,10 +360,10 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
 
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Relation *</label>
-                        <IconSelect
+                        <RelationSelect
                             value={form.relationship}
                             onChange={(nextRelation) => setForm((prev) => ({ ...prev, relationship: nextRelation }))}
-                            options={relationOptions}
+                            parentType={parentType}
                             placeholder="Select relation"
                         />
                     </div>
@@ -449,17 +443,16 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Mobile Number</label>
-                    <input
-                        type="tel"
-                        name="mobile"
-                        value={form.mobile}
-                        onChange={handleChange}
-                        placeholder="5xxxxxxxx"
-                        className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                    />
-                </div>
+                <MobileContactsField
+                    label="Mobile Numbers"
+                    contacts={form.mobileContacts}
+                    onChange={(contacts) => setForm((prev) => ({
+                        ...prev,
+                        mobileContacts: contacts,
+                        mobile: getPrimaryMobileContact(contacts).value,
+                    }))}
+                    required
+                />
                 <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Email</label>
                     <input

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/useAuth';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { getTenantSettingDoc, upsertTenantSettingDoc } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import { Bell } from 'lucide-react';

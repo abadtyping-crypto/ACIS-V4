@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { fetchTenantUsersMap } from '../../lib/backendStore';
 import UserFunctionAccessSection from './UserFunctionAccessSection';
 import UserNotificationRulesSection from './UserNotificationRulesSection';

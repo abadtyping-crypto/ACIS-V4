@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import SectionCard from './SectionCard';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { useAuth } from '../../context/useAuth';
 import {
     fetchTenantPortals,
@@ -17,6 +17,7 @@ import { createSyncEvent } from '../../lib/syncEvents';
 import { buildNotificationPayload, generateNotificationId } from '../../lib/notificationTemplate';
 import { generateTenantPdf } from '../../lib/pdfGenerator';
 import IconSelect from '../common/IconSelect';
+import { resolvePortalTypeIcon } from '../../lib/transactionMethodConfig';
 
 const txMethodLabels = {
     tabby: 'Tabby',
@@ -24,11 +25,7 @@ const txMethodLabels = {
 };
 
 const fallbackPortalIcon = (type) => {
-    if (type === 'Bank') return '/portals/bank.png';
-    if (type === 'Card Payment') return '/portals/cardpayment.png';
-    if (type === 'Petty Cash') return '/portals/pettycash.png';
-    if (type === 'Terminal') return '/portals/terminal.png';
-    return '/portals/portals.png';
+    return resolvePortalTypeIcon(type);
 };
 
 const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {

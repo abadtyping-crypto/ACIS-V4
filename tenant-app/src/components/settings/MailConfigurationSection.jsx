@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Mail, ShieldCheck, Server, ChevronRight, CheckCircle2, XCircle, Loader2, ExternalLink, Info } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { fetchTenantMailConfig, upsertTenantMailConfig } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import SettingCard from './SettingCard';

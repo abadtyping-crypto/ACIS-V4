@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import { fetchTenantClients, fetchTenantTransactions } from '../lib/backendStore';
 import CurrencyValue from '../components/common/CurrencyValue';
 
@@ -23,9 +23,15 @@ const DependentDetailsPage = () => {
 
   useEffect(() => {
     if (!tenantId || !clientId || !dependentId) return;
+    let active = true;
+    const loadData = async () => {
+      setIsLoading(true);
+      const [clientsRes, txRes] = await Promise.all([
+        fetchTenantClients(tenantId),
+        fetchTenantTransactions(tenantId),
+      ]);
+      if (!active) return;
 
-    setIsLoading(true);
-    Promise.all([fetchTenantClients(tenantId), fetchTenantTransactions(tenantId)]).then(([clientsRes, txRes]) => {
       if (clientsRes.ok) {
         const rows = clientsRes.rows || [];
         setParent(rows.find((item) => item.id === clientId) || null);
@@ -33,11 +39,18 @@ const DependentDetailsPage = () => {
       }
 
       if (txRes.ok) {
-        setTransactions((txRes.rows || []).filter((tx) => !tx.deletedAt && tx.clientId === dependentId));
+        setTransactions((txRes.rows || []).filter((tx) => !tx.deletedAt && tx.dependentId === dependentId));
       }
 
       setIsLoading(false);
+    };
+    const frame = requestAnimationFrame(() => {
+      void loadData();
     });
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+    };
   }, [tenantId, clientId, dependentId]);
 
   const relationshipIsValid = useMemo(() => {
@@ -111,7 +124,7 @@ const DependentDetailsPage = () => {
             Live List
           </Link>
           <Link
-            to={`/t/${tenantId}/daily-transactions?dependentId=${dependentId}`}
+            to={`/t/${tenantId}/daily-transactions?clientId=${clientId}&dependentId=${dependentId}`}
             className="rounded-xl bg-[var(--c-accent)] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:scale-105"
           >
             + Add Transaction

@@ -18,6 +18,7 @@ import PageShell from '../components/layout/PageShell';
 import { isVisibleOnPlatform, SEARCH_ITEMS } from '../config/appNavigation';
 import { fetchTenantPortals } from '../lib/backendStore';
 import { getRuntimePlatform } from '../lib/runtimePlatform';
+import { resolvePortalTypeIcon } from '../lib/transactionMethodConfig';
 
 const SEARCH_FAVORITES_KEY = 'acis_search_favorites_v1';
 
@@ -28,8 +29,11 @@ const iconByKey = {
   clientOnboarding: UserPlusIcon,
   dailyTransactions: ReceiptIcon,
   tasksTracking: TasksIcon,
-  invoiceManagement: InvoiceIcon,
+  quotations: QuotationIcon,
+  proformaInvoices: InvoiceIcon,
+  receivePayments: ReceiptIcon,
   proformaQuotation: QuotationIcon,
+  invoiceManagement: InvoiceIcon,
   operationExpenses: ExpenseIcon,
   portalManagement: PortalIcon,
   createPortal: PortalIcon,
@@ -39,17 +43,16 @@ const iconByKey = {
 const categoryByKey = {
   settings: 'Settings',
   appIconLibrary: 'Settings',
+  quotations: 'Finance',
+  proformaInvoices: 'Finance',
+  receivePayments: 'Finance',
   portalManagement: 'Portals',
   createPortal: 'Portals',
   documentCalendar: 'Calendar',
 };
 
 const fallbackPortalIcon = (type) => {
-  if (type === 'Bank') return '/portals/bank.png';
-  if (type === 'Card Payment') return '/portals/cardpayment.png';
-  if (type === 'Petty Cash') return '/portals/pettycash.png';
-  if (type === 'Terminal') return '/portals/terminal.png';
-  return '/portals/portals.png';
+  return resolvePortalTypeIcon(type);
 };
 
 const readFavorites = () => {

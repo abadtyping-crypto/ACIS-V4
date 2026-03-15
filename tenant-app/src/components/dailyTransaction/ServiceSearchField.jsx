@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Search, Tag, ChevronRight, Hash, Plus } from 'lucide-react';
 import { fetchServiceTemplates } from '../../lib/serviceTemplateStore';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
 
 const EMIRATES = [
@@ -18,7 +18,15 @@ const EMIRATES = [
  * Reusable Service/Template Search Component
  * Optimized for quick selection of application types.
  */
-const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Template...', onCreateNew, refreshKey = 0 }) => {
+const ServiceSearchField = ({
+    onSelect,
+    selectedId,
+    placeholder = 'Search Template...',
+    onCreateNew,
+    refreshKey = 0,
+    openOnMount = false,
+    variant = 'default',
+}) => {
     const { tenantId } = useTenant();
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -53,6 +61,11 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
         return () => { isMounted = false; };
     }, [tenantId, refreshKey]);
 
+    useEffect(() => {
+        if (!openOnMount || selectedId) return;
+        setIsOpen(true);
+    }, [openOnMount, selectedId]);
+
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -85,13 +98,14 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
         const foundEmirate = EMIRATES.find(e => name.toLowerCase().includes(e.name.toLowerCase()));
         if (foundEmirate) return <img src={foundEmirate.icon} className="h-6 w-6 object-contain" alt="" />;
 
-        if (item.group?.toLowerCase().includes('gov')) return <Tag className="h-5 w-5 text-sky-500" />;
+        if (item.group?.toLowerCase().includes('gov')) return <Tag className="h-5 w-5 text-[var(--c-accent)]" />;
         if (item.group?.toLowerCase().includes('private')) return <Tag className="h-5 w-5 text-amber-500" />;
 
         return <Hash className="h-4 w-4" />;
     };
 
     const selectedItem = rows.find(r => r.id === selectedId);
+    const isCompact = variant === 'compact';
 
     const handleSelect = (item) => {
         onSelect(item);
@@ -103,31 +117,33 @@ const ServiceSearchField = ({ onSelect, selectedId, placeholder = 'Search Templa
         <div ref={wrapperRef} className="relative w-full">
             <div
                 onClick={() => setIsOpen(true)}
-                className={`flex min-h-[50px] w-full cursor-pointer items-center gap-3 rounded-2xl border bg-[var(--c-panel)] px-4 py-3 transition-all ${isOpen ? 'border-[var(--c-accent)] ring-4 ring-[var(--c-accent)]/5' : 'border-[var(--c-border)]'
+                className={`flex w-full cursor-pointer items-center gap-3 border bg-[var(--c-panel)] transition-all ${
+                    isCompact ? 'min-h-[42px] rounded-xl px-3 py-2' : 'min-h-[50px] rounded-2xl px-4 py-3'
+                } ${isOpen ? 'border-[var(--c-accent)] ring-4 ring-[var(--c-accent)]/5' : 'border-[var(--c-border)]'
                     }`}
             >
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--c-surface)] text-[var(--c-muted)]">
+                <div className={`flex flex-shrink-0 items-center justify-center bg-[var(--c-surface)] text-[var(--c-muted)] ${isCompact ? 'h-8 w-8 rounded-lg' : 'h-10 w-10 rounded-xl'}`}>
                     {getTemplateIcon(selectedItem)}
                 </div>
                 <div className="min-w-0 flex-1">
                     {selectedItem ? (
                         <>
-                            <p className="truncate text-sm font-black text-[var(--c-text)]">
+                            <p className={`truncate font-black text-[var(--c-text)] ${isCompact ? 'text-xs' : 'text-sm'}`}>
                                 {selectedItem.name}
                             </p>
                             {selectedItem.description ? (
-                                <p className="truncate text-[10px] text-[var(--c-muted)]">{selectedItem.description}</p>
+                                <p className={`truncate text-[var(--c-muted)] ${isCompact ? 'text-[9px]' : 'text-[10px]'}`}>{selectedItem.description}</p>
                             ) : null}
-                            <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
+                            <p className={`${isCompact ? 'text-[9px]' : 'text-[10px]'} font-bold uppercase text-[var(--c-muted)]`}>
                                 {selectedItem.code} • {selectedItem.group}
                             </p>
                         </>
                     ) : (
-                        <p className="text-sm font-bold text-[var(--c-muted)]">{placeholder}</p>
+                        <p className={`${isCompact ? 'text-xs' : 'text-sm'} font-bold text-[var(--c-muted)]`}>{placeholder}</p>
                     )}
                 </div>
                 {isOpen && (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--c-surface)]">
+                    <div className={`flex items-center justify-center bg-[var(--c-surface)] ${isCompact ? 'h-7 w-7 rounded-md' : 'h-8 w-8 rounded-lg'}`}>
                         <ChevronRight className="h-4 w-4 rotate-90 text-[var(--c-muted)]" />
                     </div>
                 )}

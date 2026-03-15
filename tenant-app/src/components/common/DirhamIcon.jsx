@@ -1,16 +1,16 @@
 import React from 'react';
 
 /**
- * Renders the custom Dirham icon from public/dirham.svg
+ * Renders the AED icon from public/dirham.svg
  */
-const DirhamIcon = ({ className = 'h-4 w-4' }) => {
+const Icon = ({ className = 'h-4 w-4' }) => {
     return (
         <img
             src="/dirham.svg"
             alt="AED"
-            className={`${className} dirham-icon inline-block select-none`}
+            className={`${className} -icon inline-block select-none`}
         />
     );
 };
 
-export default DirhamIcon;
+export default Icon;

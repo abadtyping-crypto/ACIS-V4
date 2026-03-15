@@ -2,6 +2,7 @@ import React from 'react';
 import { Building2, Plus, Trash2, Share2, Banknote, Image, MessageSquare, Facebook, Instagram, Twitter, Linkedin, Layout, Library, ChevronDown, Phone } from 'lucide-react';
 import IconSelect from '../common/IconSelect';
 import ImageStudio from '../common/ImageStudio';
+import MobileContactsField from '../common/MobileContactsField';
 
 export const WhatsAppIcon = ({ className }) => (
   <svg
@@ -22,6 +23,7 @@ export const CompanyInfoSection = React.memo(({
   addArrayField, 
   removeArrayField, 
   handlePhoneArrayChange, 
+  updateMobileContacts,
   handlePoBoxChange, 
   updateArrayField,
   emiratesOptions,
@@ -84,30 +86,12 @@ export const CompanyInfoSection = React.memo(({
         {errors.phones ? <p className="mt-1 text-xs text-rose-600">{errors.phones}</p> : null}
       </div>
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <span className={labelClass}>Mobile Numbers</span>
-          <button type="button" onClick={() => addArrayField('mobiles')} className="text-xs font-semibold text-(--c-accent) hover:underline flex items-center gap-1"><Plus className="w-3 h-3" /> Add</button>
-        </div>
-        {form.mobiles.map((val, idx) => (
-          <div key={`mobile-${idx}`} className="flex items-center rounded-xl border border-(--c-border) bg-(--c-panel) px-3">
-            <span className="pr-2 text-sm text-(--c-muted)">+971</span>
-            <input
-              className="w-full bg-transparent py-2.5 text-sm text-(--c-text) outline-none"
-              value={val}
-              onChange={(event) => handlePhoneArrayChange('mobiles', idx, event.target.value)}
-              inputMode="numeric"
-              maxLength={9}
-              placeholder="5xxxxxxxx"
-            />
-            {idx > 0 && (
-              <button type="button" onClick={() => removeArrayField('mobiles', idx)} className="text-(--c-muted) hover:text-rose-500 pl-2">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
+      <MobileContactsField
+        label="Mobile Numbers"
+        contacts={form.mobileContacts}
+        onChange={updateMobileContacts}
+        className="flex flex-col gap-2"
+      />
 
       <div className="flex flex-col gap-2 md:col-span-2">
         <div className="flex items-center justify-between">

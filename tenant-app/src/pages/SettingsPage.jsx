@@ -11,7 +11,6 @@ import {
   ShieldAlert,
   Mail,
   Mailbox,
-  ShieldCheck,
   Hash,
   Bell,
   HardDrive,
@@ -20,7 +19,6 @@ import {
 import PageShell from '../components/layout/PageShell';
 import NotificationSettingsSection from '../components/settings/NotificationSettingsSection';
 import BrandDetailsSection from '../components/settings/BrandDetailsSection';
-import SecuritySection from '../components/settings/SecuritySection';
 import UserControlCenterSection from '../components/settings/UserControlCenterSection';
 import UserCustomizationSection from '../components/settings/UserCustomizationSection';
 import IDRulesSection from '../components/settings/IDRulesSection';
@@ -31,7 +29,7 @@ import ServiceTemplateSection from '../components/settings/ServiceTemplateSectio
 import EmailTemplateSection from '../components/settings/EmailTemplateSection';
 import FileManagerSection from '../components/settings/FileManagerSection';
 import WhatsAppConfigurationSection from '../components/settings/WhatsAppConfigurationSection';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import useIsDesktopLayout from '../hooks/useIsDesktopLayout';
 
 const SETTINGS_SECTIONS = [
@@ -44,7 +42,6 @@ const SETTINGS_SECTIONS = [
   { key: 'control', label: 'User Control Center', icon: ShieldAlert },
   { key: 'mail', label: 'Mail Configuration', icon: Mail },
   { key: 'mailTemplates', label: 'Email Templates', icon: Mailbox },
-  { key: 'security', label: 'Security', icon: ShieldCheck },
   { key: 'counters', label: 'ID Rules & Counters', icon: Hash },
   { key: 'fileManager', label: 'File Manager', icon: HardDrive },
   { key: 'whatsapp', label: 'WhatsApp Settings', icon: MessageSquare },
@@ -104,15 +101,15 @@ const SettingsPage = () => {
     if (activeSection === 'counters') return <IDRulesSection />;
     if (activeSection === 'fileManager') return <FileManagerSection />;
     if (activeSection === 'whatsapp') return <WhatsAppConfigurationSection />;
-    return <SecuritySection />;
+    return <BrandDetailsSection />;
   }, [activeSection, isDesktop]);
 
   return (
-    <div className="settings-flat-ui" style={isDesktop ? { '--c-accent': tenant.brandColor } : undefined}>
+    <div className="settings-flat-ui">
       <PageShell
         title={`${tenant.name} Settings`}
         subtitle={isDesktop
-          ? `Tenant-scoped configuration for branding, preferences, and security. Currency: ${tenant.currency}`
+          ? `Tenant-scoped configuration for branding, preferences, and operations. Currency: ${tenant.currency}`
           : 'Mobile access: User control and icon library customization.'}
         icon={Settings}
       >

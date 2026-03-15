@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/useAuth';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { fetchTenantMailConfig, sendTenantWelcomeEmail, upsertTenantMailConfig } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import SettingCard from './SettingCard';
@@ -77,7 +77,7 @@ const EmailTemplateSection = () => {
         if (!html) return '';
         return html
             .replace(/{{tenantName}}/g, tenant?.name || 'Your Company')
-            .replace(/{{brandColor}}/g, tenant?.brandColor || '#0b5ed7')
+            .replace(/{{brandColor}}/g, tenant?.brandColor || '#e67e22')
             .replace(/{{clientName}}/g, 'John Doe')
             .replace(/{{recipientName}}/g, 'Jane Doe')
             .replace(/{{clientType}}/g, 'Individual')

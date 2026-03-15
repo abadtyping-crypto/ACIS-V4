@@ -1,4 +1,4 @@
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../context/useTheme';
 import { Monitor, MoonStar, SunMedium } from 'lucide-react';
 
 const ThemeToggle = () => {

@@ -1,7 +1,7 @@
 import PageShell from '../components/layout/PageShell';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import { useTenantNotifications } from '../hooks/useTenantNotifications';
 import QuickViewModal from '../components/common/QuickViewModal';
 import {
@@ -13,6 +13,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { DEFAULT_PORTAL_ICON } from '../lib/transactionMethodConfig';
 
 const TOPIC_ICONS = {
   settings: Settings,
@@ -148,7 +149,7 @@ const NotificationsPage = () => {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (item.createdBy) navigate(`/t/${tenantId}/profile?uid=${encodeURIComponent(item.createdBy)}`);
+                    if (item.createdBy) navigate(`/t/${tenantId}/profile/edit?uid=${encodeURIComponent(item.createdBy)}`);
                   }}
                   className="shrink-0 transition hover:opacity-80"
                   title="View Profile"
@@ -189,9 +190,13 @@ const NotificationsPage = () => {
               {item.entityType === 'portal' && item.entityMeta ? (
                 <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_50%,transparent)] px-3 py-2">
                   <img
-                    src={item.entityMeta.iconUrl || '/portals/portals.png'}
+                    src={item.entityMeta.iconUrl || DEFAULT_PORTAL_ICON}
                     alt={item.entityMeta.name || 'Portal'}
                     className="h-8 w-8 rounded-lg object-cover"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = DEFAULT_PORTAL_ICON;
+                    }}
                   />
                   <div>
                     <p className="text-sm font-bold text-[var(--c-text)]">{item.entityMeta.name}</p>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import SectionCard from './SectionCard';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { fetchRecentTransactions, sendTenantDocumentEmail } from '../../lib/backendStore';
 import { generateTenantPdf } from '../../lib/pdfGenerator';
 import CurrencyValue from '../common/CurrencyValue';

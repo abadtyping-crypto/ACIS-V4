@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchDeletedEntities } from '../lib/backendStore';
-import { useRecycleBin } from '../context/RecycleBinContext';
+import { useRecycleBin } from '../context/useRecycleBin';
 
 const toCount = (value) => (Number.isFinite(value) ? value : 0);
 

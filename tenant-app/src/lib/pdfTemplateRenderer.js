@@ -6,6 +6,11 @@ export const PDF_DOCUMENT_TYPES = [
   { key: 'statement', label: 'Statements' },
 ];
 
+export const DEFAULT_QUOTATION_TERMS = [
+  '1. This quotation is valid until {{expiryDate}}.',
+  '2. Government-related application fees are based on current government charges and may change without prior notice. Any change in government pricing will be reflected in the final billing.',
+].join('\n');
+
 // Renderer integration contract:
 // 1) Fetch document-type template doc via fetchTenantPdfTemplates().
 // 2) Resolve active template using resolvePdfTemplateForRenderer().
@@ -30,14 +35,15 @@ export const PDF_DEFAULT_TEMPLATE = Object.freeze({
   margins: { top: 24, right: 24, bottom: 24, left: 24 },
   rowPadding: 8,
   bodyLayout: 'standard',
-  accentColor: '#2563eb',
+  accentColor: '#e67e22',
   backgroundType: 'solid',
   backgroundColor: '#ffffff',
   backgroundImageUrl: '',
-  gradientStart: '#eff6ff',
-  gradientEnd: '#bfdbfe',
+  gradientStart: '#fff6e8',
+  gradientEnd: '#f7d8a8',
   coverPageEnabled: false,
   notes: '',
+  termsAndConditions: '',
 });
 
 const ensurePositiveNumber = (value, fallback, max) => {
@@ -98,6 +104,7 @@ export const normalizePdfTemplatePayload = (template) => {
     gradientEnd: String(raw.gradientEnd || PDF_DEFAULT_TEMPLATE.gradientEnd),
     coverPageEnabled: Boolean(raw.coverPageEnabled),
     notes: String(raw.notes || ''),
+    termsAndConditions: String(raw.termsAndConditions || ''),
   };
 };
 

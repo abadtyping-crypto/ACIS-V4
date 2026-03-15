@@ -2,10 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import { useAuth } from '../context/useAuth';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import {
   fetchTenantUsersMap,
-  getTenantUserByUid,
   getTenantUserControlByUid,
   upsertTenantUserControlMap,
   upsertTenantUserMap,
@@ -14,16 +13,27 @@ import { replaceTenantAvatar } from '../lib/avatarStorage';
 import { User } from 'lucide-react';
 import ImageStudio from '../components/common/ImageStudio';
 import { getCroppedImg } from '../lib/imageStudioUtils';
-import { getRuntimePlatform, PLATFORM_ELECTRON } from '../lib/runtimePlatform';
+import useIsDesktopLayout from '../hooks/useIsDesktopLayout';
 import {
   DESKTOP_WALLPAPERS,
   DESKTOP_APPEARANCE_EVENT,
   readDesktopAppearance,
   saveDesktopAppearance,
+  saveDesktopWallpaperFile,
 } from '../lib/mobileAppearance';
 
 const inputClass =
   'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
+const statusVisibleClass =
+  'rounded-full bg-[var(--c-success-soft)] px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[var(--c-success)] uppercase';
+const statusHiddenClass =
+  'rounded-full bg-[var(--c-panel)] px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-[var(--c-muted)] uppercase';
+const statusEnabledButtonClass =
+  'bg-[var(--c-success-soft)] text-[var(--c-success)]';
+const statusDisabledButtonClass =
+  'bg-[var(--c-panel)] text-[var(--c-muted)]';
+const flashPreviewClass =
+  'fixed right-4 top-24 z-50 rounded-xl border border-[var(--c-success)]/30 bg-[var(--c-success-soft)] px-4 py-3 text-sm font-semibold text-[var(--c-success)] shadow-lg';
 const AVATAR_OUTPUT_SIZE = 512;
 const AVATAR_MAX_BYTES = 180 * 1024;
 const avatarFilterMap = {
@@ -31,6 +41,20 @@ const avatarFilterMap = {
   warm: { label: 'Warm', css: 'saturate(1.1) contrast(1.04)', canvas: 'saturate(110%) contrast(104%)' },
   cool: { label: 'Cool', css: 'saturate(0.95) contrast(1.05)', canvas: 'saturate(95%) contrast(105%) hue-rotate(6deg)' },
   mono: { label: 'Mono', css: 'grayscale(1) contrast(1.08)', canvas: 'grayscale(100%) contrast(108%)' },
+  vivid: { label: 'Vivid', css: 'saturate(1.25) contrast(1.1)', canvas: 'saturate(125%) contrast(110%)' },
+};
+
+const desktopWallpaperPreviewMap = {
+  aurora:
+    'radial-gradient(130% 110% at -12% -10%, rgba(245, 158, 11, 0.52) 0%, transparent 56%), radial-gradient(130% 110% at 110% -4%, rgba(249, 115, 22, 0.42) 0%, transparent 58%), radial-gradient(140% 120% at 50% 120%, rgba(230, 176, 84, 0.28) 0%, transparent 66%), #3B1E0F',
+  midnight:
+    'radial-gradient(120% 120% at 10% 8%, rgba(124, 58, 237, 0.42) 0%, transparent 56%), radial-gradient(120% 120% at 90% 14%, rgba(192, 38, 211, 0.34) 0%, transparent 60%), radial-gradient(150% 120% at 50% 122%, rgba(59, 10, 69, 0.68) 0%, transparent 68%), #1E1021',
+  ocean:
+    'radial-gradient(130% 110% at -6% -10%, rgba(217, 119, 6, 0.44) 0%, transparent 58%), radial-gradient(120% 110% at 106% -8%, rgba(234, 88, 12, 0.38) 0%, transparent 58%), radial-gradient(140% 120% at 50% 120%, rgba(124, 45, 18, 0.58) 0%, transparent 68%), #17110A',
+  sunrise:
+    'radial-gradient(130% 110% at -8% -10%, rgba(255, 147, 82, 0.52) 0%, transparent 56%), radial-gradient(130% 110% at 110% -8%, rgba(255, 214, 116, 0.44) 0%, transparent 58%), radial-gradient(150% 120% at 50% 120%, rgba(255, 91, 71, 0.34) 0%, transparent 66%), #2A1018',
+  ember:
+    'radial-gradient(130% 110% at -8% -12%, rgba(249, 115, 22, 0.56) 0%, transparent 56%), radial-gradient(120% 110% at 108% -8%, rgba(239, 68, 68, 0.44) 0%, transparent 58%), radial-gradient(150% 120% at 50% 120%, rgba(125, 32, 32, 0.68) 0%, transparent 66%), #1A0D0A',
 };
 
 const toPublicProfile = (item) => ({
@@ -64,8 +88,7 @@ const ProfilePage = () => {
   const [searchParams] = useSearchParams();
   const { tenantId } = useTenant();
   const { user, patchSessionUser } = useAuth();
-  const runtimePlatform = getRuntimePlatform();
-  const isElectronDesktop = runtimePlatform === PLATFORM_ELECTRON;
+  const isDesktopLayout = useIsDesktopLayout();
   const [profiles, setProfiles] = useState([]);
   const [saveMessage, setSaveMessage] = useState('');
   const [flashVisible, setFlashVisible] = useState(false);
@@ -109,18 +132,10 @@ const ProfilePage = () => {
     flashDurationSec: 3,
   });
 
-  const [passwordForm, setPasswordForm] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [passwordMessage, setPasswordMessage] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [desktopAppearance, setDesktopAppearance] = useState(() => readDesktopAppearance());
 
   useEffect(() => {
-    if (!isElectronDesktop) return undefined;
+    if (!isDesktopLayout) return undefined;
     const sync = () => setDesktopAppearance(readDesktopAppearance());
     window.addEventListener('storage', sync);
     window.addEventListener(DESKTOP_APPEARANCE_EVENT, sync);
@@ -128,7 +143,7 @@ const ProfilePage = () => {
       window.removeEventListener('storage', sync);
       window.removeEventListener(DESKTOP_APPEARANCE_EVENT, sync);
     };
-  }, [isElectronDesktop]);
+  }, [isDesktopLayout]);
 
   const updateDesktopAppearance = (patch) => {
     const next = saveDesktopAppearance({ ...desktopAppearance, ...patch });
@@ -139,15 +154,15 @@ const ProfilePage = () => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 2 * 1024 * 1024) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || '');
-      if (!result.startsWith('data:image/')) return;
-      updateDesktopAppearance({ mode: 'custom', customWallpaperUrl: result });
-    };
-    reader.readAsDataURL(file);
+    void (async () => {
+      const result = await saveDesktopWallpaperFile(file);
+      if (!result.ok) {
+        setSaveMessage(result.error || 'Unable to read wallpaper image.');
+        return;
+      }
+      setDesktopAppearance(result.appearance);
+      setSaveMessage('Desktop wallpaper updated.');
+    })();
   };
 
   useEffect(() => {
@@ -390,45 +405,6 @@ const ProfilePage = () => {
     setIsSaving(false);
   };
 
-  const onChangePassword = async () => {
-    setPasswordError('');
-    setPasswordMessage('');
-
-    // Strict Validation: uppercase, lowercase, number, special char, min 8
-    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
-    if (!strongRegex.test(passwordForm.newPassword)) {
-      setPasswordError('New password must be at least 8 characters, include an uppercase, lowercase, number, and special character.');
-      return;
-    }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordError('New passwords do not match.');
-      return;
-    }
-
-    setIsChangingPassword(true);
-
-    // Verify user document exists (safeguard)
-    const userDocRes = await getTenantUserByUid(tenantId, user.uid);
-    if (!userDocRes.ok || !userDocRes.data) {
-      setPasswordError('Failed to verify user account.');
-      setIsChangingPassword(false);
-      return;
-    }
-
-    // BYPASS: Intentionally ignoring old password check as requested for direct override.
-
-    // Update the password
-    const result = await upsertTenantUserMap(tenantId, user.uid, { password: passwordForm.newPassword });
-    setIsChangingPassword(false);
-
-    if (result.ok) {
-      setPasswordMessage('Password updated successfully.');
-      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    } else {
-      setPasswordError('Failed to update password.');
-    }
-  };
   const onCancel = () => {
     if (originalForm) {
       setForm(originalForm);
@@ -459,24 +435,29 @@ const ProfilePage = () => {
         subtitle="Customize your own public profile. Portal users can view only profiles marked public."
         icon={User}
       >
-        {isElectronDesktop ? (
+        {isDesktopLayout ? (
           <section className="mb-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 sm:p-5">
             <h2 className="font-title text-xl text-[var(--c-text)]">Desktop Wallpaper</h2>
             <p className="mt-1 text-sm text-[var(--c-muted)]">Set desktop preset or upload your own wallpaper (device local only).</p>
             <div className="mt-3">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--c-muted)]">Preset</p>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                 {DESKTOP_WALLPAPERS.map((item) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={() => updateDesktopAppearance({ wallpaper: item.id, mode: 'preset' })}
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold ${desktopAppearance.mode === 'preset' && desktopAppearance.wallpaper === item.id
-                        ? 'bg-[var(--c-accent)] text-white'
-                        : 'bg-[var(--c-panel)] text-[var(--c-muted)]'
-                      }`}
+                    className={`overflow-hidden rounded-xl border text-left transition ${
+                      desktopAppearance.mode === 'preset' && desktopAppearance.wallpaper === item.id
+                        ? 'border-[var(--c-accent)] ring-2 ring-[var(--c-ring)]'
+                        : 'border-[var(--c-border)]'
+                    }`}
                   >
-                    {item.label}
+                    <span
+                      className="block h-10 w-full"
+                      style={{ background: desktopWallpaperPreviewMap[item.id] || desktopWallpaperPreviewMap.aurora }}
+                    />
+                    <span className="block px-2 py-1.5 text-[11px] font-semibold text-[var(--c-text)]">{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -496,6 +477,11 @@ const ProfilePage = () => {
                 </button>
               ) : null}
             </div>
+            <p className="mt-2 text-[11px] text-[var(--c-muted)]">
+              Active: {desktopAppearance.mode === 'custom'
+                ? 'Custom wallpaper'
+                : DESKTOP_WALLPAPERS.find((item) => item.id === desktopAppearance.wallpaper)?.label || 'Aurora'}
+            </p>
           </section>
         ) : null}
         <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
@@ -531,11 +517,11 @@ const ProfilePage = () => {
                       <p className="text-sm text-[var(--c-accent)]">{form.headline || user.role || 'Staff'}</p>
                       <div className="mt-2 flex items-center justify-center gap-2 sm:justify-start">
                         {form.publicProfile ? (
-                          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-emerald-700 uppercase dark:bg-emerald-900/30 dark:text-emerald-400">
+                          <span className={statusVisibleClass}>
                             Public
                           </span>
                         ) : (
-                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-slate-600 uppercase dark:bg-slate-800 dark:text-slate-400">
+                          <span className={statusHiddenClass}>
                             Private
                           </span>
                         )}
@@ -574,7 +560,7 @@ const ProfilePage = () => {
                         <span className="truncate">{form.instagram || '-'}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-[var(--c-text)]">
-                        <span className="text-xs text(--c-muted)">WS:</span>
+                        <span className="text-xs text-[var(--c-muted)]">WS:</span>
                         <span className="truncate">{form.website || '-'}</span>
                       </div>
                     </div>
@@ -752,15 +738,15 @@ const ProfilePage = () => {
 
                   <div className="flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className={`h-2.5 w-2.5 rounded-full ${form.publicProfile ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-400'}`} />
+                      <div className={`h-2.5 w-2.5 rounded-full ${form.publicProfile ? 'bg-[var(--c-success)] shadow-[0_0_8px_var(--c-success)]' : 'bg-[var(--c-toggle-off)]'}`} />
                       <p className="text-sm font-bold text-[var(--c-text)]">Public Profile Visibility</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setForm((prev) => ({ ...prev, publicProfile: !prev.publicProfile }))}
                       className={`rounded-lg px-4 py-1.5 text-xs font-bold transition ${form.publicProfile
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                        : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                        ? statusEnabledButtonClass
+                        : statusDisabledButtonClass
                         }`}
                     >
                       {form.publicProfile ? 'VISIBLE' : 'HIDDEN'}
@@ -776,8 +762,8 @@ const ProfilePage = () => {
                           type="button"
                           onClick={() => setForm((prev) => ({ ...prev, flashEnabled: !prev.flashEnabled }))}
                           className={`rounded-lg px-3 py-1 text-[10px] font-bold transition ${form.flashEnabled
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                            : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
+                            ? statusEnabledButtonClass
+                            : statusDisabledButtonClass
                             }`}
                         >
                           {form.flashEnabled ? 'ENABLED' : 'DISABLED'}
@@ -835,51 +821,6 @@ const ProfilePage = () => {
                 </div>
               )}
             </div>
-
-            <div className="mt-8 border-t border-[var(--c-border)] pt-6">
-              <h3 className="font-title text-lg text-[var(--c-text)]">Security & Password</h3>
-              <p className="mt-1 text-sm text-[var(--c-muted)]">Update your password using a highly secure combination.</p>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold tracking-wider text-[var(--c-muted)] uppercase">New Password</label>
-                    <input
-                      type="password"
-                      className={inputClass}
-                      value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                      placeholder="Minimum 8 characters, highly secure"
-                    />
-                    <p className="text-[10px] text-[var(--c-muted)] leading-tight">Must contain uppercase, lowercase, number, and symbol.</p>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold tracking-wider text-[var(--c-muted)] uppercase">Confirm New Password</label>
-                    <input
-                      type="password"
-                      className={inputClass}
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      placeholder="Re-type new password"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={onChangePassword}
-                      disabled={isChangingPassword}
-                      className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-5 py-2 text-sm font-semibold text-[var(--c-text)] transition hover:bg-[var(--c-surface)] hover:text-white disabled:opacity-50"
-                    >
-                      {isChangingPassword ? 'Saving...' : 'Update Password'}
-                    </button>
-                    {passwordError && <p className="text-xs font-bold text-rose-500">{passwordError}</p>}
-                    {passwordMessage && <p className="text-xs font-bold text-emerald-500 animate-in slide-in-from-left-2">{passwordMessage}</p>}
-                  </div>
-                </div>
-              </div>
-            </div>
-
           </section>
           <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 sm:p-5">
             <h2 className="font-title text-xl text-[var(--c-text)]">Portal Public Profiles</h2>
@@ -960,7 +901,7 @@ const ProfilePage = () => {
         </div>
       </PageShell>
       {flashVisible && (
-        <div className="fixed right-4 top-24 z-50 rounded-xl border border-emerald-300 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-700 shadow-lg dark:bg-emerald-900/40 dark:text-emerald-300">
+        <div className={flashPreviewClass}>
           Flash notification preview is enabled.
         </div>
       )}

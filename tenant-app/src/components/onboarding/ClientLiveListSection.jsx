@@ -7,6 +7,8 @@ import {
   updateTenantClient,
 } from '../../lib/backendStore';
 import { resolveClientTypeIcon } from '../../lib/clientIcons';
+import RelationSelect from '../common/RelationSelect';
+import { getRelationIcon } from '../../lib/relationData';
 
 const PAGE_SIZES = [50, 100];
 
@@ -149,7 +151,7 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
     };
     return {
       label: toTitleCase(relation),
-      icon: relationIconMap[relation] || '/dependent.png',
+      icon: getRelationIcon(relation, item.parentClientType || parentById[item.parentId]?.type || 'individual') || relationIconMap[relation] || '/dependent.png',
       className: 'border-violet-300 bg-violet-50 text-violet-700',
       meta: item.parentName ? `of ${item.parentName}` : '',
     };
@@ -546,10 +548,11 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
               {String(editingRow.type || '').toLowerCase() === 'dependent' ? (
                 <label>
                   <span className="mb-1 block text-xs font-semibold text-[var(--c-muted)]">Relationship</span>
-                  <input
+                  <RelationSelect
                     value={draft.relationship || ''}
-                    onChange={(event) => setDraft((prev) => ({ ...prev, relationship: event.target.value }))}
-                    className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm"
+                    onChange={(nextRelation) => setDraft((prev) => ({ ...prev, relationship: nextRelation }))}
+                    parentType={parentById[editingRow.parentId]?.type || editingRow.parentClientType || 'individual'}
+                    placeholder="Select relation"
                   />
                 </label>
               ) : null}

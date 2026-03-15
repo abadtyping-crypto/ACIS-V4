@@ -28,7 +28,7 @@
 
 .desktop-shell .desktop-sidebar-footer {
   min-height: 68px;
-  background: color-mix(in oklab, var(--c-surface) 88%, transparent);
+  background: transparent;
 }
 
 .desktop-shell .brand-button,

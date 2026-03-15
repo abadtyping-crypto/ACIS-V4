@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRecycleBinData } from '../../hooks/useRecycleBinData';
-import { useTenant } from '../../context/TenantContext';
-import { useRecycleBin } from '../../context/RecycleBinContext';
+import { useTenant } from '../../context/useTenant';
+import { useRecycleBin } from '../../context/useRecycleBin';
 import { useAuth } from '../../context/useAuth';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 
@@ -21,6 +21,7 @@ const RecycleBinSidebar = () => {
     const [activeDomain, setActiveDomain] = useState('portals');
     const [expandedId, setExpandedId] = useState(null);
     const [timeFilter, setTimeFilter] = useState('all');
+    const [currentTime, setCurrentTime] = useState(0);
     const { data, loading, restoreItem, deleteItemPermanently } = useRecycleBinData(
         tenantId,
         activeDomain,
@@ -29,6 +30,16 @@ const RecycleBinSidebar = () => {
     const canHardDeleteTransaction = canUserPerformAction(tenantId, user, 'hardDeleteTransaction');
     const canHardDeleteCurrentDomain = activeDomain !== 'transactions' || canHardDeleteTransaction;
     const { isOpen, closeRecycleBin, notifyRestore } = useRecycleBin();
+
+    useEffect(() => {
+        const refreshCurrentTime = () => setCurrentTime(Date.now());
+        const frame = requestAnimationFrame(refreshCurrentTime);
+        const timer = window.setInterval(refreshCurrentTime, 60 * 1000);
+        return () => {
+            cancelAnimationFrame(frame);
+            window.clearInterval(timer);
+        };
+    }, []);
 
     const handleRestore = async (id) => {
         const res = await restoreItem(id);
@@ -42,14 +53,13 @@ const RecycleBinSidebar = () => {
 
     const filteredData = useMemo(() => {
         if (timeFilter === 'all') return data;
-        const now = Date.now();
         const threshold = timeFilter === '24h' ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
         return data.filter((item) => {
             const raw = item.deletedAt?.toDate ? item.deletedAt.toDate().getTime() : null;
             if (!raw) return true;
-            return now - raw <= threshold;
+            return currentTime - raw <= threshold;
         });
-    }, [data, timeFilter]);
+    }, [currentTime, data, timeFilter]);
 
     if (!isOpen) return null;
 
@@ -57,12 +67,12 @@ const RecycleBinSidebar = () => {
         <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden">
             {/* Overlay Backdrop */}
             <div
-                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
+                className="absolute inset-0 bg-[color:color-mix(in_srgb,var(--c-bg)_42%,rgba(2,6,23,0.58))] backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
                 onClick={closeRecycleBin}
             />
 
             {/* Sidebar Panel */}
-            <div className="relative flex h-full w-full max-w-md flex-col bg-[var(--c-surface)] shadow-2xl animate-in slide-in-from-right duration-300 sm:max-w-md">
+            <div className="glass relative flex h-full w-full max-w-md flex-col overflow-hidden border-l border-[var(--c-border)] animate-in slide-in-from-right duration-300 sm:max-w-md">
                 <header className="flex items-center justify-between border-b border-[var(--c-border)] p-4 sm:p-5">
                     <div>
                         <h2 className="text-lg font-bold text-[var(--c-text)]">Universal Recycle Bin</h2>
@@ -132,7 +142,7 @@ const RecycleBinSidebar = () => {
                                         <p className="truncate text-sm font-bold text-[var(--c-text)]">{item.name || item.displayTransactionId || item.id}</p>
                                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[var(--c-muted)]">
                                             <span>Deleted {item.deletedAt?.toDate ? item.deletedAt.toDate().toLocaleDateString() : 'recently'}</span>
-                                            <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                            <span className="h-1 w-1 rounded-full bg-[var(--c-border)]" />
                                             <span className="truncate">by {item.deletedBy || 'System'}</span>
                                             <span className="rounded-full bg-[var(--c-panel)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[var(--c-muted)]">
                                                 {domains.find((d) => d.id === activeDomain)?.badge || 'Module'}
@@ -153,7 +163,7 @@ const RecycleBinSidebar = () => {
                                         </button>
                                         <button
                                             onClick={() => handleRestore(item.id)}
-                                            className="rounded-lg bg-emerald-50 p-2 text-emerald-600 hover:bg-emerald-100 transition"
+                                            className="rounded-lg bg-[var(--c-success-soft)] p-2 text-[var(--c-success)] transition hover:opacity-85"
                                             title="Restore"
                                         >
                                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,7 +177,7 @@ const RecycleBinSidebar = () => {
                                                         handleDelete(item.id);
                                                     }
                                                 }}
-                                                className="rounded-lg bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 transition"
+                                                className="rounded-lg bg-[var(--c-danger-soft)] p-2 text-[var(--c-danger)] transition hover:opacity-85"
                                                 title="Delete Permanently"
                                             >
                                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

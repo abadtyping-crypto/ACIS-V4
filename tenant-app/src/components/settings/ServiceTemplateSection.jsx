@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import SettingCard from './SettingCard';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
+import ServiceTemplateEditor from '../common/ServiceTemplateEditor';
 import {
     fetchServiceTemplates,
     upsertServiceTemplate,
@@ -10,11 +11,13 @@ import {
 } from '../../lib/serviceTemplateStore';
 import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
 import { createSyncEvent } from '../../lib/syncEvents';
-import DirhamIcon from '../common/DirhamIcon';
 import CurrencyValue from '../common/CurrencyValue';
-
-const inputClass =
-    'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
+import {
+    buildServiceTemplatePayload,
+    createEmptyServiceTemplateDraft,
+    hydrateServiceTemplateDraft,
+    validateServiceTemplateDraft,
+} from '../../lib/serviceTemplateRules';
 
 const ServiceTemplateSection = () => {
     const { tenantId } = useTenant();
@@ -28,11 +31,7 @@ const ServiceTemplateSection = () => {
     const [status, setStatus] = useState('');
 
     // Form State
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    const [govCharge, setGovCharge] = useState('');
-    const [clientCharge, setClientCharge] = useState('');
-    const [selectedIconId, setSelectedIconId] = useState('');
+    const [draft, setDraft] = useState(createEmptyServiceTemplateDraft());
     const [editingId, setEditingId] = useState(null);
 
     const loadData = useCallback(async () => {
@@ -57,52 +56,32 @@ const ServiceTemplateSection = () => {
     }, [tenantId, loadData]);
 
     const resetForm = () => {
-        setName('');
-        setDescription('');
-        setGovCharge('');
-        setClientCharge('');
-        setSelectedIconId('');
+        setDraft(createEmptyServiceTemplateDraft());
         setEditingId(null);
         setError('');
     };
 
     const handleEdit = (row) => {
         setEditingId(row.id);
-        setName(row.name || '');
-        setDescription(row.description || '');
-        setGovCharge(String(row.govCharge || ''));
-        setClientCharge(String(row.clientCharge || ''));
-        setSelectedIconId(row.iconId || '');
+        setDraft(hydrateServiceTemplateDraft(row));
         setError('');
         setStatus('');
     };
 
     const handleSubmit = async () => {
-        const trimmedName = name.trim();
-        if (!trimmedName) return setError('Application Name is required.');
-        if (!govCharge || isNaN(govCharge)) return setError('Valid Gov. Charge is required.');
-        if (!clientCharge || isNaN(clientCharge)) return setError('Valid Client Charge is required.');
+        const validationError = validateServiceTemplateDraft(draft);
+        if (validationError) return setError(validationError);
 
         setIsSaving(true);
         setError('');
         setStatus('');
 
-        const templateId = editingId || toSafeDocId(trimmedName, 'svc_tpl');
-        const payload = {
-            name: trimmedName,
-            description: description.trim(),
-            govCharge: Number(govCharge),
-            clientCharge: Number(clientCharge),
-            iconId: selectedIconId,
-        };
-
-        if (!editingId) {
-            payload.createdAt = new Date().toISOString();
-            payload.createdBy = user.uid;
-        } else {
-            payload.updatedBy = user.uid;
-            payload.updatedAt = new Date().toISOString();
-        }
+        const templateId = editingId || toSafeDocId(String(draft.name || '').trim(), 'svc_tpl');
+        const payload = buildServiceTemplatePayload(draft, {
+            createdBy: user.uid,
+            updatedBy: user.uid,
+            editing: Boolean(editingId),
+        });
 
         const res = await upsertServiceTemplate(tenantId, templateId, payload);
         if (res.ok) {
@@ -150,87 +129,21 @@ const ServiceTemplateSection = () => {
             description="Define reusable service catalog items with default pricing and icons."
         >
             <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Application Name *
-                        <input
-                            className={inputClass}
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. Visa Processing"
-                        />
-                    </label>
-
-                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)] md:col-span-2">
-                        Description (Optional)
-                        <textarea
-                            className={inputClass}
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Short note about when/why this application is used"
-                            rows={2}
-                        />
-                    </label>
-
-                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Default Government Charge (Required) <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
-                        <input
-                            type="number"
-                            className={inputClass}
-                            value={govCharge}
-                            onChange={(e) => setGovCharge(e.target.value)}
-                            placeholder="0.00"
-                        />
-                    </label>
-
-                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Default Client Charge (Required) <DirhamIcon className="inline h-3 w-3 align-text-bottom text-[var(--c-muted)]" /> *
-                        <input
-                            type="number"
-                            className={inputClass}
-                            value={clientCharge}
-                            onChange={(e) => setClientCharge(e.target.value)}
-                            placeholder="0.00"
-                        />
-                    </label>
-
-                    <label className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">
-                        Default Icon
-                        <select
-                            className={inputClass}
-                            value={selectedIconId}
-                            onChange={(e) => setSelectedIconId(e.target.value)}
-                        >
-                            <option value="">Default (📄)</option>
-                            {icons.map((icon) => (
-                                <option key={icon.iconId} value={icon.iconId}>
-                                    {icon.iconName}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                </div>
-
-                <div className="mt-4 flex gap-2">
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isSaving}
-                        className="rounded-xl bg-[var(--c-accent)] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:opacity-90 disabled:opacity-50"
-                    >
-                        {editingId ? 'Update Template' : 'Save Template'}
-                    </button>
-                    {editingId && (
-                        <button
-                            onClick={resetForm}
-                            className="rounded-xl border border-[var(--c-border)] px-6 py-2.5 text-sm font-bold text-[var(--c-text)]"
-                        >
-                            Cancel
-                        </button>
-                    )}
-                </div>
-
-                {error && <p className="mt-3 text-xs font-bold text-rose-500 uppercase">{error}</p>}
-                {status && <p className="mt-3 text-xs font-bold text-emerald-500 uppercase">{status}</p>}
+                <ServiceTemplateEditor
+                    draft={draft}
+                    onDraftChange={setDraft}
+                    icons={icons}
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        void handleSubmit();
+                    }}
+                    onCancel={resetForm}
+                    isSaving={isSaving}
+                    error={error}
+                    status={status}
+                    submitLabel={editingId ? 'Update Template' : 'Save Template'}
+                    showCancel={Boolean(editingId)}
+                />
             </div>
 
             <div className="mt-6">

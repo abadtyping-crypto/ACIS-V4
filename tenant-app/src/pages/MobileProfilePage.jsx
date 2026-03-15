@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../context/useTheme';
 import { useAuth } from '../context/useAuth';
 import UserControlCenterSection from '../components/settings/UserControlCenterSection';
 import {
@@ -11,6 +11,7 @@ import {
   readDesktopAppearance,
   readMobileAppearance,
   saveDesktopAppearance,
+  saveDesktopWallpaperFile,
   saveMobileAppearance,
 } from '../lib/mobileAppearance';
 
@@ -48,15 +49,11 @@ const MobileProfilePage = () => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 2 * 1024 * 1024) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || '');
-      if (!result.startsWith('data:image/')) return;
-      updateDesktopAppearance({ mode: 'custom', customWallpaperUrl: result });
-    };
-    reader.readAsDataURL(file);
+    void (async () => {
+      const result = await saveDesktopWallpaperFile(file);
+      if (!result.ok) return;
+      setDesktopAppearance(result.appearance);
+    })();
   };
 
   const handleLogout = () => {

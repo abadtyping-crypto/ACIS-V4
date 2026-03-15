@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 import { DEFAULT_TENANT_ID, findTenantById } from '../../config/tenants';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 
 const TenantRouteSync = () => {
   const { tenantId: routeTenantId } = useParams();

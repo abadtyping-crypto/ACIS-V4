@@ -2,20 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import CurrencyValue from '../components/common/CurrencyValue';
 import {
   fetchLoanPersons,
   fetchTenantPortals,
   fetchTenantTransactions,
 } from '../lib/backendStore';
+import { resolvePortalTypeIcon } from '../lib/transactionMethodConfig';
 
 const fallbackPortalIcon = (type) => {
-  if (type === 'Bank') return '/portals/bank.png';
-  if (type === 'Card Payment') return '/portals/cardpayment.png';
-  if (type === 'Petty Cash') return '/portals/pettycash.png';
-  if (type === 'Terminal') return '/portals/terminal.png';
-  return '/portals/portals.png';
+  return resolvePortalTypeIcon(type);
 };
 
 const DashboardPage = () => {
@@ -29,12 +26,15 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (!tenantId) return;
-    setIsLoading(true);
-    Promise.all([
-      fetchTenantPortals(tenantId),
-      fetchLoanPersons(tenantId),
-      fetchTenantTransactions(tenantId),
-    ]).then(([portalRes, personRes, txRes]) => {
+    let active = true;
+    const loadData = async () => {
+      setIsLoading(true);
+      const [portalRes, personRes, txRes] = await Promise.all([
+        fetchTenantPortals(tenantId),
+        fetchLoanPersons(tenantId),
+        fetchTenantTransactions(tenantId),
+      ]);
+      if (!active) return;
       if (portalRes.ok) {
         setPortals(portalRes.rows || []);
       }
@@ -62,7 +62,14 @@ const DashboardPage = () => {
         setLoanSummary(summary);
       }
       setIsLoading(false);
+    };
+    const frame = requestAnimationFrame(() => {
+      void loadData();
     });
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+    };
   }, [tenantId]);
 
   const totalPortalBalance = useMemo(

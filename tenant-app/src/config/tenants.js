@@ -2,7 +2,7 @@ export const TENANTS = [
   {
     id: 'acis',
     name: 'ACISAjman',
-    brandColor: '#0074e8',
+    brandColor: '#e67e22',
     locale: 'en-AE',
     currency: 'AED',
     logoUrl: '/logo.png',
@@ -10,7 +10,7 @@ export const TENANTS = [
   {
     id: 'testTenants',
     name: 'Test Tenants',
-    brandColor: '#0074e8',
+    brandColor: '#e67e22',
     locale: 'en-AE',
     currency: 'AED',
     logoUrl: '/logo.png',
@@ -18,7 +18,7 @@ export const TENANTS = [
   {
     id: 'nexus',
     name: 'Nexus Advisory',
-    brandColor: '#0ea5e9',
+    brandColor: '#d97706',
     locale: 'en-AE',
     currency: 'AED',
     logoUrl: '/logo.png',
@@ -26,7 +26,7 @@ export const TENANTS = [
   {
     id: 'orbit',
     name: 'Orbit Corporate',
-    brandColor: '#14b8a6',
+    brandColor: '#c2410c',
     locale: 'en-GB',
     currency: 'GBP',
     logoUrl: '/logo.png',

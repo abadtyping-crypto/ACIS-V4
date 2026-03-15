@@ -1,6 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
-
-const RecycleBinContext = createContext(null);
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { RecycleBinContext } from './RecycleBinContextValue';
 
 export const RecycleBinProvider = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,12 +36,4 @@ export const RecycleBinProvider = ({ children }) => {
   );
 
   return <RecycleBinContext.Provider value={value}>{children}</RecycleBinContext.Provider>;
-};
-
-export const useRecycleBin = () => {
-  const context = useContext(RecycleBinContext);
-  if (!context) {
-    throw new Error('useRecycleBin must be used within a RecycleBinProvider');
-  }
-  return context;
 };

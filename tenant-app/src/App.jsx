@@ -24,6 +24,9 @@ import DependentDetailsPage from './pages/DependentDetailsPage';
 import ModulePlaceholderPage from './pages/ModulePlaceholderPage';
 import DailyTransactionPage from './pages/DailyTransactionPage';
 import ChatHelpPage from './pages/ChatHelpPage';
+import QuotationPage from './pages/QuotationPage';
+import ProformaInvoicesPage from './pages/ProformaInvoicesPage';
+import ReceivePaymentsPage from './pages/ReceivePaymentsPage';
 
 import TitleBar from './components/layout/TitleBar';
 
@@ -52,9 +55,12 @@ const App = () => {
                       path="invoice-management"
                       element={<ModulePlaceholderPage title="Invoice Management" subtitle="Invoice Management module placeholder." />}
                     />
+                    <Route path="quotations" element={<QuotationPage />} />
+                    <Route path="proforma-invoices" element={<ProformaInvoicesPage />} />
+                    <Route path="receive-payments" element={<ReceivePaymentsPage />} />
                     <Route
                       path="proforma-quotation"
-                      element={<ModulePlaceholderPage title="Proforma / Quotation" subtitle="Proforma and quotation module placeholder." />}
+                      element={<Navigate to="../quotations" replace />}
                     />
                     <Route
                       path="operation-expenses"
@@ -65,6 +71,7 @@ const App = () => {
                     <Route path="profile/edit" element={<ProfilePage />} />
                     <Route path="portal-management" element={<PortalManagementPage />} />
                     <Route path="portal-management/new" element={<PortalFormPage />} />
+                    <Route path="portal-management/edit/:portalId" element={<PortalFormPage />} />
                     <Route path="portal-management/:portalId" element={<PortalDetailPage />} />
                     <Route
                       path="document-calendar"

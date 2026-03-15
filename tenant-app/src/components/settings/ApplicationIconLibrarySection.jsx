@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import SettingCard from './SettingCard';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
 import useIsDesktopLayout from '../../hooks/useIsDesktopLayout';

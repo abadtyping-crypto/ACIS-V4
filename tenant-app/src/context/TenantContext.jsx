@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_TENANT_ID, TENANTS, findTenantById } from '../config/tenants';
 import { getTenantSettingDoc } from '../lib/backendStore';
-
-const TenantContext = createContext(null);
+import { TenantContext } from './TenantContextValue';
 
 export const TenantProvider = ({ children }) => {
   const [tenantId, setTenantId] = useState(DEFAULT_TENANT_ID);
@@ -12,19 +11,20 @@ export const TenantProvider = ({ children }) => {
   useEffect(() => {
     if (!tenantId) return;
     let active = true;
-
-    setUiBrandName('');
-
-    getTenantSettingDoc(tenantId, 'branding').then((result) => {
-      if (!active) return;
-      if (!result?.ok || !result?.data) return;
-      const branding = result.data;
-      const nextName = String(branding.brandName || branding.companyName || '').trim();
-      setUiBrandName(nextName);
+    const handle = requestAnimationFrame(() => {
+      setUiBrandName('');
+      getTenantSettingDoc(tenantId, 'branding').then((result) => {
+        if (!active) return;
+        if (!result?.ok || !result?.data) return;
+        const branding = result.data;
+        const nextName = String(branding.brandName || branding.companyName || '').trim();
+        setUiBrandName(nextName);
+      });
     });
 
     return () => {
       active = false;
+      cancelAnimationFrame(handle);
     };
   }, [tenantId]);
 
@@ -49,10 +49,4 @@ export const TenantProvider = ({ children }) => {
   );
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
-};
-
-export const useTenant = () => {
-  const context = useContext(TenantContext);
-  if (!context) throw new Error('useTenant must be used inside TenantProvider');
-  return context;
 };

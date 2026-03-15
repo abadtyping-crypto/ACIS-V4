@@ -21,12 +21,14 @@ import { generateTenantPdf } from '../lib/pdfGenerator';
 import { canUserPerformAction } from '../lib/userControlPreferences';
 import { buildNotificationPayload, generateNotificationId } from '../lib/notificationTemplate';
 import {
+  DEFAULT_PORTAL_ICON,
   TX_METHOD_LABELS,
   buildMethodIconMap,
   resolvePortalCategories,
   resolvePortalCategory,
   resolvePortalMethodDefinitions,
   resolveMethodIconUrl,
+  resolvePortalTypeIcon,
 } from '../lib/transactionMethodConfig';
 
 const toDateText = (value) => {
@@ -40,11 +42,7 @@ const toDateText = (value) => {
 const txMethodLabels = TX_METHOD_LABELS;
 
 const fallbackPortalIcon = (type) => {
-  if (type === 'Bank') return '/portals/bank.png';
-  if (type === 'Card Payment') return '/portals/cardpayment.png';
-  if (type === 'Petty Cash') return '/portals/pettycash.png';
-  if (type === 'Terminal') return '/portals/terminal.png';
-  return '/portals/portals.png';
+  return resolvePortalTypeIcon(type);
 };
 
 const getStatusBadgeClass = (statusValue) => {
@@ -200,7 +198,7 @@ const PortalDetailPage = () => {
       const creator = getCreator(value);
       return (
         <Link
-          to={`/t/${tenantId}/profile`}
+          to={`/t/${tenantId}/profile/edit?uid=${encodeURIComponent(String(value || ''))}`}
           className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 pr-3 text-xs text-[var(--c-text)] hover:border-[var(--c-accent)]"
           title={`Open profile of ${creator.name}`}
         >
@@ -215,7 +213,15 @@ const PortalDetailPage = () => {
       const p = portalsById[String(value || '')];
       return (
         <div className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 pr-3 text-xs text-[var(--c-text)]">
-          <img src={p?.iconUrl || '/portals/portals.png'} alt={p?.name || 'Portal'} className="h-6 w-6 rounded object-cover" />
+          <img
+            src={p?.iconUrl || DEFAULT_PORTAL_ICON}
+            alt={p?.name || 'Portal'}
+            className="h-6 w-6 rounded object-cover"
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = DEFAULT_PORTAL_ICON;
+            }}
+          />
           <span>{p?.name || 'Portal'}</span>
         </div>
       );
@@ -733,7 +739,15 @@ const PortalDetailPage = () => {
             <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <img src={portal.iconUrl || '/portals/portals.png'} alt={portal.name} className="h-12 w-12 rounded-xl object-cover" />
+                  <img
+                    src={portal.iconUrl || DEFAULT_PORTAL_ICON}
+                    alt={portal.name}
+                    className="h-12 w-12 rounded-xl object-cover"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = DEFAULT_PORTAL_ICON;
+                    }}
+                  />
                   <div>
                     <p className="text-sm font-bold text-[var(--c-text)]">{portal.name}</p>
                     <div className="mt-0.5 text-xs text-[var(--c-muted)]">
@@ -888,7 +902,7 @@ const PortalDetailPage = () => {
                         className="h-5 w-5 rounded object-cover"
                         onError={(event) => {
                           event.currentTarget.onerror = null;
-                          event.currentTarget.src = '/portals/portals.png';
+                          event.currentTarget.src = DEFAULT_PORTAL_ICON;
                         }}
                       />
                       <p className="text-xs font-semibold text-[var(--c-text)]">{portal.type || '-'}</p>

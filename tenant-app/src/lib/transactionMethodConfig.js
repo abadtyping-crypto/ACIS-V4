@@ -6,6 +6,17 @@ import {
   ChequeDepositIcon,
   OnlinePaymentIcon,
 } from '../components/icons/AppIcons';
+import { getPublicAssetUrl } from './publicAsset';
+
+export const DEFAULT_PORTAL_ICON = getPublicAssetUrl('portals/portals.png');
+
+export const resolvePortalTypeIcon = (type) => {
+  if (type === 'Bank') return getPublicAssetUrl('portals/bank.png');
+  if (type === 'Card Payment') return getPublicAssetUrl('portals/cardpayment.png');
+  if (type === 'Petty Cash') return getPublicAssetUrl('portals/pettycash.png');
+  if (type === 'Terminal') return getPublicAssetUrl('portals/terminal.png');
+  return DEFAULT_PORTAL_ICON;
+};
 
 export const TRANSACTION_METHODS = [
   { id: 'cashByHand', label: 'Cash by Hand', Icon: CashByHandIcon },
@@ -22,31 +33,31 @@ export const DEFAULT_PORTAL_CATEGORIES = [
   {
     id: 'Bank',
     label: 'Bank',
-    icon: '/portals/bank.png',
+    icon: resolvePortalTypeIcon('Bank'),
     methodIds: ['bankTransfer', 'cdmDeposit', 'checqueDeposit', 'cashWithdrawals'],
   },
   {
     id: 'Card Payment',
     label: 'Card Payment',
-    icon: '/portals/cardpayment.png',
+    icon: resolvePortalTypeIcon('Card Payment'),
     methodIds: ['onlinePayment', 'bankTransfer'],
   },
   {
     id: 'Petty Cash',
     label: 'Petty Cash',
-    icon: '/portals/pettycash.png',
+    icon: resolvePortalTypeIcon('Petty Cash'),
     methodIds: ['cashByHand', 'cashWithdrawals'],
   },
   {
     id: 'Portals',
     label: 'Portals',
-    icon: '/portals/portals.png',
+    icon: DEFAULT_PORTAL_ICON,
     methodIds: ['cashByHand', 'bankTransfer', 'onlinePayment'],
   },
   {
     id: 'Terminal',
     label: 'Terminal',
-    icon: '/portals/terminal.png',
+    icon: resolvePortalTypeIcon('Terminal'),
     methodIds: ['onlinePayment', 'bankTransfer'],
   },
 ];
@@ -78,7 +89,7 @@ export const createCustomMethodDefinition = ({ id, label, iconUrl = '' }) => ({
 export const createCustomCategoryDefinition = ({ id, label, iconUrl = '', methodIds = [] }) => ({
   id,
   label,
-  icon: iconUrl || '/portals/portals.png',
+  icon: iconUrl || DEFAULT_PORTAL_ICON,
   methodIds,
   isCustom: true,
 });

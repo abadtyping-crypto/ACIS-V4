@@ -2,15 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SectionCard from './SectionCard';
 import { fetchTenantPortals } from '../../lib/backendStore';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import CurrencyValue from '../common/CurrencyValue';
+import { DEFAULT_PORTAL_ICON, resolvePortalTypeIcon } from '../../lib/transactionMethodConfig';
 
 const fallbackPortalIcon = (type) => {
-    if (type === 'Bank') return '/portals/bank.png';
-    if (type === 'Card Payment') return '/portals/cardpayment.png';
-    if (type === 'Petty Cash') return '/portals/pettycash.png';
-    if (type === 'Terminal') return '/portals/terminal.png';
-    return '/portals/portals.png';
+    return resolvePortalTypeIcon(type);
 };
 
 const PortalSummarySection = ({ onQuickAction, refreshKey }) => {
@@ -54,7 +51,7 @@ const PortalSummarySection = ({ onQuickAction, refreshKey }) => {
                                         className="h-full w-full object-cover"
                                         onError={(event) => {
                                             event.currentTarget.onerror = null;
-                                            event.currentTarget.src = fallbackPortalIcon(p.type);
+                                            event.currentTarget.src = DEFAULT_PORTAL_ICON;
                                         }}
                                     />
                                 </div>

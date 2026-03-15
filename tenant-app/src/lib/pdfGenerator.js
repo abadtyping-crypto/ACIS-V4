@@ -3,6 +3,15 @@ import autoTable from 'jspdf-autotable';
 import { resolvePdfTemplateForRenderer } from './pdfTemplateRenderer';
 import { fetchTenantPdfTemplates, getTenantSettingDoc } from './backendStore';
 
+const resolveTemplateTerms = (template, data) => {
+    const quotationSpecificTerms = String(data?.termsAndConditions || '').trim();
+    if (quotationSpecificTerms) return quotationSpecificTerms;
+    const rawTerms = String(template?.termsAndConditions || '').trim();
+    if (!rawTerms) return '';
+    const expiryDate = String(data?.expiryDate || '').trim() || 'the selected expiry date';
+    return rawTerms.replaceAll('{{expiryDate}}', expiryDate);
+};
+
 /**
  * Centered PDF generation utility.
  */
@@ -153,6 +162,21 @@ export const generateTenantPdf = async ({
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text(`Total Amount: AED ${data.amount}`, pageWidth - margins.right, cursorY, { align: 'right' });
+
+        const resolvedTerms = documentType === 'quotation' ? resolveTemplateTerms(template, data) : '';
+        if (resolvedTerms) {
+            cursorY += 28;
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(35, 35, 35);
+            doc.text('Terms and Conditions', margins.left, cursorY);
+
+            cursorY += 16;
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            const termLines = doc.splitTextToSize(resolvedTerms, pageWidth - margins.left - margins.right);
+            doc.text(termLines, margins.left, cursorY);
+        }
 
         // QR Code Placeholder
         if (template.qrEnabled) {

@@ -1,5 +1,5 @@
 import SettingCard from './SettingCard';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 
 const inputClass =
   'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';

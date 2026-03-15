@@ -62,6 +62,7 @@ export const DESKTOP_WALLPAPERS = [
   { id: 'midnight', label: 'Midnight' },
   { id: 'ocean', label: 'Ocean' },
   { id: 'sunrise', label: 'Sunrise' },
+  { id: 'ember', label: 'Ember' },
 ];
 
 const defaultDesktopAppearance = {
@@ -101,4 +102,46 @@ export const saveDesktopAppearance = (nextAppearance) => {
   window.localStorage.setItem('acis_desktop_appearance_v1', JSON.stringify(normalized));
   window.dispatchEvent(new CustomEvent('acis-desktop-appearance-change', { detail: normalized }));
   return normalized;
+};
+
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result || ''));
+  reader.onerror = () => reject(new Error('Unable to read wallpaper image.'));
+  reader.readAsDataURL(file);
+});
+
+export const saveDesktopWallpaperFile = async (file) => {
+  if (!file) return { ok: false, error: 'No wallpaper file selected.' };
+  if (!file.type.startsWith('image/')) return { ok: false, error: 'Please select an image file.' };
+  if (file.size > 2 * 1024 * 1024) return { ok: false, error: 'Wallpaper must be 2 MB or less.' };
+
+  const hasElectronSaver = Boolean(window.electron?.desktopAppearance?.saveWallpaper);
+  if (hasElectronSaver) {
+    const dataUrl = await readFileAsDataUrl(file);
+    const saveResult = await window.electron.desktopAppearance.saveWallpaper({
+      fileName: file.name,
+      dataUrl,
+    });
+    if (!saveResult?.ok || !saveResult?.fileUrl) {
+      return { ok: false, error: saveResult?.error || 'Unable to store wallpaper file.' };
+    }
+    const appearance = saveDesktopAppearance({
+      mode: 'custom',
+      wallpaper: defaultDesktopAppearance.wallpaper,
+      customWallpaperUrl: saveResult.fileUrl,
+    });
+    return { ok: true, appearance };
+  }
+
+  const dataUrl = await readFileAsDataUrl(file);
+  if (!dataUrl.startsWith('data:image/')) {
+    return { ok: false, error: 'Unable to read wallpaper image.' };
+  }
+  const appearance = saveDesktopAppearance({
+    mode: 'custom',
+    wallpaper: defaultDesktopAppearance.wallpaper,
+    customWallpaperUrl: dataUrl,
+  });
+  return { ok: true, appearance };
 };

@@ -15,9 +15,9 @@ import InternalTransferSection from '../components/portal/InternalTransferSectio
 import PortalSetupSection from '../components/portal/PortalSetupSection';
 import RecentTransactionsSection from '../components/portal/RecentTransactionsSection';
 import ReportsSection from '../components/portal/ReportsSection';
-import { useRecycleBin } from '../context/RecycleBinContext';
+import { useRecycleBin } from '../context/useRecycleBin';
 import { useAuth } from '../context/useAuth';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import { fetchTenantPortals } from '../lib/backendStore';
 import CurrencyValue from '../components/common/CurrencyValue';
 import '../styles/mobile/portal.css';

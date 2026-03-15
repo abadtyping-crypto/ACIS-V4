@@ -50,7 +50,7 @@ const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-(--c-muted)">
               {channel === 'inApp' ? 'In-App' : channel}
             </span>
-            <div className={`h-1.5 w-1.5 rounded-full ${rules[channel] ? 'bg-(--c-accent) shadow-[0_0_8px_var(--c-accent)]' : 'bg-slate-700'}`} />
+            <div className={`h-1.5 w-1.5 rounded-full ${rules[channel] ? 'bg-(--c-accent) shadow-[0_0_8px_var(--c-accent)]' : 'bg-[var(--c-toggle-off)]'}`} />
           </button>
         ))}
       </div>
@@ -68,7 +68,7 @@ const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
               }`}
           >
             <p className="text-sm font-bold text-(--c-text)">{item.label}</p>
-            <div className={`h-1.5 w-1.5 rounded-full ${rules.events[item.key] ? 'bg-(--c-accent) shadow-[0_0_8px_var(--c-accent)]' : 'bg-slate-700'}`} />
+            <div className={`h-1.5 w-1.5 rounded-full ${rules.events[item.key] ? 'bg-(--c-accent) shadow-[0_0_8px_var(--c-accent)]' : 'bg-[var(--c-toggle-off)]'}`} />
           </button>
         ))}
       </div>
@@ -79,11 +79,11 @@ const UserNotificationRulesSection = ({ tenantId, selectedUser }) => {
           <button
             type="button"
             onClick={() => save({ ...rules, quietHoursEnabled: !rules.quietHoursEnabled })}
-            className={`relative h-5 w-9 rounded-full transition ${rules.quietHoursEnabled ? 'bg-(--c-accent)' : 'bg-slate-700'
+            className={`relative h-5 w-9 rounded-full transition ${rules.quietHoursEnabled ? 'bg-(--c-accent)' : 'bg-[var(--c-toggle-off)]'
               }`}
           >
             <div
-              className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${rules.quietHoursEnabled ? 'left-4.5' : 'left-0.5'
+              className={`absolute top-0.5 h-4 w-4 rounded-full bg-[var(--c-knob)] transition-all ${rules.quietHoursEnabled ? 'left-4.5' : 'left-0.5'
                 }`}
             />
           </button>

@@ -1,35 +1,33 @@
 import { useEffect, useState } from 'react';
-import { X, Plus } from 'lucide-react';
-import { useTenant } from '../../context/TenantContext';
+import { X } from 'lucide-react';
+import { useTenant } from '../../context/useTenant';
 import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
 import { createSyncEvent } from '../../lib/syncEvents';
 import ImageStudio from '../common/ImageStudio';
-import DirhamIcon from '../common/DirhamIcon';
+import ServiceTemplateEditor from '../common/ServiceTemplateEditor';
 import { getCroppedImg } from '../../lib/imageStudioUtils';
 import {
   fetchApplicationIconLibrary,
   getApplicationIconById,
   upsertApplicationIcon,
 } from '../../lib/applicationIconLibraryStore';
-import { upsertServiceTemplate } from '../../lib/serviceTemplateStore';
+import { fetchServiceTemplates, upsertServiceTemplate } from '../../lib/serviceTemplateStore';
 import {
   uploadApplicationIconAsset,
   validateApplicationIconFile,
 } from '../../lib/applicationIconStorage';
-
-const inputClass =
-  'mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20';
+import {
+  buildServiceTemplatePayload,
+  createEmptyServiceTemplateDraft,
+  validateServiceTemplateDraft,
+} from '../../lib/serviceTemplateRules';
 
 const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
   const { tenantId } = useTenant();
   const { user } = useAuth();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [govCharge, setGovCharge] = useState('');
-  const [clientCharge, setClientCharge] = useState('');
-  const [selectedIconId, setSelectedIconId] = useState('');
+  const [draft, setDraft] = useState(createEmptyServiceTemplateDraft());
   const [newIconName, setNewIconName] = useState('');
   const [newIconFile, setNewIconFile] = useState(null);
   const [newIconRawUrl, setNewIconRawUrl] = useState('');
@@ -63,11 +61,7 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
   }, [isOpen, onClose]);
 
   const resetState = () => {
-    setName('');
-    setDescription('');
-    setGovCharge('');
-    setClientCharge('');
-    setSelectedIconId('');
+    setDraft(createEmptyServiceTemplateDraft());
     setNewIconName('');
     setNewIconFile(null);
     if (newIconRawUrl && newIconRawUrl.startsWith('blob:')) {
@@ -98,16 +92,15 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const trimmedName = name.trim();
-    if (!trimmedName) return setError('Application Name is required.');
-    if (!govCharge || Number.isNaN(Number(govCharge))) return setError('Valid Gov. Charge is required.');
-    if (!clientCharge || Number.isNaN(Number(clientCharge))) return setError('Valid Client Charge is required.');
+    const validationError = validateServiceTemplateDraft(draft);
+    if (validationError) return setError(validationError);
     if (!tenantId || !user?.uid) return setError('Missing tenant or user context.');
+    const trimmedName = String(draft.name || '').trim();
 
     setIsSaving(true);
     setError('');
 
-    let resolvedIconId = selectedIconId || '';
+    let resolvedIconId = draft.iconId || '';
     if (newIconFile) {
       let iconBlobForUpload = newIconFile;
       if (newIconRawUrl && newIconCropPixels) {
@@ -176,15 +169,30 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
     }
 
     const templateId = toSafeDocId(trimmedName, 'svc_tpl');
+    const existingTemplatesRes = await fetchServiceTemplates(tenantId);
+    if (!existingTemplatesRes.ok) {
+      setError(existingTemplatesRes.error || 'Failed to validate application uniqueness.');
+      setIsSaving(false);
+      return;
+    }
+
+    const alreadyExists = (existingTemplatesRes.rows || []).some((item) => {
+      const existingId = String(item?.id || '').trim().toLowerCase();
+      const existingName = String(item?.name || '').trim().toLowerCase();
+      return existingId === templateId.toLowerCase() || existingName === trimmedName.toLowerCase();
+    });
+    if (alreadyExists) {
+      setError('Application name already exists. Use a different name.');
+      setIsSaving(false);
+      return;
+    }
+
     const payload = {
-      name: trimmedName,
-      description: description.trim(),
-      govCharge: Number(govCharge),
-      clientCharge: Number(clientCharge),
+      ...buildServiceTemplatePayload(
+        { ...draft, iconId: resolvedIconId },
+        { createdBy: user.uid, editing: false },
+      ),
       iconId: resolvedIconId,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      createdBy: user.uid,
     };
 
     const res = await upsertServiceTemplate(tenantId, templateId, payload);
@@ -233,53 +241,32 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 p-5">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <ServiceTemplateEditor
+            draft={draft}
+            onDraftChange={setDraft}
+            icons={icons}
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            isSaving={isSaving}
+            error={error}
+            submitLabel={isSaving ? 'Saving...' : 'Save Application'}
+            showCancel
+            tone="modal"
+            wrapInForm={false}
+          >
             <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
-              Application Name *
-              <input
-                className={inputClass}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter service name"
-              />
-            </label>
-
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-300 sm:col-span-2">
-              Description (Optional)
-              <textarea
-                className={inputClass}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Service details, rules or notes..."
-                rows={2}
-              />
-            </label>
-
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
-              Application Icon (Reusable / Optional)
-              <select className={inputClass} value={selectedIconId} onChange={(e) => setSelectedIconId(e.target.value)}>
-                <option value="">Default (📄)</option>
-                {icons.map((icon) => (
-                  <option key={icon.iconId} value={icon.iconId}>
-                    {icon.iconName}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-300 sm:col-span-2">
               Upload New Icon (Optional)
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                className={inputClass}
+                className="mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20"
                 onChange={(event) => {
                   const file = event.target.files?.[0] || null;
                   event.target.value = '';
                   if (!file) return;
-                  const validationError = validateApplicationIconFile(file);
-                  if (validationError) {
-                    setError(validationError);
+                  const fileValidationError = validateApplicationIconFile(file);
+                  if (fileValidationError) {
+                    setError(fileValidationError);
                     return;
                   }
                   const objectUrl = URL.createObjectURL(file);
@@ -296,7 +283,7 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
             </label>
 
             {newIconRawUrl ? (
-              <div className="sm:col-span-2">
+              <div className="mt-4">
                 <ImageStudio
                   sourceUrl={newIconRawUrl}
                   onReset={() => {
@@ -329,60 +316,17 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
             ) : null}
 
             {newIconFile ? (
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-300 sm:col-span-2">
+              <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-300">
                 New Icon Name (Required for Upload)
                 <input
-                  className={inputClass}
+                  className="mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20"
                   value={newIconName}
                   onChange={(e) => setNewIconName(e.target.value)}
-                  placeholder={`Default: ${name.trim() || 'Application Name'}`}
+                  placeholder={`Default: ${String(draft.name || '').trim() || 'Application Name'}`}
                 />
               </label>
             ) : null}
-
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
-              Default Gov <DirhamIcon className="inline h-3 w-3 align-text-bottom text-slate-300" /> * (Required)
-              <input
-                type="number"
-                className={inputClass}
-                value={govCharge}
-                onChange={(e) => setGovCharge(e.target.value)}
-                placeholder="0.00"
-              />
-            </label>
-
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-300">
-              Default Client <DirhamIcon className="inline h-3 w-3 align-text-bottom text-slate-300" /> * (Required)
-              <input
-                type="number"
-                className={inputClass}
-                value={clientCharge}
-                onChange={(e) => setClientCharge(e.target.value)}
-                placeholder="0.00"
-              />
-            </label>
-          </div>
-
-          {error ? <p className="text-xs font-bold text-rose-400">{error}</p> : null}
-
-          <div className="flex items-center justify-end gap-2 border-t border-slate-700 pt-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isSaving}
-              className="rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-bold text-slate-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-sky-400 disabled:opacity-60"
-            >
-              <Plus className="h-4 w-4" />
-              {isSaving ? 'Saving...' : 'Save Application'}
-            </button>
-          </div>
+          </ServiceTemplateEditor>
         </form>
       </div>
     </div>

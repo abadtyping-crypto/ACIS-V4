@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BellIcon, SearchIcon } from '../icons/AppIcons';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../context/useTheme';
 import { Monitor, MoonStar, SunMedium } from 'lucide-react';
+import { DEFAULT_PORTAL_ICON } from '../../lib/transactionMethodConfig';
+import { useTenantBrandingLogos } from '../../hooks/useTenantBrandingLogos';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const toDisplayName = (user) => {
@@ -42,6 +44,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
   const themeLabel = theme === 'system' ? `System (${resolvedTheme})` : appliedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
   const displayName = toDisplayName(user);
   const tenantLogoUrl = tenant?.logoUrl || '/logo.png';
+  const { headerLogoUrl } = useTenantBrandingLogos(tenantId, tenantLogoUrl);
   const tenantLabel = tenant?.name || 'Tenant';
 
   const goTo = (path) => navigate(`/t/${tenantId}/${path}`);
@@ -76,16 +79,14 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
             className="brand-button no-drag inline-flex min-w-0 flex-1 appearance-none items-center gap-3 border-0 bg-transparent p-0 text-left text-[var(--c-text)] no-underline outline-none focus-visible:ring-2 focus-visible:ring-[var(--c-ring)]"
             style={{ textDecoration: 'none' }}
           >
-            {!hasNativeTitleBar ? (
-              <img
-                src={tenantLogoUrl}
-                alt={tenantLabel}
-                className="h-11 w-11 rounded-xl border border-white/70 bg-white object-cover shadow-sm"
-              />
-            ) : null}
+            <img
+              src={headerLogoUrl}
+              alt={tenantLabel}
+              className="h-11 w-11 rounded-xl border border-[var(--glass-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_88%,transparent)] object-cover shadow-sm"
+            />
             <div className="min-w-0">
               <p className="truncate text-base font-black text-[var(--c-text)]">{tenant.name}</p>
-              <p className="truncate text-xs text-[var(--c-muted)]">{hasNativeTitleBar ? 'Team Workspace' : 'Brand Workspace'}</p>
+              <p className="truncate text-xs text-[var(--c-muted)]">{hasNativeTitleBar ? 'Tenant Workspace' : 'Brand Workspace'}</p>
             </div>
           </button>
         </div>
@@ -122,7 +123,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
             >
               <BellIcon className="h-6 w-6" />
               {notificationCount > 0 ? (
-                <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--c-danger)] px-1 text-[10px] font-bold text-white">
                   {notificationCount}
                 </span>
               ) : null}
@@ -162,7 +163,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                             onClick={(e) => {
                               e.stopPropagation();
                               setNotificationsOpen(false);
-                              if (item.createdBy) goTo(`profile?uid=${encodeURIComponent(item.createdBy)}`);
+                              if (item.createdBy) goTo(`profile/edit?uid=${encodeURIComponent(item.createdBy)}`);
                             }}
                             className="shrink-0 hover:opacity-80"
                             title="View Profile"
@@ -186,9 +187,13 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                             {item.entityType === 'portal' && item.entityMeta ? (
                               <div className="mt-1 flex items-center gap-2">
                                 <img
-                                  src={item.entityMeta.iconUrl || '/portals/portals.png'}
+                                  src={item.entityMeta.iconUrl || DEFAULT_PORTAL_ICON}
                                   alt={item.entityMeta.name || 'Portal'}
                                   className="h-4 w-4 rounded object-cover"
+                                  onError={(event) => {
+                                    event.currentTarget.onerror = null;
+                                    event.currentTarget.src = DEFAULT_PORTAL_ICON;
+                                  }}
                                 />
                                 <p className="truncate text-[10px] font-semibold text-[var(--c-text)]">
                                   {item.entityMeta.name} • {toBalanceLabel(item.entityMeta.balance)}
@@ -201,7 +206,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setNotificationsOpen(false);
-                                  if (item.createdBy) goTo(`profile?uid=${encodeURIComponent(item.createdBy)}`);
+                                  if (item.createdBy) goTo(`profile/edit?uid=${encodeURIComponent(item.createdBy)}`);
                                 }}
                               >
                                 {item.createdByUser?.displayName || 'System'}
@@ -254,7 +259,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                     setMenuOpen(false);
                     onLogout?.();
                   }}
-                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-[var(--c-danger)] transition hover:bg-[var(--c-danger-soft)]"
                 >
                   Logout
                 </button>

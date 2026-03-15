@@ -11,10 +11,18 @@ import {
 import SectionCard from '../portal/SectionCard';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import IconSelect from '../common/IconSelect';
-import { TRANSACTION_METHODS, TX_METHOD_LABELS } from '../../lib/transactionMethodConfig';
+import MobileContactsField from '../common/MobileContactsField';
+import { TRANSACTION_METHODS, TX_METHOD_LABELS, resolvePortalTypeIcon } from '../../lib/transactionMethodConfig';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { sendUniversalNotification } from '../../lib/notificationDrafting';
 import { createSyncEvent } from '../../lib/syncEvents';
+import {
+    createMobileContact,
+    getPrimaryMobileContact,
+    getFilledMobileContacts,
+    serializeMobileContacts,
+    validateMobileContact,
+} from '../../lib/mobileContactUtils';
 
 const txMethodMetaById = TRANSACTION_METHODS.reduce((acc, method) => {
     acc[method.id] = method;
@@ -36,11 +44,7 @@ const emiratesIconMap = {
 };
 
 const fallbackPortalIcon = (type) => {
-    if (type === 'Bank') return '/portals/bank.png';
-    if (type === 'Card Payment') return '/portals/cardpayment.png';
-    if (type === 'Petty Cash') return '/portals/pettycash.png';
-    if (type === 'Terminal') return '/portals/terminal.png';
-    return '/portals/portals.png';
+    return resolvePortalTypeIcon(type);
 };
 
 const DirhamAmount = ({ amount, className = '' }) => (
@@ -59,6 +63,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
         tradeName: '',
         primaryMobile: '',
         secondaryMobile: '',
+        mobileContacts: [createMobileContact()],
         landline1: '',
         landline2: '',
         primaryEmail: '',
@@ -101,7 +106,6 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
     const normalizePhone = (val) => {
         if (!val) return '';
         const digits = val.replace(/\D/g, '');
-        // Trim leading 0 if present
         return digits.startsWith('0') ? digits.slice(1) : digits;
     };
 
@@ -124,8 +128,9 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                 ...form,
                 tradeLicenseNumber: form.tradeLicenseNumber.toUpperCase().trim(),
                 tradeName: form.tradeName.toUpperCase().trim(),
-                primaryMobile: normalizePhone(form.primaryMobile),
-                secondaryMobile: normalizePhone(form.secondaryMobile),
+                primaryMobile: getPrimaryMobileContact(form.mobileContacts).value,
+                secondaryMobile: getFilledMobileContacts(form.mobileContacts)[1]?.value || '',
+                mobileContacts: serializeMobileContacts(form.mobileContacts),
                 landline1: normalizePhone(form.landline1),
                 landline2: normalizePhone(form.landline2),
                 primaryEmail: form.primaryEmail.toLowerCase().trim(),
@@ -139,8 +144,9 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                 status: 'active'
             };
 
-            if (normalized.primaryMobile.length < 8) {
-                setStatus({ type: 'error', message: 'Primary mobile must be at least 8 digits (excluding 0).' });
+            const primaryMobileError = validateMobileContact(normalized.primaryMobile, getPrimaryMobileContact(form.mobileContacts).countryIso2, 'Mobile number');
+            if (primaryMobileError) {
+                setStatus({ type: 'error', message: primaryMobileError });
                 return;
             }
             if (!normalized.registeredEmirate) {
@@ -357,19 +363,17 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Primary Mobile Number *</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[var(--c-muted)]">+971</span>
-                            <input
-                                type="tel"
-                                name="primaryMobile"
-                                required
-                                value={form.primaryMobile}
-                                onChange={handleChange}
-                                placeholder="5x xxxxxxx"
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] pl-16 pr-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            />
-                        </div>
+                        <MobileContactsField
+                            label="Mobile Numbers"
+                            contacts={form.mobileContacts}
+                            onChange={(contacts) => setForm((prev) => ({
+                                ...prev,
+                                mobileContacts: contacts,
+                                primaryMobile: getPrimaryMobileContact(contacts).value,
+                                secondaryMobile: getFilledMobileContacts(contacts)[1]?.value || '',
+                            }))}
+                            required
+                        />
                     </div>
                 </div>
             </div>
@@ -377,21 +381,6 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
             {/* 4.2 & 4.4 Contact & Address */}
             <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Secondary Mobile</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[var(--c-muted)]">+971</span>
-                            <input
-                                type="tel"
-                                name="secondaryMobile"
-                                value={form.secondaryMobile}
-                                onChange={handleChange}
-                                placeholder="5x xxxxxxx"
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] pl-16 pr-4 py-3 text-sm font-bold shadow-sm outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10"
-                            />
-                        </div>
-                    </div>
-
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                             <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Landline 1</label>

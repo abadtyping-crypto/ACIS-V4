@@ -5,10 +5,16 @@ import { deleteField } from 'firebase/firestore';
 import SettingCard from './SettingCard';
 import { getTenantSettingDoc, upsertTenantNotification, upsertTenantSettingDoc } from '../../lib/backendStore';
 import { createSyncEvent } from '../../lib/syncEvents';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { uploadBrandLogoAsset, validateBrandLogoAsset } from '../../lib/brandLogoStorage';
 import { getCroppedImg } from '../../lib/imageStudioUtils';
 import { buildNotificationPayload, generateNotificationId } from '../../lib/notificationTemplate';
+import {
+  createMobileContact,
+  getFilledMobileContacts,
+  normalizeMobileContacts,
+  serializeMobileContacts,
+} from '../../lib/mobileContactUtils';
 import { 
   CompanyInfoSection, 
   SocialMediaSection, 
@@ -134,6 +140,7 @@ const BrandDetailsSection = () => {
     brandName: '',
     landlines: [''],
     mobiles: [''],
+    mobileContacts: [createMobileContact()],
     addresses: [''],
     emirate: '',
     poBoxNumber: '',
@@ -225,6 +232,9 @@ const BrandDetailsSection = () => {
         mobiles: Array.isArray(data.mobiles) && data.mobiles.length 
           ? data.mobiles.map(normalizePhone) 
           : [normalizePhone(data.mobile1 || '')].filter(Boolean).concat(data.mobile2 ? [normalizePhone(data.mobile2)] : []),
+        mobileContacts: normalizeMobileContacts(data.mobileContacts, Array.isArray(data.mobiles) && data.mobiles.length
+          ? data.mobiles
+          : [data.mobile1 || '', data.mobile2 || '']),
         addresses: Array.isArray(data.addresses) && data.addresses.length
           ? data.addresses
           : [String(data.primaryAddress || '')].filter(Boolean).concat(data.secondaryAddress ? [String(data.secondaryAddress)] : []),
@@ -303,10 +313,10 @@ const BrandDetailsSection = () => {
 
   useEffect(() => {
     if (form.landlines.length === 0) setForm(prev => ({ ...prev, landlines: [''] }));
-    if (form.mobiles.length === 0) setForm(prev => ({ ...prev, mobiles: [''] }));
+    if (!Array.isArray(form.mobileContacts) || form.mobileContacts.length === 0) setForm(prev => ({ ...prev, mobileContacts: [createMobileContact()] }));
     if (form.addresses.length === 0) setForm(prev => ({ ...prev, addresses: [''] }));
     if (form.emails.length === 0) setForm(prev => ({ ...prev, emails: [''] }));
-  }, [form.landlines, form.mobiles, form.addresses, form.emails]);
+  }, [form.landlines, form.mobileContacts, form.addresses, form.emails]);
 
   const poBoxDisabled = !toDigits(form.poBoxNumber);
 
@@ -335,6 +345,14 @@ const BrandDetailsSection = () => {
 
   const handlePhoneArrayChange = (key, index, value) => {
     updateArrayField(key, index, toDigits(value).slice(0, 9));
+  };
+
+  const updateMobileContacts = (contacts) => {
+    setForm((prev) => ({
+      ...prev,
+      mobileContacts: contacts,
+      mobiles: getFilledMobileContacts(contacts).map((contact) => normalizePhone(contact.value)),
+    }));
   };
 
   const handlePoBoxChange = (value) => {
@@ -549,7 +567,8 @@ const BrandDetailsSection = () => {
       companyName: toUpper(form.companyName),
       brandName: toUpper(form.brandName),
       landlines: form.landlines.map(normalizePhone).filter(Boolean),
-      mobiles: form.mobiles.map(normalizePhone).filter(Boolean),
+      mobiles: getFilledMobileContacts(form.mobileContacts).map((contact) => normalizePhone(contact.value)).filter(Boolean),
+      mobileContacts: serializeMobileContacts(form.mobileContacts),
       addresses: form.addresses.map(toProperCase).filter(Boolean),
       emirate: form.emirate || '',
       poBoxNumber: normalizePoBox(form.poBoxNumber),
@@ -580,6 +599,7 @@ const BrandDetailsSection = () => {
     if (normalized.brandName) payload.brandName = normalized.brandName;
     if (normalized.landlines.length) payload.landlines = normalized.landlines;
     if (normalized.mobiles.length) payload.mobiles = normalized.mobiles;
+    if (normalized.mobileContacts.length) payload.mobileContacts = normalized.mobileContacts;
     if (normalized.addresses.length) payload.addresses = normalized.addresses;
     if (normalized.emirate) payload.emirate = normalized.emirate;
     if (normalized.poBoxNumber) payload.poBoxNumber = normalized.poBoxNumber;
@@ -632,7 +652,7 @@ const BrandDetailsSection = () => {
     ].forEach((key) => {
       if (!(key in payload)) payload[key] = deleteField();
     });
-    ['landlines', 'mobiles', 'addresses', 'emails', 'bankDetails', 'logoLibrary'].forEach((key) => {
+    ['landlines', 'mobiles', 'mobileContacts', 'addresses', 'emails', 'bankDetails', 'logoLibrary'].forEach((key) => {
       if (!(key in payload)) payload[key] = deleteField();
     });
     if (!('logoUsage' in payload)) payload.logoUsage = deleteField();
@@ -684,6 +704,9 @@ const BrandDetailsSection = () => {
       brandName: normalized.brandName,
       landlines: normalized.landlines.length ? normalized.landlines : [''],
       mobiles: normalized.mobiles.length ? normalized.mobiles : [''],
+      mobileContacts: normalized.mobileContacts.length
+        ? normalizeMobileContacts(normalized.mobileContacts)
+        : [createMobileContact()],
       addresses: normalized.addresses.length ? normalized.addresses : [''],
       emails: normalized.emails.length ? normalized.emails : [''],
       webAddress: normalized.webAddress,
@@ -771,6 +794,7 @@ const BrandDetailsSection = () => {
             addArrayField={addArrayField}
             removeArrayField={removeArrayField}
             handlePhoneArrayChange={handlePhoneArrayChange}
+            updateMobileContacts={updateMobileContacts}
             handlePoBoxChange={handlePoBoxChange}
             updateArrayField={updateArrayField}
             emiratesOptions={emiratesOptions}

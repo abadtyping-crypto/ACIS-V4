@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MessageSquare, ShieldCheck, Phone, CheckCircle2, XCircle, Loader2, Info, ExternalLink, Send } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { fetchTenantWhatsAppConfig, upsertTenantWhatsAppConfig } from '../../lib/whatsappStore';
 import { createSyncEvent } from '../../lib/syncEvents';
 import SettingCard from './SettingCard';

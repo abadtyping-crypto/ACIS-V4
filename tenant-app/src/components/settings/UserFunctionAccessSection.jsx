@@ -70,11 +70,11 @@ const UserFunctionAccessSection = ({ tenantId, selectedUser }) => {
               <button
                 type="button"
                 onClick={() => onToggle(item.key, effectiveValue)}
-                className={`relative h-6 w-11 rounded-full transition ${effectiveValue ? 'bg-(--c-accent)' : 'bg-slate-700'
+                className={`relative h-6 w-11 rounded-full transition ${effectiveValue ? 'bg-(--c-accent)' : 'bg-[var(--c-toggle-off)]'
                   }`}
               >
                 <div
-                  className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${effectiveValue ? 'left-6' : 'left-1'
+                  className={`absolute top-1 h-4 w-4 rounded-full bg-[var(--c-knob)] transition-all ${effectiveValue ? 'left-6' : 'left-1'
                     }`}
                 />
               </button>

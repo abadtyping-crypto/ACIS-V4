@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import PageShell from '../components/layout/PageShell';
-import { useTenant } from '../context/TenantContext';
+import { useTenant } from '../context/useTenant';
 import { useAuth } from '../context/useAuth';
 import { List, UserPlus, Users } from 'lucide-react';
 import CompanyRegistrationForm from '../components/onboarding/CompanyRegistrationForm';

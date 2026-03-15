@@ -1,12 +1,14 @@
 import { Copy, Minus, Square, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
+import { useTenantBrandingLogos } from '../../hooks/useTenantBrandingLogos';
 
 const TitleBar = () => {
     const isElectron = typeof window !== 'undefined' && !!window.electron && !!window.electron.windowControls;
-    const { tenant } = useTenant();
+    const { tenant, tenantId } = useTenant();
     const [isWindowMaximized, setIsWindowMaximized] = useState(false);
     const tenantLogoUrl = tenant?.logoUrl || '/logo.png';
+    const { headerLogoUrl } = useTenantBrandingLogos(tenantId, tenantLogoUrl);
     const tenantName = tenant?.name || 'ACIS Workspace';
 
     useEffect(() => {
@@ -31,9 +33,9 @@ const TitleBar = () => {
     if (!isElectron) return null; // Don't show in standard web browsers
 
     return (
-        <div style={{ WebkitAppRegion: 'drag' }} className="flex h-9 w-full select-none items-center justify-between border-b border-[var(--c-border)] glass pl-3">
+        <div style={{ WebkitAppRegion: 'drag' }} className="flex h-9 w-full select-none items-center justify-between border-b border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--glass-bg)_88%,transparent)] px-3 backdrop-blur-xl">
             <div className="flex items-center gap-2 truncate">
-                <img src={tenantLogoUrl} alt={tenantName} className="h-5 w-5 rounded-md border border-white/70 bg-white object-cover shadow-sm" />
+                <img src={headerLogoUrl || tenantLogoUrl} alt={tenantName} className="h-5 w-5 rounded-md border border-[var(--glass-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_88%,transparent)] object-cover shadow-sm" />
                 <span className="truncate text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--c-muted)]">
                     {tenantName}
                 </span>
@@ -54,7 +56,7 @@ const TitleBar = () => {
                 </button>
                 <button
                     onClick={() => window.electron.windowControls.close()}
-                    className="flex h-full w-11 items-center justify-center text-[var(--c-muted)] transition hover:bg-rose-500 hover:text-white"
+                    className="flex h-full w-11 items-center justify-center text-[var(--c-muted)] transition hover:bg-[var(--c-danger)] hover:text-white"
                 >
                     <X size={16} />
                 </button>

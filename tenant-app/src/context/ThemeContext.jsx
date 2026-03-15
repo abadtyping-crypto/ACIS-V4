@@ -1,17 +1,33 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { getRuntimePlatform, PLATFORM_ELECTRON } from '../lib/runtimePlatform';
+import { ThemeContext } from './ThemeContextValue';
 
-const THEME_STORAGE_KEY = 'premium_invoice_theme';
-const ThemeContext = createContext(null);
+const THEME_STORAGE_KEY_LEGACY = 'premium_invoice_theme';
+const THEME_STORAGE_KEY_DESKTOP = 'premium_invoice_theme_desktop';
+const THEME_STORAGE_KEY_MOBILE = 'premium_invoice_theme_mobile';
 const SYSTEM_THEME_QUERY = '(prefers-color-scheme: dark)';
 
-const getInitialTheme = () => {
-  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+const getThemeScope = () => {
+  if (typeof window === 'undefined') return 'desktop';
+  if (getRuntimePlatform() === PLATFORM_ELECTRON) return 'desktop';
+  return window.innerWidth >= 1024 ? 'desktop' : 'mobile';
+};
+
+const getStorageKeyForScope = (scope) =>
+  scope === 'mobile' ? THEME_STORAGE_KEY_MOBILE : THEME_STORAGE_KEY_DESKTOP;
+
+const getInitialTheme = (scope) => {
+  const scopedKey = getStorageKeyForScope(scope);
+  const savedTheme =
+    localStorage.getItem(scopedKey) ||
+    localStorage.getItem(THEME_STORAGE_KEY_LEGACY);
   if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') return savedTheme;
   return 'system';
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(getInitialTheme);
+  const [scope, setScope] = useState(getThemeScope);
+  const [theme, setTheme] = useState(() => getInitialTheme(getThemeScope()));
   const [systemDark, setSystemDark] = useState(() => window.matchMedia(SYSTEM_THEME_QUERY).matches);
 
   useEffect(() => {
@@ -21,12 +37,28 @@ export const ThemeProvider = ({ children }) => {
     return () => media.removeEventListener('change', onChange);
   }, []);
 
+  useEffect(() => {
+    const onResize = () => {
+      setScope((current) => {
+        const next = getThemeScope();
+        return current === next ? current : next;
+      });
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    setTheme(getInitialTheme(scope));
+  }, [scope]);
+
   const resolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
 
   useEffect(() => {
     document.documentElement.dataset.theme = resolvedTheme;
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme, resolvedTheme]);
+    localStorage.setItem(getStorageKeyForScope(scope), theme);
+    localStorage.setItem(THEME_STORAGE_KEY_LEGACY, theme);
+  }, [scope, theme, resolvedTheme]);
 
   const value = useMemo(() => {
     const isDark = resolvedTheme === 'dark';
@@ -44,10 +76,4 @@ export const ThemeProvider = ({ children }) => {
   }, [theme, resolvedTheme, systemDark]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-};
-
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error('useTheme must be used inside ThemeProvider');
-  return context;
 };

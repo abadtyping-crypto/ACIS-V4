@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/useAuth';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import {
   fetchTenantPdfTemplates,
   getTenantSettingDoc,
   upsertTenantPdfTemplate,
 } from '../../lib/backendStore';
 import {
+  DEFAULT_QUOTATION_TERMS,
   PDF_DEFAULT_TEMPLATE,
   PDF_DOCUMENT_TYPES,
   normalizePdfTemplatePayload,
@@ -19,6 +20,14 @@ import SettingCard from './SettingCard';
 const inputClass =
   'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]';
 const labelClass = 'text-sm text-[var(--c-muted)]';
+const errorTextClass = 'mt-1 text-xs text-[var(--c-danger)]';
+const warningTextClass = 'mt-2 text-xs text-[var(--c-warning)]';
+const statusEnabledClass = 'bg-[var(--c-success)] text-white';
+const statusDisabledClass = 'bg-[var(--c-toggle-off)] text-white';
+const warningPanelClass =
+  'rounded-xl border border-[var(--c-warning)]/30 bg-[var(--c-warning-soft)] px-3 py-2 text-sm text-[var(--c-warning)]';
+const dangerButtonClass =
+  'self-end rounded-xl border border-[var(--c-danger)]/25 bg-[var(--c-danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--c-danger)] disabled:opacity-50';
 
 const premiumDefaults = {
   pdfPremiumFeaturesEnabled: true,
@@ -37,6 +46,7 @@ const createRecord = (documentType, label) => ({
       ...PDF_DEFAULT_TEMPLATE,
       name: `${label} Default`,
       titleText: label,
+      termsAndConditions: documentType === 'quotation' ? DEFAULT_QUOTATION_TERMS : '',
     }),
   ],
   lastUpdatedBy: '',
@@ -216,7 +226,13 @@ const PdfCustomizationStudioSection = () => {
       return;
     }
     const label = PDF_DOCUMENT_TYPES.find((item) => item.key === activeType)?.label || 'Document';
-    const source = mode === 'duplicate' ? activeTemplate : { ...PDF_DEFAULT_TEMPLATE, titleText: label };
+    const source = mode === 'duplicate'
+      ? activeTemplate
+      : {
+          ...PDF_DEFAULT_TEMPLATE,
+          titleText: label,
+          termsAndConditions: activeType === 'quotation' ? DEFAULT_QUOTATION_TERMS : '',
+        };
     const nextTemplate = normalizePdfTemplatePayload({
       ...source,
       templateId: newTemplateId(),
@@ -298,7 +314,7 @@ const PdfCustomizationStudioSection = () => {
         title="PDF Customization Studio"
         description="Centralized PDF branding and layout control."
       >
-        <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className={warningPanelClass}>
           Access blocked. Ask admin to enable PDF Studio View permission in User Control Center.
         </p>
       </SettingCard>
@@ -331,7 +347,7 @@ const PdfCustomizationStudioSection = () => {
             type="button"
             onClick={() => void toggleTypeEnabled()}
             disabled={!canEdit || saving}
-            className={`rounded-full px-2 py-1 text-[10px] font-bold ${activeRecord.isTemplateEnabled ? 'bg-emerald-600 text-white' : 'bg-slate-500 text-white'}`}
+            className={`rounded-full px-2 py-1 text-[10px] font-bold ${activeRecord.isTemplateEnabled ? statusEnabledClass : statusDisabledClass}`}
           >
             {activeRecord.isTemplateEnabled ? 'Enabled' : 'Disabled'}
           </button>
@@ -358,23 +374,23 @@ const PdfCustomizationStudioSection = () => {
         </label>
         <button type="button" onClick={() => void createTemplate('new')} disabled={!canEdit || saving} className="self-end rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-semibold disabled:opacity-50">New</button>
         <button type="button" onClick={() => void createTemplate('duplicate')} disabled={!canEdit || saving} className="self-end rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-semibold disabled:opacity-50">Duplicate</button>
-        <button type="button" onClick={() => void deleteTemplate()} disabled={!canEdit || saving || activeTemplate.templateId === 'default'} className="self-end rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 disabled:opacity-50">Delete</button>
-        <button type="button" onClick={() => void toggleTypeEnabled()} disabled={!canEdit || saving} className={`self-end rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${activeRecord.isTemplateEnabled ? 'bg-emerald-600' : 'bg-slate-500'}`}>{activeRecord.isTemplateEnabled ? 'Enabled' : 'Disabled'}</button>
+        <button type="button" onClick={() => void deleteTemplate()} disabled={!canEdit || saving || activeTemplate.templateId === 'default'} className={dangerButtonClass}>Delete</button>
+        <button type="button" onClick={() => void toggleTypeEnabled()} disabled={!canEdit || saving} className={`self-end rounded-xl px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 ${activeRecord.isTemplateEnabled ? statusEnabledClass : statusDisabledClass}`}>{activeRecord.isTemplateEnabled ? 'Enabled' : 'Disabled'}</button>
         <button type="button" onClick={() => void saveCurrentTemplate()} disabled={!canEdit || saving} className="self-end rounded-xl bg-[var(--c-accent)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
       </div>
 
-      {!canEdit ? <p className="mt-2 text-xs text-amber-700">View only. Ask admin for PDF Studio Edit permission.</p> : null}
-      {errors.premium ? <p className="mt-2 text-xs text-rose-700">{errors.premium}</p> : null}
+      {!canEdit ? <p className={warningTextClass}>View only. Ask admin for PDF Studio Edit permission.</p> : null}
+      {errors.premium ? <p className="mt-2 text-xs text-[var(--c-danger)]">{errors.premium}</p> : null}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
           <label className={labelClass}>Template Name
             <input className={inputClass} value={activeTemplate.name} onChange={(event) => updateTemplate({ name: event.target.value })} disabled={!canEdit} />
-            {errors.name ? <p className="mt-1 text-xs text-rose-600">{errors.name}</p> : null}
+            {errors.name ? <p className={errorTextClass}>{errors.name}</p> : null}
           </label>
           <label className={labelClass}>Header Text
             <textarea className={inputClass} rows={3} value={activeTemplate.headerText} onChange={(event) => updateTemplate({ headerText: event.target.value })} disabled={!canEdit} />
-            {errors.headerText ? <p className="mt-1 text-xs text-rose-600">{errors.headerText}</p> : null}
+            {errors.headerText ? <p className={errorTextClass}>{errors.headerText}</p> : null}
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={labelClass}>Title
@@ -392,6 +408,18 @@ const PdfCustomizationStudioSection = () => {
               <input className={inputClass} value={activeTemplate.footerLink} onChange={(event) => updateTemplate({ footerLink: event.target.value })} disabled={!canEdit} />
             </label>
           </div>
+          {activeType === 'quotation' ? (
+            <label className={labelClass}>Terms and Conditions
+              <textarea
+                className={inputClass}
+                rows={5}
+                value={activeTemplate.termsAndConditions}
+                onChange={(event) => updateTemplate({ termsAndConditions: event.target.value })}
+                disabled={!canEdit}
+              />
+              <p className="mt-1 text-[11px] text-[var(--c-muted)]">Use <code>{'{{expiryDate}}'}</code> to show the quotation expiry date automatically.</p>
+            </label>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={labelClass}>Logo Position
               <select className={inputClass} value={activeTemplate.logoPosition} onChange={(event) => updateTemplate({ logoPosition: event.target.value })} disabled={!canEdit}>
@@ -400,7 +428,7 @@ const PdfCustomizationStudioSection = () => {
             </label>
             <label className={labelClass}>Logo Upload
               <input type="file" accept=".png,.svg,.jpg,.jpeg,.webp,image/png,image/svg+xml,image/jpeg,image/webp" className={inputClass} disabled={!canEdit || uploading} onChange={(event) => { const fileBlob = event.target.files?.[0]; if (!fileBlob) return; void uploadAsset('logo', 'logoUrl', fileBlob); event.target.value = ''; }} />
-              {errors.logoUrl ? <p className="mt-1 text-xs text-rose-600">{errors.logoUrl}</p> : null}
+              {errors.logoUrl ? <p className={errorTextClass}>{errors.logoUrl}</p> : null}
             </label>
           </div>
           {activeTemplate.logoUrl ? <img src={activeTemplate.logoUrl} alt="Logo preview" className="max-h-20 rounded border border-[var(--c-border)] bg-[var(--c-surface)] p-2 object-contain" /> : null}
@@ -481,7 +509,7 @@ const PdfCustomizationStudioSection = () => {
               <div className="mt-3">
                 <label className={labelClass}>Background Image Upload
                   <input type="file" accept=".png,.svg,.jpg,.jpeg,.webp,image/png,image/svg+xml,image/jpeg,image/webp" className={inputClass} disabled={!canEdit || uploading || !premium.pdfPremiumGradientEnabled} onChange={(event) => { const fileBlob = event.target.files?.[0]; if (!fileBlob) return; void uploadAsset('background', 'backgroundImageUrl', fileBlob); event.target.value = ''; }} />
-                  {errors.backgroundImageUrl ? <p className="mt-1 text-xs text-rose-600">{errors.backgroundImageUrl}</p> : null}
+                  {errors.backgroundImageUrl ? <p className={errorTextClass}>{errors.backgroundImageUrl}</p> : null}
                 </label>
                 {activeTemplate.backgroundImageUrl ? <img src={activeTemplate.backgroundImageUrl} alt="Background preview" className="mt-2 max-h-28 rounded border border-[var(--c-border)] object-cover" /> : null}
               </div>
@@ -511,7 +539,7 @@ const PdfCustomizationStudioSection = () => {
             <p className="text-xs opacity-90">{activeTemplate.headerText || 'Header section preview text'}</p>
           </div>
           <div className="mt-3 space-y-1">
-            {['Service Fee', 'Processing', 'VAT 5%'].map((item, index) => (
+            {['Application 1', 'Application 2', 'Application 3'].map((item, index) => (
               <div key={item} className="flex items-center justify-between rounded-md border border-[var(--c-border)] px-2 text-xs text-[var(--c-text)]" style={{ paddingTop: activeTemplate.rowPadding, paddingBottom: activeTemplate.rowPadding }}>
                 <span>{item}</span><span>AED {(120 + index * 40).toFixed(2)}</span>
               </div>
@@ -525,6 +553,12 @@ const PdfCustomizationStudioSection = () => {
             <p>{activeTemplate.footerText || 'Footer text preview'}</p>
             {activeTemplate.footerLink ? <p className="text-[var(--c-accent)]">{activeTemplate.footerLink}</p> : null}
           </div>
+          {activeType === 'quotation' && activeTemplate.termsAndConditions ? (
+            <div className="mt-3 rounded-lg border border-[var(--c-border)] bg-[var(--c-panel)] p-3 text-xs text-[var(--c-text)]">
+              <p className="mb-2 font-semibold">Terms and Conditions</p>
+              <p className="whitespace-pre-line">{activeTemplate.termsAndConditions.replaceAll('{{expiryDate}}', '31/12/2099')}</p>
+            </div>
+          ) : null}
         </div>
         <p className="mt-2 text-[11px] text-[var(--c-muted)]">
           {previewTime ? `Preview rendered at ${previewTime}` : 'Preview updates live as key fields change.'}

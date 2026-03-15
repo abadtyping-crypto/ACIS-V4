@@ -1,8 +1,9 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Search, ChevronRight } from 'lucide-react';
 import { fetchTenantClients } from '../../lib/backendStore';
-import { useTenant } from '../../context/TenantContext';
+import { useTenant } from '../../context/useTenant';
 import { resolveClientTypeIcon } from '../../lib/clientIcons';
+import CurrencyValue from '../common/CurrencyValue';
 
 /**
  * Reusable Client Search Component
@@ -91,6 +92,12 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
         setQuery('');
     };
 
+    const getBalanceValue = (item) => {
+        const raw = item?.balance ?? item?.openingBalance ?? 0;
+        const numeric = Number(raw);
+        return Number.isFinite(numeric) ? numeric : 0;
+    };
+
     return (
         <div ref={wrapperRef} className="relative w-full">
             <div
@@ -110,6 +117,9 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
                             <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
                                 {selectedItem.displayClientId} • {selectedItem.type}
                             </p>
+                            <div className={`mt-1 text-[10px] ${getBalanceValue(selectedItem) < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                <CurrencyValue value={getBalanceValue(selectedItem)} iconSize="h-2.5 w-2.5" />
+                            </div>
                         </>
                     ) : (
                         <p className="text-sm font-bold text-[var(--c-muted)]">{placeholder}</p>
@@ -156,6 +166,11 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
                                         </p>
                                         <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
                                             {item.displayClientId} • {item.type} {item.relationship ? `(${item.relationship})` : ''}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`text-[10px] font-black ${getBalanceValue(item) < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                            <CurrencyValue value={getBalanceValue(item)} iconSize="h-2.5 w-2.5" />
                                         </p>
                                     </div>
                                     {selectedId === item.id && (
