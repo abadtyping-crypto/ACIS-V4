@@ -26,6 +26,7 @@ const ImageStudio = ({
     workspaceHeightClass = 'h-[220px] sm:h-[260px] lg:h-[280px]',
     minZoom = 1,
     maxZoom = 3,
+    wheelZoomSpeed = 0.24,
 }) => {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
 
@@ -69,6 +70,7 @@ const ImageStudio = ({
                         image={sourceUrl}
                         crop={crop}
                         zoom={zoom}
+                        zoomSpeed={wheelZoomSpeed}
                         rotation={rotation}
                         aspect={aspect}
                         cropShape={cropShape}

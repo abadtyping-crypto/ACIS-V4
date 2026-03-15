@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building2, Plus, Trash2, Share2, Banknote, Image, MessageSquare, Facebook, Instagram, Twitter, Linkedin, Layout, Library, ChevronDown, Phone } from 'lucide-react';
 import IconSelect from '../common/IconSelect';
+import EmirateSelect from '../common/EmirateSelect';
 import ImageStudio from '../common/ImageStudio';
 import MobileContactsField from '../common/MobileContactsField';
 
@@ -26,7 +27,6 @@ export const CompanyInfoSection = React.memo(({
   updateMobileContacts,
   handlePoBoxChange, 
   updateArrayField,
-  emiratesOptions,
   poBoxDisabled,
   labelClass,
   inputClass
@@ -37,7 +37,7 @@ export const CompanyInfoSection = React.memo(({
       <span className="text-sm font-bold uppercase tracking-wider text-(--c-text)">Company Information</span>
     </div>
     
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="auto-fit-grid">
       <label className={labelClass}>
         Company Name
         <input
@@ -93,7 +93,7 @@ export const CompanyInfoSection = React.memo(({
         className="flex flex-col gap-2"
       />
 
-      <div className="flex flex-col gap-2 md:col-span-2">
+      <div className="auto-fit-span-full flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className={labelClass}>Addresses</span>
           <button type="button" onClick={() => addArrayField('addresses')} className="text-xs font-semibold text-(--c-accent) hover:underline flex items-center gap-1"><Plus className="w-3 h-3" /> Add Address</button>
@@ -119,10 +119,9 @@ export const CompanyInfoSection = React.memo(({
       <div className="flex flex-col gap-1">
         <span className={labelClass}>Emirate</span>
         <div className="mt-1">
-          <IconSelect
+          <EmirateSelect
             value={form.emirate}
             onChange={(val) => updateField('emirate', val)}
-            options={emiratesOptions}
             placeholder="Select Emirate"
           />
         </div>
@@ -144,10 +143,9 @@ export const CompanyInfoSection = React.memo(({
       <div className="flex flex-col gap-1">
         <span className={labelClass}>P.O. Box Emirate</span>
         <div className="mt-1">
-          <IconSelect
+          <EmirateSelect
             value={form.poBoxEmirate}
             onChange={(val) => updateField('poBoxEmirate', val)}
-            options={emiratesOptions}
             placeholder="Select Emirate"
             disabled={poBoxDisabled}
           />
@@ -186,7 +184,7 @@ export const CompanyInfoSection = React.memo(({
         />
       </label>
 
-      <label className={`${labelClass} md:col-span-2`}>
+      <label className={`${labelClass} auto-fit-span-full`}>
         Google Maps Location Pin (URL)
         <div className="mt-1 flex items-center rounded-xl border border-(--c-border) bg-(--c-panel) px-3 focus-within:ring-2 focus-within:ring-(--c-accent)/20 focus-within:border-(--c-accent) transition shadow-sm">
           <input
@@ -245,7 +243,7 @@ export const SocialMediaSection = React.memo(({
     </div>
     
     <div className="rounded-xl border border-(--c-border) bg-(--c-panel) p-4">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="auto-fit-grid-compact">
         {activeSocialKeys.map((key) => {
           const platform = socialPlatforms.find(p => p.key === key);
           const availableOptions = socialPlatforms.filter(p => p.key === key || !activeSocialKeys.includes(p.key)).map(p => ({
@@ -255,7 +253,7 @@ export const SocialMediaSection = React.memo(({
           }));
 
           return (
-            <div key={key} className="flex flex-col gap-3 rounded-xl border border-(--c-border) bg-(--c-surface) p-4 shadow-sm transition hover:shadow-md">
+          <div key={key} className="flex min-w-0 flex-col gap-3 rounded-xl border border-(--c-border) bg-(--c-surface) p-4 shadow-sm transition hover:shadow-md">
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <IconSelect
@@ -340,7 +338,7 @@ export const BankDetailsSection = React.memo(({
               </button>
             ) : null}
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="auto-fit-grid">
             <label className={labelClass}>
               Bank Name
               <input
@@ -448,7 +446,7 @@ export const LogoLibrarySection = React.memo(({
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="auto-fit-grid-cards">
         {visibleLogoSlots.map((slot, index) => {
           const previousSlot = index > 0 ? visibleLogoSlots[index - 1] : null;
           const canUploadThisSlot = index === 0 || Boolean(previousSlot?.url);
@@ -534,7 +532,7 @@ export const LogoUsageSection = React.memo(({
         <p className="text-xs text-(--c-muted)">Assign your library logos to specific application features.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="auto-fit-grid-compact">
         {logoFunctions.map((func) => (
           <div key={func.key} className="flex flex-col gap-2 rounded-xl border border-(--c-border) bg-(--c-surface) p-3 shadow-sm transition hover:shadow-md">
             <span className="text-[10px] font-bold uppercase tracking-widest text-(--c-muted)">{func.label}</span>

@@ -30,26 +30,6 @@ const inputClass =
 
 const labelClass = 'text-sm text-(--c-muted)';
 
-const emirates = [
-  'ABU_DHABI',
-  'DUBAI',
-  'SHARJAH',
-  'AJMAN',
-  'UMM_AL_QUWAIN',
-  'RAS_AL_KHAIMAH',
-  'FUJAIRAH',
-];
-
-const emirateIcons = {
-  'ABU_DHABI': '/emiratesIcon/abudhabi.png',
-  'DUBAI': '/emiratesIcon/dubai.png',
-  'SHARJAH': '/emiratesIcon/sharjah.png',
-  'AJMAN': '/emiratesIcon/ajman.png',
-  'UMM_AL_QUWAIN': '/emiratesIcon/ummAlQuwain.png',
-  'RAS_AL_KHAIMAH': '/emiratesIcon/rasAlKhaaimah.png',
-  'FUJAIRAH': '/emiratesIcon/fujairah.png',
-};
-
 const SOCIAL_PLATFORMS = [
   { key: 'whatsappUrl', label: 'WhatsApp', icon: WhatsAppIcon },
   { key: 'instagramUrl', label: 'Instagram', icon: Instagram },
@@ -181,12 +161,6 @@ const BrandDetailsSection = () => {
   const [logoFilter, setLogoFilter] = useState('natural');
   const [logoDirty, setLogoDirty] = useState(false);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-
-  const emiratesOptions = emirates.map((emirate) => ({
-    value: emirate,
-    label: emirate.replace(/_/g, ' '),
-    icon: emirateIcons[emirate],
-  }));
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -797,7 +771,6 @@ const BrandDetailsSection = () => {
             updateMobileContacts={updateMobileContacts}
             handlePoBoxChange={handlePoBoxChange}
             updateArrayField={updateArrayField}
-            emiratesOptions={emiratesOptions}
             poBoxDisabled={poBoxDisabled}
             labelClass={labelClass}
             inputClass={inputClass}

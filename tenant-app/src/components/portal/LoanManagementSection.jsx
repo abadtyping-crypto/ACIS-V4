@@ -5,27 +5,56 @@ import { useAuth } from '../../context/useAuth';
 import {
     fetchTenantPortals,
     fetchLoanPersons,
+    fetchLoanPendingBalances,
     upsertLoanPerson,
     deleteLoanPerson,
     executeLoanTransaction,
-    sendTenantDocumentEmail,
-    upsertTenantNotification
 } from '../../lib/backendStore';
 import { generateDisplayTxId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { createSyncEvent } from '../../lib/syncEvents';
-import { buildNotificationPayload, generateNotificationId } from '../../lib/notificationTemplate';
-import { generateTenantPdf } from '../../lib/pdfGenerator';
+import { generateNotificationId } from '../../lib/notificationTemplate';
 import IconSelect from '../common/IconSelect';
-import { resolvePortalTypeIcon } from '../../lib/transactionMethodConfig';
+import DirhamIcon from '../common/DirhamIcon';
+import { resolveDefaultTransactionMethodIcon, resolvePortalMethodDefinitions, resolvePortalTypeIcon } from '../../lib/transactionMethodConfig';
+import MobileContactsField from '../common/MobileContactsField';
+import {
+    createMobileContact,
+    getFilledMobileContacts,
+    getPrimaryMobileContact,
+    serializeMobileContacts,
+    validateMobileContact,
+} from '../../lib/mobileContactUtils';
+import { sendUniversalNotification } from '../../lib/notificationDrafting';
+import { Eye, EyeOff, Mail, Plus, X } from 'lucide-react';
+import ProgressVideoOverlay from '../common/ProgressVideoOverlay';
 
-const txMethodLabels = {
-    tabby: 'Tabby',
-    Tamara: 'Tamara',
+const waitForMinimumProgress = async (startedAt, minimumMs = 2400) => {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed >= minimumMs) return;
+    await new Promise((resolve) => window.setTimeout(resolve, minimumMs - elapsed));
 };
 
 const fallbackPortalIcon = (type) => {
     return resolvePortalTypeIcon(type);
+};
+
+const makeLoanContactId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createLoanEmailContact = (overrides = {}) => ({
+    id: makeLoanContactId('email'),
+    value: '',
+    emailEnabled: true,
+    ...overrides,
+});
+const toProperText = (value) =>
+    String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+const validateLoanEmail = (emailValue, fieldLabel = 'Email address') => {
+    const normalized = String(emailValue || '').trim().toLowerCase();
+    if (!normalized) return '';
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? '' : `${fieldLabel} format is invalid.`;
 };
 
 const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
@@ -42,27 +71,38 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     const [form, setForm] = useState({
         personId: '',
         portalId: '',
+        methodId: '',
         amount: '',
         type: 'disbursement', // 'disbursement' or 'repayment'
         description: '',
     });
 
     const [pendingBalance, setPendingBalance] = useState(0);
+    const [showPortalBalance, setShowPortalBalance] = useState(false);
 
     const [showQuickAdd, setShowQuickAdd] = useState(false);
-    const [newPerson, setNewPerson] = useState({ name: '', phone: '', email: '' });
+    const [newPerson, setNewPerson] = useState({
+        name: '',
+        mobileContacts: [createMobileContact()],
+        emailContacts: [createLoanEmailContact()],
+    });
+    const [quickAddEmailErrors, setQuickAddEmailErrors] = useState({});
 
     const fetchData = useCallback(async () => {
         if (!tenantId) return;
         setIsLoading(true);
-        const [pRes, psRes] = await Promise.all([
+        const [pRes, psRes, balancesRes] = await Promise.all([
             fetchTenantPortals(tenantId),
-            fetchLoanPersons(tenantId)
+            fetchLoanPersons(tenantId),
+            fetchLoanPendingBalances(tenantId),
         ]);
         if (pRes.ok) setPortals(pRes.rows || []);
         if (psRes.ok) {
             const rows = (psRes.rows || []).filter((row) => !row.deletedAt);
             setPersons(rows);
+        }
+        if (balancesRes.ok) {
+            setPendingBalanceMap(balancesRes.rows || {});
         }
         setIsLoading(false);
     }, [tenantId]);
@@ -71,26 +111,70 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
         fetchData();
     }, [fetchData, refreshKey]);
 
+    const [pendingBalanceMap, setPendingBalanceMap] = useState({});
+
     useEffect(() => {
-        if (!tenantId || !form.personId) {
+        if (!form.personId) {
             setPendingBalance(0);
             return;
         }
-        // Simplified balance fetch - in a real app, you might have a dedicated field 
-        // or aggregate query. Here we'll sum from the person's transactions.
-        const fetchBalance = async () => {
-            // This is a placeholder for actual balance logic. 
-            // For now, let's assume it's calculated from the state or a quick fetch.
-        };
-        fetchBalance();
-    }, [tenantId, form.personId]);
+        setPendingBalance(Number(pendingBalanceMap?.[form.personId] || 0));
+    }, [form.personId, pendingBalanceMap]);
+
+    useEffect(() => {
+        if (!form.portalId) return;
+        const portal = portals.find((item) => item.id === form.portalId);
+        const nextMethodId = Array.isArray(portal?.methods) && portal.methods.length ? portal.methods[0] : '';
+        setShowPortalBalance(false);
+        setForm((prev) => {
+            if (prev.portalId !== form.portalId) return prev;
+            if (prev.methodId && Array.isArray(portal?.methods) && portal.methods.includes(prev.methodId)) return prev;
+            return { ...prev, methodId: nextMethodId };
+        });
+    }, [form.portalId, portals]);
 
     const handleQuickAdd = async () => {
-        if (!newPerson.name.trim()) return;
+        const normalizedName = toProperText(newPerson.name);
+        if (!normalizedName) {
+            setStatus({ message: 'Loan person name is required.', type: 'error' });
+            return;
+        }
+
+        const filledMobiles = getFilledMobileContacts(newPerson.mobileContacts);
+        const mobileError = filledMobiles
+            .map((contact, index) => validateMobileContact(contact.value, contact.countryIso2, `Mobile number ${index + 1}`))
+            .find(Boolean);
+        if (mobileError) {
+            setStatus({ message: mobileError, type: 'error' });
+            return;
+        }
+
+        const filledEmailContacts = (Array.isArray(newPerson.emailContacts) ? newPerson.emailContacts : [])
+            .filter((contact) => String(contact?.value || '').trim());
+        const emailErrors = {};
+        filledEmailContacts.forEach((contact, index) => {
+            const nextError = validateLoanEmail(contact.value, `Email ${index + 1}`);
+            if (nextError) emailErrors[contact.id] = nextError;
+        });
+        setQuickAddEmailErrors(emailErrors);
+        if (Object.keys(emailErrors).length > 0) {
+            setStatus({ message: 'Please fix the email format before saving.', type: 'error' });
+            return;
+        }
+
         setIsSaving(true);
         const personId = await generateDisplayTxId(tenantId, 'LOAN');
+        const primaryMobile = getPrimaryMobileContact(newPerson.mobileContacts);
+        const primaryEmail = filledEmailContacts[0]?.value?.trim().toLowerCase() || '';
         const res = await upsertLoanPerson(tenantId, personId, {
-            ...newPerson,
+            name: normalizedName,
+            phone: primaryMobile?.value || '',
+            email: primaryEmail,
+            mobileContacts: serializeMobileContacts(newPerson.mobileContacts),
+            emailContacts: filledEmailContacts.map((contact) => ({
+                value: String(contact.value || '').trim().toLowerCase(),
+                emailEnabled: contact.emailEnabled !== false,
+            })),
             displayPersonId: personId,
             status: 'active',
             createdAt: new Date().toISOString(),
@@ -98,9 +182,21 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
         });
 
         if (res.ok) {
-            setPersons(prev => [...prev, { id: personId, ...newPerson }]);
+            setPersons(prev => [...prev, {
+                id: personId,
+                name: normalizedName,
+                phone: primaryMobile?.value || '',
+                email: primaryEmail,
+                displayPersonId: personId,
+                mobileContacts: serializeMobileContacts(newPerson.mobileContacts),
+                emailContacts: filledEmailContacts.map((contact) => ({
+                    value: String(contact.value || '').trim().toLowerCase(),
+                    emailEnabled: contact.emailEnabled !== false,
+                })),
+            }]);
             setForm(f => ({ ...f, personId }));
-            setNewPerson({ name: '', phone: '', email: '' });
+            setNewPerson({ name: '', mobileContacts: [createMobileContact()], emailContacts: [createLoanEmailContact()] });
+            setQuickAddEmailErrors({});
             setShowQuickAdd(false);
             setStatus({ message: "Person added!", type: 'success' });
             await createSyncEvent({
@@ -111,20 +207,33 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                 createdBy: user.uid,
                 changedFields: ['name', 'phone', 'email', 'status']
             });
-            await upsertTenantNotification(tenantId, generateNotificationId({ topic: 'finance', subTopic: 'loan' }), {
-                ...buildNotificationPayload({
-                    topic: 'finance',
-                    subTopic: 'loan',
-                    type: 'create',
-                    title: 'Loan Person Added',
-                    detail: `${newPerson.name} added to loan management.`,
-                    createdBy: user.uid,
-                    routePath: `/t/${tenantId}/portal-management`,
-                    actionPresets: ['view'],
-                }),
+            await sendUniversalNotification({
+                tenantId,
+                notificationId: generateNotificationId({ topic: 'finance', subTopic: 'loan' }),
+                topic: 'finance',
+                subTopic: 'loan',
+                type: 'create',
+                title: 'Loan Person Added',
+                detail: `${normalizedName} added to loan management.`,
+                createdBy: user.uid,
+                routePath: `/t/${tenantId}/portal-management`,
+                actionPresets: ['view'],
                 eventType: 'create',
                 entityType: 'loanPerson',
                 entityId: personId,
+                entityLabel: normalizedName,
+                pageKey: 'portalManagement',
+                sectionKey: 'loanManagement',
+                quickView: {
+                    badge: 'Loan Person',
+                    title: normalizedName,
+                    subtitle: personId,
+                    description: 'Loan person created and ready for loan disbursement or repayment tracking.',
+                    fields: [
+                        { label: 'Mobile', value: primaryMobile?.value || 'Not provided' },
+                        { label: 'Email', value: primaryEmail || 'Not provided' },
+                    ],
+                },
             });
             setTimeout(() => setStatus({ message: '', type: '' }), 2000);
         } else {
@@ -151,12 +260,13 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
         e.preventDefault();
         setStatus({ message: '', type: '' });
 
-        if (!form.personId || !form.portalId || !form.amount) {
+        if (!form.personId || !form.portalId || !form.methodId || !form.amount) {
             setStatus({ message: "Please fill in all required fields.", type: 'error' });
             return;
         }
 
         setIsSaving(true);
+        const startedAt = Date.now();
         try {
             const displayTxId = await generateDisplayTxId(tenantId, 'LON');
             const res = await executeLoanTransaction(tenantId, {
@@ -167,21 +277,11 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
             });
 
             if (res.ok) {
+                await waitForMinimumProgress(startedAt);
                 const finalTxId = res.displayTxId || displayTxId;
-                const docType = form.type === 'repayment' ? 'paymentReceipt' : 'performerInvoice';
                 setStatus({
                     message: `Success! ID: ${finalTxId}`,
                     type: 'success',
-                    download: {
-                        docType,
-                        data: {
-                            txId: finalTxId,
-                            amount: form.amount,
-                            recipientName: selectedPerson?.name || 'Client',
-                            description: form.description || `${docType === 'paymentReceipt' ? 'Repayment' : 'Disbursement'} against loan.`,
-                            date: new Date().toLocaleDateString()
-                        }
-                    }
                 });
                 setForm(f => ({ ...f, amount: '', description: '' }));
                 fetchData();
@@ -194,8 +294,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                     createdBy: user.uid
                 });
 
-                // We don't auto-clear if there's a download button, or we clear after a longer delay
-                if (!res.ok) setTimeout(() => setStatus({ message: '', type: '' }), 3000);
+                setTimeout(() => setStatus({ message: '', type: '' }), 3000);
             } else {
                 setStatus({ message: res.error || "Failed unexpectedly.", type: 'error' });
             }
@@ -207,12 +306,18 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
     };
 
     const selectedPerson = persons.find(p => p.id === form.personId);
-    const hasDownloadPayload = Boolean(status?.download?.docType && status?.download?.data);
+    const selectedPortal = portals.find((item) => item.id === form.portalId) || null;
     const portalOptions = portals.map((p) => ({
         value: p.id,
-        label: `${p.displayPortalId || p.name || p.id} (AED ${(Number(p.balance || 0)).toLocaleString()})`,
+        label: p.name || p.displayPortalId || p.id,
         icon: p.iconUrl || fallbackPortalIcon(p.type),
-        meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
+    }));
+    const transactionMethodOptions = resolvePortalMethodDefinitions([]).filter((method) => (
+        Array.isArray(selectedPortal?.methods) ? selectedPortal.methods.includes(method.id) : false
+    )).map((method) => ({
+        value: method.id,
+        label: method.label || method.id,
+        icon: resolveDefaultTransactionMethodIcon(method.id) || method.Icon || null,
     }));
 
     return (
@@ -225,9 +330,9 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
             <div className="space-y-6">
                 {/* Pending Balance Banner */}
                 {selectedPerson && (
-                    <div className="flex items-center justify-between rounded-2xl bg-slate-900 p-4 text-white shadow-lg">
+                    <div className="flex items-center justify-between rounded-2xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-accent)_10%,var(--c-surface)_90%)] p-4 text-[var(--c-text)] shadow-sm">
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Pending Balance</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Pending Balance</p>
                             <p className="text-2xl font-black">
                                 <span className="inline-flex items-center gap-2">
                                     <img src="/dirham.svg" alt="AED" className="h-5 w-5 object-contain" />
@@ -236,7 +341,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Loan Person</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Loan Person</p>
                             <p className="text-xs font-bold">{selectedPerson.name}</p>
                         </div>
                     </div>
@@ -328,21 +433,119 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                             onChange={e => setNewPerson(p => ({ ...p, name: e.target.value }))}
                                             className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/15 placeholder:text-[var(--c-muted)]"
                                         />
-                                        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                                            <input
-                                                type="text"
-                                                placeholder="Phone"
-                                                value={newPerson.phone}
-                                                onChange={e => setNewPerson(p => ({ ...p, phone: e.target.value }))}
-                                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/15 placeholder:text-[var(--c-muted)]"
-                                            />
-                                            <input
-                                                type="email"
-                                                placeholder="Email"
-                                                value={newPerson.email}
-                                                onChange={e => setNewPerson(p => ({ ...p, email: e.target.value }))}
-                                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/15 placeholder:text-[var(--c-muted)]"
-                                            />
+                                        <MobileContactsField
+                                            label="Mobile Numbers"
+                                            contacts={newPerson.mobileContacts}
+                                            onChange={(contacts) => setNewPerson((prev) => ({ ...prev, mobileContacts: contacts }))}
+                                        />
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Email Address</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewPerson((prev) => (
+                                                        prev.emailContacts.length >= 3
+                                                            ? prev
+                                                            : { ...prev, emailContacts: [...prev.emailContacts, createLoanEmailContact()] }
+                                                    ))}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)] disabled:cursor-not-allowed disabled:opacity-35"
+                                                    disabled={newPerson.emailContacts.length >= 3}
+                                                    aria-label="Add email"
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {newPerson.emailContacts.map((contact) => (
+                                                    <div key={contact.id} className="flex items-start gap-2">
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex h-14 items-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:border-[var(--c-accent)] focus-within:ring-4 focus-within:ring-[var(--c-accent)]/5">
+                                                                <input
+                                                                    type="email"
+                                                                    value={contact.value}
+                                                                    onChange={(e) => {
+                                                                        const normalized = String(e.target.value || '').toLowerCase().replace(/\s+/g, '');
+                                                                        setNewPerson((prev) => ({
+                                                                            ...prev,
+                                                                            emailContacts: prev.emailContacts.map((row) => (
+                                                                                row.id === contact.id ? { ...row, value: normalized } : row
+                                                                            )),
+                                                                        }));
+                                                                        setQuickAddEmailErrors((prev) => (
+                                                                            prev[contact.id]
+                                                                                ? { ...prev, [contact.id]: validateLoanEmail(normalized) }
+                                                                                : prev
+                                                                        ));
+                                                                    }}
+                                                                    onBlur={() => {
+                                                                        setQuickAddEmailErrors((prev) => ({
+                                                                            ...prev,
+                                                                            [contact.id]: validateLoanEmail(contact.value),
+                                                                        }));
+                                                                    }}
+                                                                    placeholder="email@domain.com"
+                                                                    className="w-full bg-transparent text-sm font-bold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)]"
+                                                                />
+                                                            </div>
+                                                            {quickAddEmailErrors[contact.id] ? (
+                                                                <p className="mt-2 text-xs font-bold text-red-400">{quickAddEmailErrors[contact.id]}</p>
+                                                            ) : null}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setNewPerson((prev) => {
+                                                                const target = prev.emailContacts.find((row) => row.id === contact.id);
+                                                                if (!target) return prev;
+                                                                const nextEnabled = !target.emailEnabled;
+                                                                let nextContacts = prev.emailContacts.map((row) => (
+                                                                    row.id === contact.id ? { ...row, emailEnabled: nextEnabled } : row
+                                                                ));
+                                                                if (!nextEnabled && nextContacts.length < 3) {
+                                                                    nextContacts = [...nextContacts, createLoanEmailContact()];
+                                                                }
+                                                                return { ...prev, emailContacts: nextContacts };
+                                                            })}
+                                                            className={`mt-1 inline-flex h-14 w-14 items-center justify-center rounded-2xl border transition ${
+                                                                contact.emailEnabled
+                                                                    ? 'border-[var(--c-accent)]/45 bg-[color:color-mix(in_srgb,var(--c-accent)_12%,transparent)] text-[var(--c-accent)]'
+                                                                    : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]'
+                                                            }`}
+                                                            aria-label={contact.emailEnabled ? 'Disable email conversation for this address' : 'Enable email conversation for this address'}
+                                                            title={contact.emailEnabled ? 'Email conversation enabled' : 'Email conversation disabled'}
+                                                        >
+                                                            <Mail className="h-5 w-5" />
+                                                        </button>
+                                                        {newPerson.emailContacts.length > 1 ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setNewPerson((prev) => {
+                                                                        if (prev.emailContacts.length <= 1) {
+                                                                            return { ...prev, emailContacts: [createLoanEmailContact()] };
+                                                                        }
+                                                                        return {
+                                                                            ...prev,
+                                                                            emailContacts: prev.emailContacts.filter((row) => row.id !== contact.id),
+                                                                        };
+                                                                    });
+                                                                    setQuickAddEmailErrors((prev) => {
+                                                                        const next = { ...prev };
+                                                                        delete next[contact.id];
+                                                                        return next;
+                                                                    });
+                                                                }}
+                                                                className="mt-1 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400"
+                                                                aria-label="Remove email address"
+                                                                title="Remove email address"
+                                                            >
+                                                                <X className="h-5 w-5" />
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end">
                                             <button
                                                 type="button"
                                                 onClick={handleQuickAdd}
@@ -362,7 +565,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                         <option value="">Select Person</option>
                                         {persons.map((p) => (
                                             <option key={p.id} value={p.id}>
-                                                {(p.displayPersonId || p.id)} • {p.name || 'Unnamed'}
+                                                {p.name || 'Unnamed'}
                                             </option>
                                         ))}
                                     </select>
@@ -374,25 +577,64 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                 <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Source/Target Portal</label>
                                 <IconSelect
                                     value={form.portalId}
-                                    onChange={(nextPortalId) => setForm((prev) => ({ ...prev, portalId: nextPortalId }))}
+                                    onChange={(nextPortalId) => setForm((prev) => ({ ...prev, portalId: nextPortalId, methodId: '' }))}
                                     options={portalOptions}
                                     placeholder="Select Portal"
                                 />
+                                {selectedPortal ? (
+                                    <div className="flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5">
+                                        <div>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Available Balance</p>
+                                            <p className="mt-1 inline-flex items-center gap-2 text-sm font-black text-[var(--c-text)]">
+                                                <img src="/dirham.svg" alt="AED" className="h-4 w-4 object-contain" />
+                                                {showPortalBalance
+                                                    ? Number(selectedPortal.balance || 0).toLocaleString(undefined, {
+                                                        minimumFractionDigits: 2,
+                                                        maximumFractionDigits: 2,
+                                                    })
+                                                    : 'XXXXXX.XX'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPortalBalance((prev) => !prev)}
+                                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-text)]"
+                                            aria-label={showPortalBalance ? 'Hide balance' : 'Show balance'}
+                                            title={showPortalBalance ? 'Hide balance' : 'Show balance'}
+                                        >
+                                            {showPortalBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transaction Method</label>
+                                <IconSelect
+                                    value={form.methodId}
+                                    onChange={(nextMethodId) => setForm((prev) => ({ ...prev, methodId: nextMethodId }))}
+                                    options={transactionMethodOptions}
+                                    placeholder={selectedPortal ? 'Select Method' : 'Select portal first'}
+                                    disabled={!selectedPortal}
+                                />
+                            </div>
+
                             {/* Amount */}
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Amount</label>
-                                <input
-                                    type="number"
-                                    required
-                                    placeholder="0.00"
-                                    value={form.amount}
-                                    onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                                    className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-base font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                                />
+                                <div className="flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:ring-2 focus-within:ring-[var(--c-accent)]/20">
+                                    <DirhamIcon className="mr-2 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
+                                    <input
+                                        type="number"
+                                        required
+                                        placeholder="0.00"
+                                        value={form.amount}
+                                        onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                                        className="w-full bg-transparent py-2 text-base font-bold outline-none"
+                                    />
+                                </div>
                             </div>
 
                             {/* Note */}
@@ -412,57 +654,6 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                         {status.message && (
                             <div className={`rounded-xl border p-3 text-xs font-bold text-center animate-pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'}`}>
                                 <div>{status.message}</div>
-                                {hasDownloadPayload ? (
-                                    <div className="mt-2 flex flex-wrap justify-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => generateTenantPdf({
-                                                tenantId,
-                                                documentType: status.download.docType,
-                                                data: status.download.data
-                                            })}
-                                            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-white hover:bg-emerald-700 transition"
-                                        >
-                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                            </svg>
-                                            {status.download.docType === 'paymentReceipt' ? 'Download Receipt' : 'Download Note'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                const destinationEmail = selectedPerson?.email || prompt("Enter client email:");
-                                                if (!destinationEmail) return;
-                                                setIsSaving(true);
-                                                const pdfRes = await generateTenantPdf({
-                                                    tenantId,
-                                                    documentType: status.download.docType,
-                                                    data: status.download.data,
-                                                    save: false,
-                                                    returnBase64: true
-                                                });
-                                                if (pdfRes.ok) {
-                                                    const emailRes = await sendTenantDocumentEmail(
-                                                        tenantId,
-                                                        destinationEmail,
-                                                        status.download.docType,
-                                                        pdfRes.base64,
-                                                        status.download.data
-                                                    );
-                                                    if (emailRes.ok) alert("Email sent successfully!");
-                                                    else alert("Failed to send email: " + emailRes.error);
-                                                }
-                                                setIsSaving(false);
-                                            }}
-                                            className="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-3 py-1.5 text-white hover:bg-slate-800 transition"
-                                        >
-                                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                            </svg>
-                                            Email to Client
-                                        </button>
-                                    </div>
-                                ) : null}
                             </div>
                         )}
 
@@ -475,6 +666,16 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                         </button>
                     </form>
                 )}
+                <ProgressVideoOverlay
+                    open={isSaving && !showQuickAdd && view === 'form'}
+                    dismissible={false}
+                    minimal
+                    title={form.type === 'disbursement' ? 'Your loan disbursement is in progress' : 'Your repayment is in progress'}
+                    subtitle="Please wait while we complete the portal transaction."
+                    videoSrc="/Video/portalManagmentProgress.mp4"
+                    frameWidthClass="max-w-[30rem]"
+                    backdropClassName="bg-[rgba(255,255,255,0.94)] backdrop-blur-sm"
+                />
             </div>
         </SectionCard >
     );

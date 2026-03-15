@@ -4,6 +4,7 @@ export const PDF_DOCUMENT_TYPES = [
   { key: 'quotation', label: 'Quotation' },
   { key: 'performerInvoice', label: 'Performer Invoice' },
   { key: 'statement', label: 'Statements' },
+  { key: 'portalStatement', label: 'Portal Statement' },
 ];
 
 export const DEFAULT_QUOTATION_TERMS = [

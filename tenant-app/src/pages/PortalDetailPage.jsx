@@ -4,7 +4,12 @@ import { ExternalLink } from 'lucide-react';
 import PageShell from '../components/layout/PageShell';
 import IconSelect from '../components/common/IconSelect';
 import CurrencyValue from '../components/common/CurrencyValue';
+import DirhamIcon from '../components/common/DirhamIcon';
+import PortalSelectField from '../components/common/PortalSelectField';
+import PortalMethodSelectField from '../components/common/PortalMethodSelectField';
+import ProgressVideoOverlay from '../components/common/ProgressVideoOverlay';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/useTheme';
 import {
   executeInternalTransfer,
   fetchPortalTransactions,
@@ -22,8 +27,8 @@ import { canUserPerformAction } from '../lib/userControlPreferences';
 import { buildNotificationPayload, generateNotificationId } from '../lib/notificationTemplate';
 import {
   DEFAULT_PORTAL_ICON,
-  TX_METHOD_LABELS,
   buildMethodIconMap,
+  resolveDefaultTransactionMethodIcon,
   resolvePortalCategories,
   resolvePortalCategory,
   resolvePortalMethodDefinitions,
@@ -39,10 +44,14 @@ const toDateText = (value) => {
   return Number.isNaN(parsed.getTime()) ? '-' : parsed.toLocaleString();
 };
 
-const txMethodLabels = TX_METHOD_LABELS;
-
 const fallbackPortalIcon = (type) => {
   return resolvePortalTypeIcon(type);
+};
+
+const waitForMinimumProgress = async (startedAt, minimumMs = 2400) => {
+  const elapsed = Date.now() - startedAt;
+  if (elapsed >= minimumMs) return;
+  await new Promise((resolve) => window.setTimeout(resolve, minimumMs - elapsed));
 };
 
 const getStatusBadgeClass = (statusValue) => {
@@ -80,6 +89,7 @@ const toFieldLabel = (key) => {
 const PortalDetailPage = () => {
   const { tenantId, portalId } = useParams();
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [portal, setPortal] = useState(null);
   const [form, setForm] = useState({
@@ -107,11 +117,15 @@ const PortalDetailPage = () => {
   const [selectedTx, setSelectedTx] = useState(null);
   const [transferForm, setTransferForm] = useState({
     fromPortalId: '',
+    fromMethodId: '',
     toPortalId: '',
+    toMethodId: '',
     amount: '',
     fee: '0',
     description: '',
   });
+  const [showTransferSourceBalance, setShowTransferSourceBalance] = useState(false);
+  const [showTransferDestinationBalance, setShowTransferDestinationBalance] = useState(false);
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [statementRange, setStatementRange] = useState({
     start: (() => {
@@ -314,32 +328,69 @@ const PortalDetailPage = () => {
     methodPool.forEach((method) => {
       map[method.id] = {
         label: method.label,
-        icon: method.iconUrl || resolveMethodIconUrl(methodIconMap, method.id),
+        icon: method.iconUrl || resolveMethodIconUrl(methodIconMap, method.id) || resolveDefaultTransactionMethodIcon(method.id),
         Icon: method.Icon,
       };
     });
     return map;
   }, [methodIconMap, portal?.customMethods]);
 
-  const portalOptions = useMemo(() => {
-    const rows = Object.entries(portalsById).map(([id, p]) => ({ id, ...(p || {}) }));
-    return rows.map((p) => ({
-      value: p.id,
-      label: `${p.name || p.id} (AED ${(Number(p.balance || 0)).toLocaleString()})`,
-      icon: p.iconUrl || fallbackPortalIcon(p.type),
-      meta: (Array.isArray(p.methods)
-        ? p.methods.map((id) => {
-          const custom = (Array.isArray(p.customMethods) ? p.customMethods : []).find((item) => item.id === id);
-          return custom?.label || txMethodLabels[id] || id;
-        })
-        : []).join(' | '),
-    }));
-  }, [portalsById]);
+  const allPortals = useMemo(
+    () => Object.entries(portalsById).map(([id, item]) => ({ id, ...(item || {}) })),
+    [portalsById],
+  );
+  const selectedTransferSourcePortal = portalsById[transferForm.fromPortalId] || null;
+  const selectedTransferDestinationPortal = portalsById[transferForm.toPortalId] || null;
+  const transferAmountPreview = Math.max(0, Number(transferForm.amount || 0));
+  const transferFeePreview = Math.max(0, Number(transferForm.fee || 0));
+  const transferSourceProjectedBalance = selectedTransferSourcePortal
+    ? Number(selectedTransferSourcePortal.balance || 0) - transferAmountPreview - transferFeePreview
+    : null;
+  const transferDestinationProjectedBalance = selectedTransferDestinationPortal
+    ? Number(selectedTransferDestinationPortal.balance || 0) + transferAmountPreview
+    : null;
 
-  const portalTypes = useMemo(
-    () => resolvePortalCategories(form.customCategories).map((item) => ({ id: item.id, label: item.label, methods: item.methodIds || [] })),
+  const portalTypeOptions = useMemo(
+    () => resolvePortalCategories(form.customCategories).map((item) => ({
+      value: item.id,
+      label: item.label,
+      icon: item.icon || fallbackPortalIcon(item.id),
+      meta: '',
+    })),
     [form.customCategories],
   );
+
+  useEffect(() => {
+    if (!selectedTransferSourcePortal) {
+      setShowTransferSourceBalance(false);
+      return;
+    }
+    if (transferForm.fromMethodId && Array.isArray(selectedTransferSourcePortal.methods) && selectedTransferSourcePortal.methods.includes(transferForm.fromMethodId)) return;
+    setTransferForm((prev) => ({
+      ...prev,
+      fromMethodId: Array.isArray(selectedTransferSourcePortal.methods) && selectedTransferSourcePortal.methods.length
+        ? selectedTransferSourcePortal.methods[0]
+        : '',
+    }));
+  }, [selectedTransferSourcePortal, transferForm.fromMethodId]);
+
+  useEffect(() => {
+    if (!selectedTransferDestinationPortal) {
+      setShowTransferDestinationBalance(false);
+      return;
+    }
+  }, [selectedTransferDestinationPortal]);
+
+  useEffect(() => {
+    if (!selectedTransferDestinationPortal) return;
+    if (transferForm.toMethodId && Array.isArray(selectedTransferDestinationPortal.methods) && selectedTransferDestinationPortal.methods.includes(transferForm.toMethodId)) return;
+    setTransferForm((prev) => ({
+      ...prev,
+      toMethodId: Array.isArray(selectedTransferDestinationPortal.methods) && selectedTransferDestinationPortal.methods.length
+        ? selectedTransferDestinationPortal.methods[0]
+        : '',
+    }));
+  }, [selectedTransferDestinationPortal, transferForm.toMethodId]);
 
   const transactionMethods = useMemo(
     () => resolvePortalMethodDefinitions(form.customMethods),
@@ -365,11 +416,15 @@ const PortalDetailPage = () => {
   const openTransfer = () => {
     setTransferForm({
       fromPortalId: portalId || '',
+      fromMethodId: '',
       toPortalId: '',
+      toMethodId: '',
       amount: '',
       fee: '0',
       description: '',
     });
+    setShowTransferSourceBalance(false);
+    setShowTransferDestinationBalance(false);
     setIsTransferOpen(true);
   };
 
@@ -528,7 +583,7 @@ const PortalDetailPage = () => {
 
   const handleDownloadStatementPdf = async () => {
     const data = buildStatementPdfData();
-    await generateTenantPdf({
+    const pdfRes = await generateTenantPdf({
       tenantId,
       documentType: 'portalStatement',
       data: {
@@ -543,6 +598,13 @@ const PortalDetailPage = () => {
       returnBase64: false,
       filename: `portalStatement_${portalId}_${statementRange.start}_${statementRange.end}.pdf`,
     });
+    if (!pdfRes.ok) {
+      setMessageType('error');
+      setMessage(pdfRes.error || 'Failed to generate statement PDF.');
+      return;
+    }
+    setMessageType('success');
+    setMessage('Statement PDF generated successfully.');
   };
 
   const handleEmailStatementPdf = async () => {
@@ -599,7 +661,7 @@ const PortalDetailPage = () => {
   const handleTransfer = async (event) => {
     event.preventDefault();
     if (!tenantId || !user?.uid) return;
-    if (!transferForm.fromPortalId || !transferForm.toPortalId || !transferForm.amount) {
+    if (!transferForm.fromPortalId || !transferForm.fromMethodId || !transferForm.toPortalId || !transferForm.toMethodId || !transferForm.amount) {
       setMessageType('error');
       setMessage('Please fill source, destination and amount for transfer.');
       return;
@@ -611,6 +673,7 @@ const PortalDetailPage = () => {
     }
 
     setIsTransferSaving(true);
+    const startedAt = Date.now();
     const displayTxId = await generateDisplayTxId(tenantId, 'TRF');
     const res = await executeInternalTransfer(tenantId, {
       ...transferForm,
@@ -626,11 +689,23 @@ const PortalDetailPage = () => {
       return;
     }
 
+    await waitForMinimumProgress(startedAt);
     const finalTxId = res.displayTxId || displayTxId;
     setMessageType('success');
     setMessage(`Transfer successful. ID: ${finalTxId}`);
     setIsTransferSaving(false);
     setIsTransferOpen(false);
+    setTransferForm({
+      fromPortalId: portalId || '',
+      fromMethodId: '',
+      toPortalId: '',
+      toMethodId: '',
+      amount: '',
+      fee: '0',
+      description: '',
+    });
+    setShowTransferSourceBalance(false);
+    setShowTransferDestinationBalance(false);
     loadData();
   };
 
@@ -651,6 +726,7 @@ const PortalDetailPage = () => {
       return;
     }
     setIsSaving(true);
+    const startedAt = Date.now();
     const payload = {
       name: form.name.trim(),
       type: form.type,
@@ -689,14 +765,32 @@ const PortalDetailPage = () => {
           detail: `${form.name.trim()} settings were updated.`,
           createdBy: user.uid,
           routePath: `/t/${tenantId}/portal-management/${portalId}`,
-          actionPresets: ['view'],
+          actions: [
+            { label: 'View Details', actionType: 'quickView' },
+            { label: 'View', actionType: 'link', route: `/t/${tenantId}/portal-management/${portalId}` },
+          ],
         }),
         eventType: 'update',
         entityType: 'portal',
         entityId: portalId,
+        entityLabel: form.name.trim(),
+        pageKey: 'portalManagement',
+        sectionKey: 'balanceAdjustment',
+        quickView: {
+          badge: 'Portal',
+          title: form.name.trim(),
+          subtitle: portalId,
+          description: 'Portal settings were updated from the portal detail workspace.',
+          fields: [
+            { label: 'Portal Type', value: form.type },
+            { label: 'Status', value: form.status },
+            { label: 'Methods', value: Array.isArray(form.methods) && form.methods.length ? form.methods.join(', ') : 'Not specified' },
+          ],
+        },
       },
     ).catch(() => null);
 
+    await waitForMinimumProgress(startedAt);
     setMessageType('success');
     setMessage('Portal settings saved.');
     setIsSaving(false);
@@ -788,7 +882,7 @@ const PortalDetailPage = () => {
 
               {isEditMode ? (
                 <>
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr]">
                     <label className="text-xs font-semibold text-[var(--c-muted)]">
                       Name
                       <input
@@ -798,27 +892,39 @@ const PortalDetailPage = () => {
                         className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
                       />
                     </label>
-                    <label className="text-xs font-semibold text-[var(--c-muted)]">
-                      Type
-                      <select
-                        value={form.type}
-                        onChange={(event) => onTypeChange(event.target.value)}
-                        className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
-                      >
-                        {portalTypes.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-                      </select>
-                    </label>
-                    <label className="text-xs font-semibold text-[var(--c-muted)]">
-                      Status
-                      <select
-                        value={form.status}
-                        onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}
-                        className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
-                      >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                      </select>
-                    </label>
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--c-muted)]">Type</p>
+                      <div className="mt-1">
+                        <IconSelect
+                          value={form.type}
+                          onChange={onTypeChange}
+                          options={portalTypeOptions}
+                          placeholder="Select Type"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--c-muted)]">Status</p>
+                      <div className="mt-1 grid grid-cols-2 gap-2">
+                        {['active', 'inactive'].map((statusOption) => {
+                          const selected = form.status === statusOption;
+                          const label = statusOption.charAt(0).toUpperCase() + statusOption.slice(1);
+                          return (
+                            <button
+                              key={statusOption}
+                              type="button"
+                              onClick={() => setForm((prev) => ({ ...prev, status: statusOption }))}
+                              className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${selected
+                                ? getStatusBadgeClass(statusOption)
+                                : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] hover:border-[var(--c-accent)]/25 hover:text-[var(--c-text)]'
+                                }`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-3">
@@ -826,7 +932,7 @@ const PortalDetailPage = () => {
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                       {transactionMethods.map((method) => {
                         const selected = form.methods.includes(method.id);
-                        const iconUrl = method.iconUrl || resolveMethodIconUrl(methodIconMap, method.id);
+                        const iconUrl = method.iconUrl || resolveMethodIconUrl(methodIconMap, method.id) || resolveDefaultTransactionMethodIcon(method.id);
                         const MethodIcon = method.Icon;
                         return (
                           <button
@@ -1079,47 +1185,83 @@ const PortalDetailPage = () => {
             <form onSubmit={handleTransfer} className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Source Portal</label>
-                  <div className="mt-1">
-                    <IconSelect
-                      value={transferForm.fromPortalId}
-                      onChange={(nextFromPortalId) => setTransferForm((prev) => ({ ...prev, fromPortalId: nextFromPortalId }))}
-                      options={portalOptions}
-                      placeholder="Select Source"
-                    />
-                  </div>
+                  <PortalSelectField
+                    label="Source Portal"
+                    value={transferForm.fromPortalId}
+                    onChange={(nextFromPortalId) => setTransferForm((prev) => ({
+                      ...prev,
+                      fromPortalId: nextFromPortalId,
+                      fromMethodId: '',
+                      toPortalId: prev.toPortalId === nextFromPortalId ? '' : prev.toPortalId,
+                      toMethodId: prev.toPortalId === nextFromPortalId ? '' : prev.toMethodId,
+                    }))}
+                    portals={allPortals}
+                    placeholder="Select Source"
+                    showBalancePanel
+                    showBalance={showTransferSourceBalance}
+                    onToggleBalance={() => setShowTransferSourceBalance((prev) => !prev)}
+                    projectedBalance={transferSourceProjectedBalance}
+                  />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Destination Portal</label>
-                  <div className="mt-1">
-                    <IconSelect
-                      value={transferForm.toPortalId}
-                      onChange={(nextToPortalId) => setTransferForm((prev) => ({ ...prev, toPortalId: nextToPortalId }))}
-                      options={portalOptions}
-                      placeholder="Select Destination"
-                    />
-                  </div>
+                  <PortalSelectField
+                    label="Destination Portal"
+                    value={transferForm.toPortalId}
+                    onChange={(nextToPortalId) => setTransferForm((prev) => ({ ...prev, toPortalId: nextToPortalId, toMethodId: '' }))}
+                    portals={allPortals}
+                    excludePortalId={transferForm.fromPortalId}
+                    placeholder={transferForm.fromPortalId ? 'Select Destination' : 'Select source first'}
+                    disabled={!transferForm.fromPortalId}
+                    showBalancePanel={Boolean(transferForm.toPortalId)}
+                    showBalance={showTransferDestinationBalance}
+                    onToggleBalance={() => setShowTransferDestinationBalance((prev) => !prev)}
+                    projectedBalance={transferDestinationProjectedBalance}
+                  />
                 </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <PortalMethodSelectField
+                  label="Sending Method"
+                  value={transferForm.fromMethodId}
+                  onChange={(nextMethodId) => setTransferForm((prev) => ({ ...prev, fromMethodId: nextMethodId }))}
+                  portal={selectedTransferSourcePortal}
+                  placeholder={selectedTransferSourcePortal ? 'Select Sending Method' : 'Select source first'}
+                  disabled={!selectedTransferSourcePortal}
+                />
+                <PortalMethodSelectField
+                  label="Receiving Method"
+                  value={transferForm.toMethodId}
+                  onChange={(nextMethodId) => setTransferForm((prev) => ({ ...prev, toMethodId: nextMethodId }))}
+                  portal={selectedTransferDestinationPortal}
+                  placeholder={selectedTransferDestinationPortal ? 'Select Receiving Method' : 'Select destination first'}
+                  disabled={!selectedTransferDestinationPortal}
+                />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Amount</label>
-                  <input
-                    type="number"
-                    required
-                    value={transferForm.amount}
-                    onChange={(event) => setTransferForm((prev) => ({ ...prev, amount: event.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm font-semibold text-[var(--c-text)] outline-none"
-                  />
+                  <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
+                    <DirhamIcon className="mr-2 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
+                    <input
+                      type="number"
+                      required
+                      value={transferForm.amount}
+                      onChange={(event) => setTransferForm((prev) => ({ ...prev, amount: event.target.value }))}
+                      className="w-full bg-transparent py-2 text-sm font-semibold text-[var(--c-text)] outline-none"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Fee (Optional)</label>
-                  <input
-                    type="number"
-                    value={transferForm.fee}
-                    onChange={(event) => setTransferForm((prev) => ({ ...prev, fee: event.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm font-semibold text-[var(--c-text)] outline-none"
-                  />
+                  <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3">
+                    <DirhamIcon className="mr-2 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
+                    <input
+                      type="number"
+                      value={transferForm.fee}
+                      onChange={(event) => setTransferForm((prev) => ({ ...prev, fee: event.target.value }))}
+                      className="w-full bg-transparent py-2 text-sm font-semibold text-[var(--c-text)] outline-none"
+                    />
+                  </div>
                 </div>
               </div>
               <div>
@@ -1185,7 +1327,8 @@ const PortalDetailPage = () => {
                     max={maxTxDate}
                     value={statementRange.start}
                     onChange={(e) => setStatementRange((prev) => ({ ...prev, start: e.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none dark:[color-scheme:dark] [color-scheme:dark]"
+                    style={{ colorScheme: resolvedTheme }}
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
                   />
                 </label>
                 <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
@@ -1196,7 +1339,8 @@ const PortalDetailPage = () => {
                     max={maxTxDate}
                     value={statementRange.end}
                     onChange={(e) => setStatementRange((prev) => ({ ...prev, end: e.target.value }))}
-                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none dark:[color-scheme:dark] [color-scheme:dark]"
+                    style={{ colorScheme: resolvedTheme }}
+                    className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
                   />
                 </label>
               </div>
@@ -1268,6 +1412,16 @@ const PortalDetailPage = () => {
           </div>
         </div>
       ) : null}
+      <ProgressVideoOverlay
+        open={isSaving || isTransferSaving}
+        dismissible={false}
+        minimal
+        title={isTransferSaving ? 'Your transfer is in progress' : 'Your portal update is in progress'}
+        subtitle="Please wait while we complete the portal action."
+        videoSrc="/Video/portalManagmentProgress.mp4"
+        frameWidthClass="max-w-[30rem]"
+        backdropClassName="bg-[rgba(255,255,255,0.94)] backdrop-blur-sm"
+      />
     </PageShell>
   );
 };

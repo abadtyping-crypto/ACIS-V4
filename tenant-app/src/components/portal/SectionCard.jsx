@@ -4,7 +4,7 @@ const SectionCard = ({ title, subtitle, children, defaultOpen = true, primaryAct
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
-        <section className="overflow-hidden rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] shadow-[0_20px_45px_-30px_rgba(15,23,42,0.75)] transition-all duration-300">
+        <section className="overflow-visible rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] shadow-[0_20px_45px_-30px_rgba(15,23,42,0.75)] transition-all duration-300">
             {/* Header */}
             <header className="flex items-center justify-between p-4 sm:p-5">
                 <div
@@ -35,7 +35,7 @@ const SectionCard = ({ title, subtitle, children, defaultOpen = true, primaryAct
             </header>
 
             {/* Content Body */}
-            <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] border-t border-[var(--c-border)] opacity-100' : 'max-h-0 overflow-hidden opacity-0'}`}>
+            <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] border-t border-[var(--c-border)] opacity-100 overflow-visible' : 'max-h-0 overflow-hidden opacity-0'}`}>
                 <div className="bg-[color:color-mix(in_srgb,var(--c-panel)_35%,transparent)] p-4 sm:p-6">
                     {children}
                 </div>

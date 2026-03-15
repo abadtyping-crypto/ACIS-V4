@@ -27,6 +27,15 @@ export const TRANSACTION_METHODS = [
   { id: 'cashWithdrawals', label: 'Cash Withdrawals', Icon: CashWithdrawalsIcon },
 ];
 
+export const DEFAULT_TRANSACTION_METHOD_ICON_URLS = {
+  cashByHand: getPublicAssetUrl('portals/methods/cashByHand.png'),
+  bankTransfer: getPublicAssetUrl('portals/methods/banktransfer.png'),
+  cdmDeposit: getPublicAssetUrl('portals/methods/banktransfer.png'),
+  checqueDeposit: getPublicAssetUrl('portals/methods/chequeDeposit.png'),
+  onlinePayment: getPublicAssetUrl('portals/methods/onlinepayment.png'),
+  cashWithdrawals: getPublicAssetUrl('portals/methods/cashByHand.png'),
+};
+
 export const ALLOWED_METHOD_IDS = TRANSACTION_METHODS.map((item) => item.id);
 
 export const DEFAULT_PORTAL_CATEGORIES = [
@@ -162,3 +171,7 @@ export const resolveMethodIconUrl = (iconMap = {}, methodId = '') => {
   }
   return '';
 };
+
+export const resolveDefaultTransactionMethodIcon = (methodId = '') => (
+  DEFAULT_TRANSACTION_METHOD_ICON_URLS[methodId] || ''
+);

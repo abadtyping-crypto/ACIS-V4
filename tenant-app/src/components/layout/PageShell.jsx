@@ -1,7 +1,15 @@
-const PageShell = ({ title, subtitle, icon: Icon, actionSlot, eyebrow = 'Workspace', children }) => {
+const PageShell = ({
+  title,
+  subtitle,
+  icon: Icon,
+  actionSlot,
+  eyebrow = 'Workspace',
+  maxWidthClass = 'max-w-7xl',
+  children,
+}) => {
   return (
     <section className="px-2 py-3 sm:px-3 lg:px-4 lg:py-4">
-      <div className="mx-auto w-full max-w-7xl">
+      <div className={`mx-auto w-full ${maxWidthClass}`}>
         <header className="mb-6 lg:mb-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="glass flex items-start gap-4 rounded-[1.75rem] border border-[color:color-mix(in_srgb,var(--c-border)_46%,transparent)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] px-4 py-4 shadow-[0_18px_44px_-34px_color-mix(in_srgb,var(--c-accent)_32%,transparent)]">

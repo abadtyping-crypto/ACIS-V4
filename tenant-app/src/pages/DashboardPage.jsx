@@ -6,8 +6,8 @@ import { useTenant } from '../context/useTenant';
 import CurrencyValue from '../components/common/CurrencyValue';
 import {
   fetchLoanPersons,
+  fetchLoanPendingBalances,
   fetchTenantPortals,
-  fetchTenantTransactions,
 } from '../lib/backendStore';
 import { resolvePortalTypeIcon } from '../lib/transactionMethodConfig';
 
@@ -32,7 +32,7 @@ const DashboardPage = () => {
       const [portalRes, personRes, txRes] = await Promise.all([
         fetchTenantPortals(tenantId),
         fetchLoanPersons(tenantId),
-        fetchTenantTransactions(tenantId),
+        fetchLoanPendingBalances(tenantId),
       ]);
       if (!active) return;
       if (portalRes.ok) {
@@ -40,20 +40,7 @@ const DashboardPage = () => {
       }
       if (personRes.ok) {
         const people = (personRes.rows || []).filter((p) => !p.deletedAt);
-        const txRows = txRes.ok ? (txRes.rows || []) : [];
-        const pendingByPerson = {};
-
-        txRows.forEach((tx) => {
-          const personId = String(tx?.personId || '');
-          if (!personId || tx?.deletedAt) return;
-          const txType = String(tx?.type || '').toLowerCase();
-          const amount = Number(tx?.amount || 0);
-          if (!Number.isFinite(amount) || amount === 0) return;
-          if (txType !== 'disbursement' && txType !== 'repayment') return;
-
-          // Person-side loan entries are positive amounts; sign inferred from type.
-          pendingByPerson[personId] = (pendingByPerson[personId] || 0) + (txType === 'disbursement' ? amount : -amount);
-        });
+        const pendingByPerson = txRes.ok ? (txRes.rows || {}) : {};
 
         const summary = people.map((person) => ({
           ...person,

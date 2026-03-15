@@ -6,16 +6,15 @@ import { fetchTenantPortals, executeInternalTransfer, sendTenantDocumentEmail } 
 import { generateDisplayTxId } from '../../lib/txIdGenerator';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
 import { generateTenantPdf } from '../../lib/pdfGenerator';
-import IconSelect from '../common/IconSelect';
-import { resolvePortalTypeIcon } from '../../lib/transactionMethodConfig';
+import DirhamIcon from '../common/DirhamIcon';
+import PortalSelectField from '../common/PortalSelectField';
+import PortalMethodSelectField from '../common/PortalMethodSelectField';
+import ProgressVideoOverlay from '../common/ProgressVideoOverlay';
 
-const txMethodLabels = {
-    tabby: 'Tabby',
-    Tamara: 'Tamara',
-};
-
-const fallbackPortalIcon = (type) => {
-    return resolvePortalTypeIcon(type);
+const waitForMinimumProgress = async (startedAt, minimumMs = 2400) => {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed >= minimumMs) return;
+    await new Promise((resolve) => window.setTimeout(resolve, minimumMs - elapsed));
 };
 
 const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
@@ -25,21 +24,29 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
     const [portals, setPortals] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState({ message: '', type: '' });
+    const [showSourceBalance, setShowSourceBalance] = useState(false);
+    const [showDestinationBalance, setShowDestinationBalance] = useState(false);
 
     const [form, setForm] = useState({
         fromPortalId: '',
+        fromMethodId: '',
         toPortalId: '',
+        toMethodId: '',
         amount: '',
         fee: '0',
         description: '',
     });
 
-    const portalOptions = portals.map((p) => ({
-        value: p.id,
-        label: `${p.name} (AED ${(Number(p.balance || 0)).toLocaleString()})`,
-        icon: p.iconUrl || fallbackPortalIcon(p.type),
-        meta: (Array.isArray(p.methods) ? p.methods.map((id) => txMethodLabels[id] || id) : []).join(' | '),
-    }));
+    const selectedSourcePortal = portals.find((item) => item.id === form.fromPortalId) || null;
+    const selectedDestinationPortal = portals.find((item) => item.id === form.toPortalId) || null;
+    const transferAmount = Math.max(0, Number(form.amount || 0));
+    const transferFee = Math.max(0, Number(form.fee || 0));
+    const sourceProjectedBalance = selectedSourcePortal
+        ? Number(selectedSourcePortal.balance || 0) - transferAmount - transferFee
+        : null;
+    const destinationProjectedBalance = selectedDestinationPortal
+        ? Number(selectedDestinationPortal.balance || 0) + transferAmount
+        : null;
 
     const fetchPortals = useCallback(async () => {
         const res = await fetchTenantPortals(tenantId);
@@ -51,11 +58,39 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
         fetchPortals();
     }, [tenantId, isOpen, fetchPortals, refreshKey]);
 
+    useEffect(() => {
+        if (!selectedSourcePortal) {
+            setShowSourceBalance(false);
+            return;
+        }
+        if (form.fromMethodId && Array.isArray(selectedSourcePortal.methods) && selectedSourcePortal.methods.includes(form.fromMethodId)) return;
+        setForm((prev) => ({
+            ...prev,
+            fromMethodId: Array.isArray(selectedSourcePortal.methods) && selectedSourcePortal.methods.length ? selectedSourcePortal.methods[0] : '',
+        }));
+    }, [selectedSourcePortal, form.fromMethodId]);
+
+    useEffect(() => {
+        if (!selectedDestinationPortal) {
+            setShowDestinationBalance(false);
+            return;
+        }
+    }, [selectedDestinationPortal]);
+
+    useEffect(() => {
+        if (!selectedDestinationPortal) return;
+        if (form.toMethodId && Array.isArray(selectedDestinationPortal.methods) && selectedDestinationPortal.methods.includes(form.toMethodId)) return;
+        setForm((prev) => ({
+            ...prev,
+            toMethodId: Array.isArray(selectedDestinationPortal.methods) && selectedDestinationPortal.methods.length ? selectedDestinationPortal.methods[0] : '',
+        }));
+    }, [selectedDestinationPortal, form.toMethodId]);
+
     const handleTransfer = async (e) => {
         e.preventDefault();
         setStatus({ message: '', type: '' });
 
-        if (!form.fromPortalId || !form.toPortalId || !form.amount) {
+        if (!form.fromPortalId || !form.fromMethodId || !form.toPortalId || !form.toMethodId || !form.amount) {
             setStatus({ message: "Please fill in all required fields.", type: 'error' });
             return;
         }
@@ -66,6 +101,7 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
         }
 
         setIsSaving(true);
+        const startedAt = Date.now();
         try {
             const displayTxId = await generateDisplayTxId(tenantId, 'TRF');
             const res = await executeInternalTransfer(tenantId, {
@@ -77,6 +113,7 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
             });
 
             if (res.ok) {
+                await waitForMinimumProgress(startedAt);
                 const finalTxId = res.displayTxId || displayTxId;
                 setStatus({
                     message: `Transfer successful! ID: ${finalTxId}`,
@@ -86,13 +123,15 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
                         data: {
                             txId: finalTxId,
                             amount: form.amount,
-                            recipientName: portals.find(p => p.id === form.toPortalId)?.name || 'Destination Portal',
-                            description: form.description || `Internal transfer from ${portals.find(p => p.id === form.fromPortalId)?.name}`,
+                            recipientName: selectedDestinationPortal?.name || 'Destination Portal',
+                            description: form.description || `Internal transfer from ${selectedSourcePortal?.name || 'Source Portal'}`,
                             date: new Date().toLocaleDateString()
                         }
                     }
                 });
-                setForm({ fromPortalId: '', toPortalId: '', amount: '', fee: '0', description: '' });
+                setForm({ fromPortalId: '', fromMethodId: '', toPortalId: '', toMethodId: '', amount: '', fee: '0', description: '' });
+                setShowSourceBalance(false);
+                setShowDestinationBalance(false);
                 fetchPortals();
                 // No auto-clear to allow download
             } else {
@@ -114,57 +153,87 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
         >
             <form onSubmit={handleTransfer} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                    {/* Source */}
-                    <div>
-                        <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Source Portal</label>
-                        <div className="mt-1">
-                            <IconSelect
-                                value={form.fromPortalId}
-                                onChange={(nextFromPortalId) => setForm((prev) => ({ ...prev, fromPortalId: nextFromPortalId }))}
-                                options={portalOptions}
-                                placeholder="Select Source"
-                            />
-                        </div>
-                    </div>
+                    <PortalSelectField
+                        label="Source Portal"
+                        value={form.fromPortalId}
+                        onChange={(nextFromPortalId) => setForm((prev) => ({
+                            ...prev,
+                            fromPortalId: nextFromPortalId,
+                            fromMethodId: '',
+                            toPortalId: prev.toPortalId === nextFromPortalId ? '' : prev.toPortalId,
+                            toMethodId: prev.toPortalId === nextFromPortalId ? '' : prev.toMethodId,
+                        }))}
+                        portals={portals}
+                        placeholder="Select Source"
+                        showBalancePanel
+                        showBalance={showSourceBalance}
+                        onToggleBalance={() => setShowSourceBalance((prev) => !prev)}
+                        projectedBalance={sourceProjectedBalance}
+                    />
+                    <PortalSelectField
+                        label="Destination Portal"
+                        value={form.toPortalId}
+                        onChange={(nextToPortalId) => setForm((prev) => ({ ...prev, toPortalId: nextToPortalId, toMethodId: '' }))}
+                        portals={portals}
+                        excludePortalId={form.fromPortalId}
+                        placeholder={form.fromPortalId ? 'Select Destination' : 'Select source first'}
+                        disabled={!form.fromPortalId}
+                        showBalancePanel={Boolean(form.toPortalId)}
+                        showBalance={showDestinationBalance}
+                        onToggleBalance={() => setShowDestinationBalance((prev) => !prev)}
+                        projectedBalance={destinationProjectedBalance}
+                    />
+                </div>
 
-                    {/* Destination */}
-                    <div>
-                        <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Destination Portal</label>
-                        <div className="mt-1">
-                            <IconSelect
-                                value={form.toPortalId}
-                                onChange={(nextToPortalId) => setForm((prev) => ({ ...prev, toPortalId: nextToPortalId }))}
-                                options={portalOptions}
-                                placeholder="Select Destination"
-                            />
-                        </div>
-                    </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <PortalMethodSelectField
+                        label="Sending Method"
+                        value={form.fromMethodId}
+                        onChange={(nextMethodId) => setForm((prev) => ({ ...prev, fromMethodId: nextMethodId }))}
+                        portal={selectedSourcePortal}
+                        placeholder={selectedSourcePortal ? 'Select Sending Method' : 'Select source first'}
+                        disabled={!selectedSourcePortal}
+                    />
+                    <PortalMethodSelectField
+                        label="Receiving Method"
+                        value={form.toMethodId}
+                        onChange={(nextMethodId) => setForm((prev) => ({ ...prev, toMethodId: nextMethodId }))}
+                        portal={selectedDestinationPortal}
+                        placeholder={selectedDestinationPortal ? 'Select Receiving Method' : 'Select destination first'}
+                        disabled={!selectedDestinationPortal}
+                    />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     {/* Amount */}
                     <div>
                         <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Amount</label>
-                        <input
-                            type="number"
-                            required
-                            placeholder="0.00"
-                            value={form.amount}
-                            onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                            className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-base font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                        />
+                        <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:ring-2 focus-within:ring-[var(--c-accent)]/20">
+                            <DirhamIcon className="mr-2 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
+                            <input
+                                type="number"
+                                required
+                                placeholder="0.00"
+                                value={form.amount}
+                                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                                className="w-full bg-transparent py-2 text-base font-bold outline-none"
+                            />
+                        </div>
                     </div>
 
                     {/* Fee */}
                     <div>
                         <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Fee (Optional)</label>
-                        <input
-                            type="number"
-                            placeholder="0.00"
-                            value={form.fee}
-                            onChange={(e) => setForm({ ...form, fee: e.target.value })}
-                            className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-base font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
-                        />
+                        <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:ring-2 focus-within:ring-[var(--c-accent)]/20">
+                            <DirhamIcon className="mr-2 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
+                            <input
+                                type="number"
+                                placeholder="0.00"
+                                value={form.fee}
+                                onChange={(e) => setForm({ ...form, fee: e.target.value })}
+                                className="w-full bg-transparent py-2 text-base font-bold outline-none"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -248,6 +317,16 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
                     {isSaving ? 'Processing...' : 'Confirm Transfer'}
                 </button>
             </form>
+            <ProgressVideoOverlay
+                open={isSaving}
+                dismissible={false}
+                minimal
+                title="Your transfer is in progress"
+                subtitle="Please wait while we complete the portal transfer."
+                videoSrc="/Video/portalManagmentProgress.mp4"
+                frameWidthClass="max-w-[30rem]"
+                backdropClassName="bg-[rgba(255,255,255,0.94)] backdrop-blur-sm"
+            />
         </SectionCard>
     );
 };

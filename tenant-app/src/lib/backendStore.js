@@ -37,6 +37,7 @@ const PDF_DOCUMENT_TYPES = new Set([
   'quotation',
   'performerInvoice',
   'statement',
+  'portalStatement',
 ]);
 
 const toSafePdfDocumentType = (documentType) => {
@@ -557,6 +558,34 @@ export const markTenantNotificationActionTaken = async (tenantId, notificationId
   }
 };
 
+export const fetchLoanPendingBalances = async (tenantId) => {
+  try {
+    const snap = await getDocs(collection(db, 'tenants', tenantId, 'portalTransactions'));
+    const pendingByPerson = {};
+
+    snap.docs.forEach((item) => {
+      const tx = item.data() || {};
+      const personId = String(tx?.personId || '').trim();
+      if (!personId || tx?.deletedAt) return;
+
+      const txType = String(tx?.type || '').toLowerCase();
+      if (txType !== 'disbursement' && txType !== 'repayment') return;
+
+      const amount = Number(tx?.amount || 0);
+      if (!Number.isFinite(amount) || amount === 0) return;
+
+      pendingByPerson[personId] = (pendingByPerson[personId] || 0)
+        + (txType === 'disbursement' ? amount : -amount);
+    });
+
+    return { ok: true, rows: pendingByPerson };
+  } catch (error) {
+    const message = toSafeError(error);
+    console.warn(`[backendStore] loan pending balances read failed tenants/${tenantId}/portalTransactions: ${message}`);
+    return { ok: false, error: message, rows: {} };
+  }
+};
+
 export const fetchRecentTransactions = async (tenantId, limitCount = 10) => {
   try {
     const q = query(
@@ -806,7 +835,7 @@ export const ensureTransactionSequenceStart = async (tenantId, typeKey, sequence
  * Executes an internal transfer between two portals.
  * Records two transactions (debit/credit) and an optional expense transaction for any fee.
  */
-export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortalId, amount, fee, description, category, createdBy, displayTxId }) => {
+export const executeInternalTransfer = async (tenantId, { fromPortalId, fromMethodId, toPortalId, toMethodId, amount, fee, description, category, createdBy, displayTxId }) => {
   try {
     const transferAmount = Math.abs(Number(amount || 0));
     const transferFee = Math.max(0, Number(fee || 0));
@@ -836,6 +865,8 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
     const batchId = `trf_${Date.now()}`;
     const debitId = toSafeDocId(`${resolvedDisplayTxId}-D`, 'portal_tx');
     const creditId = toSafeDocId(`${resolvedDisplayTxId}-C`, 'portal_tx');
+    const sourceMethod = String(fromMethodId || '').trim();
+    const destinationMethod = String(toMethodId || '').trim();
 
     // 1. Debit from Source
     const debitRes = await upsertTenantPortalTransaction(tenantId, debitId, {
@@ -844,9 +875,11 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
       amount: -transferAmount,
       type: 'Internal Transfer',
       category: category || 'Transfer',
-      description: `Transfer to ${toPortalId}${description ? `: ${description}` : ''}`,
+      description: `Transfer to ${toPortal.name || toPortalId}${description ? `: ${description}` : ''}`,
       date: new Date().toISOString(),
       transferTarget: toPortalId,
+      transactionMethod: sourceMethod,
+      destinationMethod,
       batchId,
       createdBy,
     });
@@ -859,9 +892,11 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
       amount: transferAmount,
       type: 'Internal Transfer',
       category: category || 'Transfer',
-      description: `Transfer from ${fromPortalId}${description ? `: ${description}` : ''}`,
+      description: `Transfer from ${fromPortal.name || fromPortalId}${description ? `: ${description}` : ''}`,
       date: new Date().toISOString(),
       transferSource: fromPortalId,
+      transactionMethod: destinationMethod,
+      sourceMethod,
       batchId,
       createdBy,
     });
@@ -876,7 +911,7 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
         amount: -transferFee,
         type: 'Operation Expenses',
         category: 'Transfer Fee',
-        description: `Fee for transfer ${resolvedDisplayTxId} to ${toPortalId}`,
+        description: `Fee for transfer ${resolvedDisplayTxId} to ${toPortal.name || toPortalId}`,
         date: new Date().toISOString(),
         batchId,
         createdBy,
@@ -896,12 +931,32 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
           detail: `${resolvedDisplayTxId}: ${fromPortal.name || fromPortalId} → ${toPortal.name || toPortalId}`,
           createdBy,
           routePath: `/t/${tenantId}/portal-management`,
-          actionPresets: ['view'],
+          actions: [
+            { label: 'View Details', actionType: 'quickView' },
+            { label: 'View', actionType: 'link', route: `/t/${tenantId}/portal-management` },
+          ],
         }),
         eventType: 'create',
         entityType: 'internalTransfer',
         entityId: batchId,
+        entityLabel: resolvedDisplayTxId,
+        pageKey: 'portalManagement',
+        sectionKey: 'internalTransfer',
         txId: resolvedDisplayTxId,
+        quickView: {
+          badge: 'Transfer',
+          title: `${fromPortal.name || fromPortalId} → ${toPortal.name || toPortalId}`,
+          subtitle: resolvedDisplayTxId,
+          description: description || 'Internal transfer completed between two portals.',
+          fields: [
+            { label: 'From Portal', value: fromPortal.name || fromPortalId },
+            { label: 'Sending Method', value: sourceMethod || 'Not specified' },
+            { label: 'To Portal', value: toPortal.name || toPortalId },
+            { label: 'Receiving Method', value: destinationMethod || 'Not specified' },
+            { label: 'Amount', value: String(transferAmount) },
+            ...(transferFee > 0 ? [{ label: 'Fee', value: String(transferFee) }] : []),
+          ],
+        },
       },
     ).catch(() => null);
 
@@ -917,7 +972,7 @@ export const executeInternalTransfer = async (tenantId, { fromPortalId, toPortal
  * Executes a Loan Transaction (Disbursement or Repayment).
  * Records transaction for both Portal and Loan Person.
  */
-export const executeLoanTransaction = async (tenantId, { personId, portalId, amount, type, description, displayTxId, createdBy }) => {
+export const executeLoanTransaction = async (tenantId, { personId, portalId, amount, type, description, transactionMethod, displayTxId, createdBy }) => {
   try {
     const txnAmount = Math.abs(Number(amount || 0));
     if (!personId || !portalId) throw new Error('Loan person and portal are required.');
@@ -937,6 +992,18 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
     const batchId = `loan_${Date.now()}`;
     const date = new Date().toISOString();
     const portalTxId = toSafeDocId(resolvedDisplayTxId, 'portal_tx');
+    const normalizedMethod = String(transactionMethod || '').trim();
+    const methodLabel = normalizedMethod
+      ? normalizedMethod.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').trim()
+      : '';
+    const [personSnap, portalSnap] = await Promise.all([
+      getDoc(doc(db, 'tenants', tenantId, 'loanPersons', personId)),
+      getDoc(doc(db, 'tenants', tenantId, 'portals', portalId)),
+    ]);
+    const personData = personSnap.exists() ? (personSnap.data() || {}) : {};
+    const portalData = portalSnap.exists() ? (portalSnap.data() || {}) : {};
+    const personLabel = String(personData?.name || personData?.displayName || personId).trim() || personId;
+    const portalLabel = String(portalData?.name || portalData?.displayPortalId || portalId).trim() || portalId;
 
     // 1. Record for Portal
     const portalTxRes = await upsertTenantPortalTransaction(tenantId, portalTxId, {
@@ -944,10 +1011,11 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
       displayTransactionId: resolvedDisplayTxId,
       amount: type === 'disbursement' ? -txnAmount : txnAmount,
       type: type === 'disbursement' ? 'Loan Disbursement' : 'Loan Repayment',
-      description: `${type === 'disbursement' ? 'Loan to' : 'Repayment from'} ${personId}${description ? `: ${description}` : ''}`,
+      description: `${type === 'disbursement' ? 'Loan to' : 'Repayment from'} ${personLabel}${methodLabel ? ` via ${methodLabel}` : ''}${description ? `: ${description}` : ''}`,
       date,
       entityId: personId,
       entityType: 'loanPerson',
+      transactionMethod: normalizedMethod,
       batchId,
       createdBy,
     });
@@ -961,6 +1029,7 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
       amount: txnAmount, // We keep the positive amount representing the loan/repayment value for the person
       type,   // 'disbursement' or 'repayment'
       affectsPortalBalance: false,
+      transactionMethod: normalizedMethod,
       date,
       batchId,
       createdBy,
@@ -976,15 +1045,35 @@ export const executeLoanTransaction = async (tenantId, { personId, portalId, amo
           subTopic: 'loan',
           type: 'create',
           title: type === 'repayment' ? 'Loan Repayment Recorded' : 'Loan Disbursement Recorded',
-          detail: `${resolvedDisplayTxId} for ${personId}`,
+          detail: `${personLabel} • ${portalLabel}`,
           createdBy,
           routePath: `/t/${tenantId}/portal-management`,
-          actionPresets: ['view'],
+          actions: [
+            { label: 'View Details', actionType: 'quickView' },
+            { label: 'View', actionType: 'link', route: `/t/${tenantId}/portal-management` },
+          ],
         }),
         eventType: 'create',
         entityType: 'loanTransaction',
         entityId: batchId,
+        entityLabel: resolvedDisplayTxId,
+        pageKey: 'portalManagement',
+        sectionKey: 'loanManagement',
         txId: resolvedDisplayTxId,
+        quickView: {
+          title: personLabel,
+          subtitle: type === 'repayment' ? 'Loan Repayment' : 'Loan Disbursement',
+          description: description || `${type === 'repayment' ? 'Repayment recorded against a loan person.' : 'Funds disbursed against a loan person.'}`,
+          badge: 'Loan',
+          fields: [
+            { label: 'Tracking ID', value: resolvedDisplayTxId },
+            { label: 'Loan Person', value: personLabel },
+            { label: 'Portal', value: portalLabel },
+            { label: 'Method', value: methodLabel || 'Not specified' },
+            { label: 'Amount', value: String(txnAmount) },
+            ...(description ? [{ label: 'Note', value: String(description).trim() }] : []),
+          ],
+        },
       },
     ).catch(() => null);
 

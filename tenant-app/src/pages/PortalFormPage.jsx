@@ -14,6 +14,7 @@ import {
 import PageShell from '../components/layout/PageShell';
 import ImageStudio from '../components/common/ImageStudio';
 import DirhamIcon from '../components/common/DirhamIcon';
+import ProgressVideoOverlay from '../components/common/ProgressVideoOverlay';
 import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/useTenant';
 import { createSyncEvent } from '../lib/syncEvents';
@@ -34,6 +35,7 @@ import { toSafeDocId as toSafeIconId } from '../lib/idUtils';
 import {
     DEFAULT_PORTAL_CATEGORIES,
     buildMethodIconMap,
+    createCustomCategoryDefinition,
     createCustomMethodDefinition,
     resolvePortalCategories,
     resolvePortalCategory,
@@ -54,8 +56,10 @@ const ICON_MAX_BYTES = 100 * 1024;
 const METHOD_ASSET_MAP = {
     cashByHand: getPublicAssetUrl('portals/methods/cashByHand.png'),
     bankTransfer: getPublicAssetUrl('portals/methods/banktransfer.png'),
+    cdmDeposit: getPublicAssetUrl('portals/methods/banktransfer.png'),
     checqueDeposit: getPublicAssetUrl('portals/methods/chequeDeposit.png'),
     onlinePayment: getPublicAssetUrl('portals/methods/onlinepayment.png'),
+    cashWithdrawals: getPublicAssetUrl('portals/methods/cashByHand.png'),
     tabby: getPublicAssetUrl('portals/methods/tabby.png'),
     tamara: getPublicAssetUrl('portals/methods/tamara.png'),
 };
@@ -193,7 +197,7 @@ const StatusBanner = ({ message, type }) => {
 };
 
 /* ─── Main Page ───────────────────────────────────────────────── */
-const PortalFormPage = () => {
+const PortalFormPage = ({ embedded = false }) => {
     const { portalId } = useParams();
     const navigate = useNavigate();
     const { tenantId } = useTenant();
@@ -215,6 +219,7 @@ const PortalFormPage = () => {
         balanceType: 'positive',
         type: DEFAULT_PORTAL_CATEGORIES[0].id,
         methods: resolveCategoryMethodIds(DEFAULT_PORTAL_CATEGORIES[0].id, []),
+        customCategories: [],
         customMethods: [],
     });
 
@@ -223,16 +228,18 @@ const PortalFormPage = () => {
     const [logoCroppedArea, setLogoCroppedArea] = useState(null);
     const [logoZoom, setLogoZoom] = useState(1);
     const [logoRotation, setLogoRotation] = useState(0);
-    const [logoIsDirty, setLogoIsDirty] = useState(false);
     const [isLogoStudioOpen, setIsLogoStudioOpen] = useState(false);
     const [logoPreviewUrl, setLogoPreviewUrl] = useState(''); // existing saved logo
     const logoFileRef = useRef(null);
 
-    // Portal icon (picked from library or type default)
-    const [iconLibrary, setIconLibrary] = useState([]);
     const [firestoreIconMap, setFirestoreIconMap] = useState({});
-    const [selectedIconUrl, setSelectedIconUrl] = useState('');
-    const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+    const [logoRemoved, setLogoRemoved] = useState(false);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [draftPortalId, setDraftPortalId] = useState(portalId || '');
+
+    // Add custom category
+    const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
 
     // Add custom method
     const [isAddMethodOpen, setIsAddMethodOpen] = useState(false);
@@ -252,10 +259,12 @@ const PortalFormPage = () => {
                         balanceType: p.balanceType || 'positive',
                         type: p.type || DEFAULT_PORTAL_CATEGORIES[0].id,
                         methods: Array.isArray(p.methods) ? p.methods : [],
+                        customCategories: Array.isArray(p.customCategories) ? p.customCategories : [],
                         customMethods: Array.isArray(p.customMethods) ? p.customMethods : [],
                     });
                     setLogoPreviewUrl(p.logoUrl || '');
-                    setSelectedIconUrl(p.iconUrl || '');
+                    setLogoRemoved(false);
+                    setDraftPortalId(p.id || portalId || '');
                 }
             }
             setIsLoading(false);
@@ -269,7 +278,6 @@ const PortalFormPage = () => {
         if (res.ok) {
             const rows = res.rows || [];
             setFirestoreIconMap(buildMethodIconMap(rows));
-            setIconLibrary(rows.filter((r) => !!r.iconUrl));
         }
     }, [tenantId]);
 
@@ -278,20 +286,20 @@ const PortalFormPage = () => {
     }, [loadIconLibrary]);
 
     /* ── Derived values ────────────────────────── */
-    const allCategories = resolvePortalCategories([]);
-    const activeCategory = resolvePortalCategory(form.type, []);
+    const allCategories = resolvePortalCategories(form.customCategories);
+    const activeCategory = resolvePortalCategory(form.type, form.customCategories);
     const allMethodDefs = resolvePortalMethodDefinitions(form.customMethods);
     // Which methods are relevant to this category?
-    const categoryDefaultMethodIds = resolveCategoryMethodIds(form.type, []);
+    const categoryDefaultMethodIds = resolveCategoryMethodIds(form.type, form.customCategories);
     const visibleMethodDefs = allMethodDefs.filter((m) => {
         if (m.isCustom) return true; // always show custom
         return categoryDefaultMethodIds.includes(m.id);
     });
-    const portalIconPreview = selectedIconUrl || activeCategory?.icon || fallbackTypeIcon(form.type);
+    const portalIconPreview = logoPreviewUrl || activeCategory?.icon || existingPortal?.iconUrl || fallbackTypeIcon(form.type);
 
     /* ── Category change ───────────────────────── */
     const handleCategoryChange = (newType) => {
-        const defaults = resolveCategoryMethodIds(newType, []);
+        const defaults = resolveCategoryMethodIds(newType, form.customCategories);
         setForm((prev) => ({
             ...prev,
             type: newType,
@@ -301,11 +309,64 @@ const PortalFormPage = () => {
                 ...prev.customMethods.map((m) => m.id),
             ],
         }));
-        // Reset icon to category default if none manually selected
-        if (!selectedIconUrl || !logoIsDirty) {
-            const cat = resolvePortalCategory(newType, []);
-            setSelectedIconUrl(cat?.icon || '');
+    };
+
+    const handleAddCustomCategory = () => {
+        const label = sanitizePortalEntityName(newCategoryName, '');
+        if (!label) {
+            setStatus({ message: 'Category name is required.', type: 'error' });
+            return;
         }
+
+        const categoryId = toSafeIconId(label, 'portal_category');
+        const alreadyExists = resolvePortalCategories(form.customCategories).some((category) => category.id === categoryId);
+        if (alreadyExists) {
+            setStatus({ message: 'A category with this name already exists.', type: 'error' });
+            return;
+        }
+
+        const defaultMethodIds = Array.isArray(categoryDefaultMethodIds) && categoryDefaultMethodIds.length > 0
+            ? categoryDefaultMethodIds
+            : resolveCategoryMethodIds('Portals', []);
+
+        const newCategory = createCustomCategoryDefinition({
+            id: categoryId,
+            label,
+            iconUrl: DEFAULT_PORTAL_ICON,
+            methodIds: defaultMethodIds,
+        });
+
+        setForm((prev) => ({
+            ...prev,
+            type: newCategory.id,
+            methods: [
+                ...defaultMethodIds,
+                ...prev.customMethods.map((method) => method.id),
+            ],
+            customCategories: [...prev.customCategories, newCategory],
+        }));
+        setNewCategoryName('');
+        setIsAddCategoryOpen(false);
+        setStatus({ message: '', type: 'info' });
+    };
+
+    const handleRemoveCustomCategory = (categoryId) => {
+        const fallbackCategoryId = DEFAULT_PORTAL_CATEGORIES[0].id;
+        const fallbackMethodIds = resolveCategoryMethodIds(fallbackCategoryId, []);
+
+        setForm((prev) => {
+            const remainingCategories = prev.customCategories.filter((category) => category.id !== categoryId);
+            const isRemovingActive = prev.type === categoryId;
+
+            return {
+                ...prev,
+                type: isRemovingActive ? fallbackCategoryId : prev.type,
+                methods: isRemovingActive
+                    ? [...fallbackMethodIds, ...prev.customMethods.map((method) => method.id)]
+                    : prev.methods,
+                customCategories: remainingCategories,
+            };
+        });
     };
 
     /* ── Toggle method on/off ──────────────────── */
@@ -361,16 +422,83 @@ const PortalFormPage = () => {
         setLogoCroppedArea(null);
         setLogoZoom(1);
         setLogoRotation(0);
-        setLogoIsDirty(true);
         setIsLogoStudioOpen(true);
+    };
+
+    const handleOpenLogoStudio = () => {
+        if (logoPreviewUrl) {
+            setLogoRawUrl(logoPreviewUrl);
+            setLogoCroppedArea(null);
+            setLogoZoom(1);
+            setLogoRotation(0);
+            setIsLogoStudioOpen(true);
+            return;
+        }
+        logoFileRef.current?.click();
     };
 
     const handleLogoClear = () => {
         setLogoRawUrl('');
         setLogoCroppedArea(null);
-        setLogoIsDirty(false);
         setLogoPreviewUrl('');
+        setLogoRemoved(true);
         setIsLogoStudioOpen(false);
+    };
+
+    const handleCancelLogoStudio = () => {
+        setLogoRawUrl('');
+        setLogoCroppedArea(null);
+        setLogoZoom(1);
+        setLogoRotation(0);
+        setIsLogoStudioOpen(false);
+    };
+
+    const handleApplyLogo = async () => {
+        if (!tenantId || !logoRawUrl || !logoCroppedArea) {
+            setStatus({ message: 'Select and crop the logo before saving it.', type: 'error' });
+            return;
+        }
+
+        setIsUploadingLogo(true);
+        setStatus({ message: '', type: 'info' });
+
+        try {
+            const targetPortalId = draftPortalId || portalId || await generateDisplayPortalId(tenantId);
+            if (!draftPortalId) setDraftPortalId(targetPortalId);
+
+            const blob = await getCroppedImg(
+                logoRawUrl,
+                logoCroppedArea,
+                logoRotation,
+                'natural',
+                ICON_OUTPUT_SIZE,
+                ICON_MAX_BYTES,
+            );
+
+            const uploadRes = await uploadPortalIcon({
+                tenantId,
+                portalId: targetPortalId,
+                fileBlob: blob,
+                oldIconUrl: logoRemoved ? '' : (logoPreviewUrl || existingPortal?.logoUrl || ''),
+            });
+
+            if (!uploadRes.ok) {
+                throw new Error(uploadRes.error || 'Logo upload failed.');
+            }
+
+            setLogoPreviewUrl(uploadRes.iconUrl);
+            setLogoRawUrl('');
+            setLogoCroppedArea(null);
+            setLogoZoom(1);
+            setLogoRotation(0);
+            setLogoRemoved(false);
+            setIsLogoStudioOpen(false);
+            setStatus({ message: 'Logo cropped and saved.', type: 'success' });
+        } catch (error) {
+            setStatus({ message: error?.message || 'Logo upload failed.', type: 'error' });
+        } finally {
+            setIsUploadingLogo(false);
+        }
     };
 
     /* ── Save ──────────────────────────────────── */
@@ -389,36 +517,19 @@ const PortalFormPage = () => {
         setIsSaving(true);
         setStatus({ message: '', type: 'info' });
 
-        const targetPortalId = portalId || (await generateDisplayPortalId(tenantId));
-
-        // Process logo upload
-        let logoUrl = existingPortal?.logoUrl || logoPreviewUrl || '';
-        if (logoIsDirty && logoRawUrl && logoCroppedArea) {
-            try {
-                const blob = await getCroppedImg(
-                    logoRawUrl,
-                    logoCroppedArea,
-                    logoRotation,
-                    'natural',
-                    ICON_OUTPUT_SIZE,
-                    ICON_MAX_BYTES,
-                );
-                const uploadRes = await uploadPortalIcon({
-                    tenantId,
-                    portalId: targetPortalId,
-                    fileBlob: blob,
-                    oldIconUrl: existingPortal?.logoUrl,
-                });
-                if (uploadRes.ok) logoUrl = uploadRes.iconUrl;
-                else throw new Error(uploadRes.error || 'Logo upload failed.');
-            } catch (err) {
-                setStatus({ message: err.message, type: 'error' });
-                setIsSaving(false);
-                return;
-            }
+        const targetPortalId = portalId || draftPortalId || (await generateDisplayPortalId(tenantId));
+        if (!draftPortalId) {
+            setDraftPortalId(targetPortalId);
         }
 
-        const iconUrl = selectedIconUrl || activeCategory?.icon || fallbackTypeIcon(form.type);
+        if (logoRawUrl && logoCroppedArea && !logoPreviewUrl) {
+            setStatus({ message: 'Use Crop & Save for the logo before creating the portal.', type: 'error' });
+            setIsSaving(false);
+            return;
+        }
+
+        const logoUrl = logoRemoved ? '' : (logoPreviewUrl || existingPortal?.logoUrl || '');
+        const iconUrl = logoUrl || activeCategory?.icon || fallbackTypeIcon(form.type);
         const openingAmount = isEdit ? 0 : Number(form.balance) || 0;
         const openingSignedBalance = openingAmount * (form.balanceType === 'negative' ? -1 : 1);
 
@@ -426,6 +537,7 @@ const PortalFormPage = () => {
             name,
             type: form.type,
             methods: form.methods,
+            customCategories: form.customCategories,
             customMethods: form.customMethods,
             iconUrl,
             logoUrl,
@@ -514,23 +626,16 @@ const PortalFormPage = () => {
     if (!user || isLoading) return null;
 
     /* ── Render ────────────────────────────────── */
-    return (
-        <PageShell
-            title={isEdit ? 'Edit Portal' : 'New Portal'}
-            subtitle={
-                isEdit
-                    ? `Editing "${existingPortal?.name || portalId}"`
-                    : 'Configure your new operational portal below.'
-            }
-        >
-            <div className="mx-auto max-w-4xl space-y-5 pb-20">
+    const content = (
+        <>
+            <div className="grid w-full gap-5 pb-20 xl:grid-cols-12">
 
                 {/* ── Section 1 · Basic Info ─────────────────────── */}
-                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm">
+                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm xl:col-span-8 2xl:col-span-8">
                     <SectionHeading icon={Building2} label="Portal Information" />
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-4">
                         {/* Name */}
-                        <div className="sm:col-span-2">
+                        <div className="xl:max-w-[38rem] 2xl:max-w-[42rem]">
                             <FieldLabel>Portal Name</FieldLabel>
                             <input
                                 id="portal-name"
@@ -544,8 +649,8 @@ const PortalFormPage = () => {
 
                         {/* Opening Balance — create only */}
                         {!isEdit && (
-                            <>
-                                <div>
+                            <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,28rem)] lg:items-start">
+                                <div className="max-w-[18rem]">
                                     <FieldLabel>Opening Balance <span className="normal-case font-normal text-[var(--c-muted)]">(optional)</span></FieldLabel>
                                     <div className="relative mt-1.5">
                                         <DirhamIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--c-muted)]" />
@@ -561,25 +666,56 @@ const PortalFormPage = () => {
                                     </div>
                                 </div>
                                 {Number(form.balance) > 0 && (
-                                    <div>
-                                        <FieldLabel>Balance Type</FieldLabel>
-                                        <select
-                                            id="portal-balance-type"
-                                            value={form.balanceType}
-                                            onChange={(e) => setForm((p) => ({ ...p, balanceType: e.target.value }))}
-                                            className="mt-1.5 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5 text-sm font-medium text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)]"
-                                        >
-                                            <option value="positive">Positive (+)</option>
-                                            <option value="negative">Negative (−)</option>
-                                        </select>
+                                    <div className="max-w-[28rem]">
+                                        <FieldLabel>Balance Direction</FieldLabel>
+                                        <div className="mt-1.5 space-y-2">
+                                            <button
+                                                id="portal-balance-type"
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={form.balanceType === 'negative'}
+                                                onClick={() =>
+                                                    setForm((p) => ({
+                                                        ...p,
+                                                        balanceType: p.balanceType === 'negative' ? 'positive' : 'negative',
+                                                    }))
+                                                }
+                                                className={`flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-bold transition ${
+                                                    form.balanceType === 'negative'
+                                                        ? 'border-rose-400/45 bg-rose-500/10 text-rose-500'
+                                                        : 'border-emerald-400/45 bg-emerald-500/10 text-emerald-600'
+                                                }`}
+                                            >
+                                                <span>{form.balanceType === 'negative' ? 'Negative Balance' : 'Positive Balance'}</span>
+                                                <span
+                                                    className={`relative flex h-7 w-13 items-center rounded-full px-1 transition ${
+                                                        form.balanceType === 'negative'
+                                                            ? 'bg-rose-500/25 justify-end'
+                                                            : 'bg-emerald-500/25 justify-start'
+                                                    }`}
+                                                >
+                                                    <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
+                                                </span>
+                                            </button>
+                                            <div className="flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold">
+                                                <span className="text-[var(--c-muted)]">Signed preview</span>
+                                                <span className={form.balanceType === 'negative' ? 'text-rose-500' : 'text-emerald-600'}>
+                                                    {form.balanceType === 'negative' ? '-' : ''}
+                                                    {Number(form.balance || 0).toLocaleString(undefined, {
+                                                        minimumFractionDigits: 2,
+                                                        maximumFractionDigits: 2,
+                                                    })}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
-                            </>
+                            </div>
                         )}
 
                         {/* Current balance display — edit mode */}
                         {isEdit && (
-                            <div>
+                            <div className="max-w-[24rem]">
                                 <FieldLabel>Current Balance</FieldLabel>
                                 <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5">
                                     <DirhamIcon className="h-4 w-4 text-[var(--c-muted)]" />
@@ -593,27 +729,9 @@ const PortalFormPage = () => {
                     </div>
                 </div>
 
-                {/* ── Section 2 · Category ───────────────────────── */}
-                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm">
-                    <SectionHeading icon={Layers} label="Portal Category" />
-                    <p className="mt-1 text-xs text-[var(--c-muted)]">
-                        The category determines the default transaction methods for this portal.
-                    </p>
-                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                        {allCategories.map((cat) => (
-                            <CategoryTile
-                                key={cat.id}
-                                category={cat}
-                                isActive={form.type === cat.id}
-                                onClick={() => handleCategoryChange(cat.id)}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* ── Section 3 · Logo ───────────────────────────── */}
-                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm">
-                    <div className="flex items-start gap-4">
+                {/* ── Section 2 · Logo ───────────────────────────── */}
+                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm xl:col-span-4 2xl:col-span-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                         <div className="flex-1">
                             <SectionHeading icon={ImagePlus} label="Portal Logo" />
                             <p className="mt-1 text-xs text-[var(--c-muted)]">
@@ -630,13 +748,13 @@ const PortalFormPage = () => {
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => logoFileRef.current?.click()}
+                                    onClick={handleOpenLogoStudio}
                                     className="flex items-center gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5 text-xs font-bold text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)]"
                                 >
                                     <ImagePlus className="h-4 w-4" />
-                                    {logoPreviewUrl || logoIsDirty ? 'Change Logo' : 'Add Logo'}
+                                    {logoPreviewUrl ? 'Adjust Logo' : 'Upload Logo'}
                                 </button>
-                                {(logoPreviewUrl || logoIsDirty) && (
+                                {logoPreviewUrl && (
                                     <button
                                         type="button"
                                         onClick={handleLogoClear}
@@ -650,146 +768,132 @@ const PortalFormPage = () => {
                         </div>
 
                         {/* Logo preview + Portal icon side by side */}
-                        <div className="flex shrink-0 flex-col items-center gap-2">
-                            {(logoPreviewUrl || logoIsDirty) ? (
-                                <div className="h-16 w-16 overflow-hidden rounded-xl border border-[var(--c-border)] bg-white shadow-sm">
+                        <div className="flex shrink-0 flex-col items-center gap-2 self-start rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+                            {logoPreviewUrl ? (
+                                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border border-[var(--c-border)] bg-white p-1.5 shadow-sm">
                                     <img
-                                        src={logoRawUrl || logoPreviewUrl}
+                                        src={logoPreviewUrl}
                                         alt="Logo preview"
-                                        className="h-full w-full object-cover"
+                                        className="h-full w-full rounded-xl object-contain"
                                     />
                                 </div>
                             ) : (
-                                <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)]">
-                                    <ImagePlus className="h-6 w-6 text-[var(--c-muted)]/50" />
+                                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-dashed border-[var(--c-border)] bg-[var(--c-surface)]">
+                                    <ImagePlus className="h-8 w-8 text-[var(--c-muted)]/50" />
                                 </div>
                             )}
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Logo</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Logo Preview</span>
                         </div>
                     </div>
 
-                    {/* Image Studio (logo crop) */}
-                    {isLogoStudioOpen && logoRawUrl && (
-                        <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--c-border)]">
-                            <div className="flex items-center justify-between border-b border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2">
-                                <span className="text-xs font-bold text-[var(--c-text)]">Crop & adjust logo</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsLogoStudioOpen(false)}
-                                    className="rounded-lg p-1 text-[var(--c-muted)] hover:text-[var(--c-text)]"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ImageStudio
-                                sourceUrl={logoRawUrl}
-                                onReset={handleLogoClear}
-                                onFileChange={handleLogoFileSelect}
-                                zoom={logoZoom}
-                                rotation={logoRotation}
-                                setZoom={setLogoZoom}
-                                setRotation={(v) => { setLogoRotation(v); setLogoIsDirty(true); }}
-                                onCropComplete={(_, area) => { setLogoCroppedArea(area); setLogoIsDirty(true); }}
-                                aspect={1}
-                                cropShape="rect"
-                                showFilters={false}
-                            />
-                        </div>
-                    )}
-                    {(logoPreviewUrl || logoRawUrl) ? (
+                    {logoPreviewUrl ? (
                         <p className="mt-2 text-[11px] font-medium text-[var(--c-muted)]">
-                            Logo upload is completed when you press {isEdit ? 'Update Portal' : 'Create Portal'}.
+                            This logo is saved separately for this portal and will appear automatically on portal cards.
                         </p>
                     ) : null}
 
-                    {/* ── Portal Icon (separate from logo) ─── */}
+                    {/* ── Portal Display Icon (auto) ─── */}
                     <div className="mt-5 border-t border-[var(--c-border)] pt-4">
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Portal Icon</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Portal Display Icon</p>
                                 <p className="mt-0.5 text-[11px] text-[var(--c-muted)]">
-                                    Icon shown on portal cards and lists. Defaults to category icon.
+                                    If you upload a portal logo, it is used here automatically. Otherwise the category icon is used.
                                 </p>
                             </div>
-                            <div className="flex items-center gap-3">
-                                {/* Current icon preview */}
-                                <div className="h-10 w-10 overflow-hidden rounded-xl border border-[var(--c-border)] bg-white">
+                            <div className="flex items-center gap-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-3">
+                                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-[var(--c-border)] bg-white p-1.5 shadow-sm">
                                     <img
                                         src={portalIconPreview}
                                         alt="Portal icon"
-                                        className="h-full w-full object-cover"
+                                        className="h-full w-full rounded-xl object-contain"
                                         onError={(e) => {
                                             e.currentTarget.onerror = null;
                                             e.currentTarget.src = fallbackTypeIcon(form.type);
                                         }}
                                     />
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsIconPickerOpen((v) => !v)}
-                                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-bold text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)]"
-                                >
-                                    {isIconPickerOpen ? 'Close Library' : 'Pick from Library'}
-                                </button>
-                                {selectedIconUrl && selectedIconUrl !== activeCategory?.icon && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedIconUrl(activeCategory?.icon || '')}
-                                        className="rounded-xl border border-rose-500/30 px-3 py-2 text-xs font-bold text-rose-400 transition hover:bg-rose-500/10"
-                                    >
-                                        Reset
-                                    </button>
-                                )}
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Preview Source</p>
+                                    <p className="mt-1 text-xs font-semibold text-[var(--c-text)]">
+                                        Auto from logo or category
+                                    </p>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Icon library picker */}
-                        {isIconPickerOpen && (
-                            <div className="mt-3">
-                                {iconLibrary.length === 0 ? (
-                                    <p className="rounded-xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-4 text-center text-xs text-[var(--c-muted)]">
-                                        No custom icons in library yet.
-                                    </p>
-                                ) : (
-                                    <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
-                                        {iconLibrary.map((item) => {
-                                            const isActive = selectedIconUrl === item.iconUrl;
-                                            return (
-                                                <button
-                                                    key={item.iconId}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedIconUrl(isActive ? (activeCategory?.icon || '') : item.iconUrl);
-                                                        setIsIconPickerOpen(false);
-                                                    }}
-                                                    title={item.iconName}
-                                                    className={`aspect-square rounded-xl border p-2 transition ${
-                                                        isActive
-                                                            ? 'border-[var(--c-accent)] bg-[color:color-mix(in_srgb,var(--c-accent)_12%,var(--c-surface))] ring-2 ring-[var(--c-accent)]/30'
-                                                            : 'border-[var(--c-border)] bg-[var(--c-panel)] hover:border-[var(--c-accent)]/40'
-                                                    }`}
-                                                >
-                                                    <img
-                                                        src={item.iconUrl}
-                                                        alt={item.iconName}
-                                                        className="h-full w-full object-cover"
-                                                        onError={(e) => {
-                                                            e.currentTarget.onerror = null;
-                                                            e.currentTarget.src = DEFAULT_PORTAL_ICON;
-                                                        }}
-                                                    />
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                {/* ── Section 3 · Category ───────────────────────── */}
+                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm xl:col-span-12">
+                    <div className="flex items-center justify-between gap-3">
+                        <SectionHeading icon={Layers} label="Portal Category" />
+                        <button
+                            type="button"
+                            onClick={() => setIsAddCategoryOpen((value) => !value)}
+                            className="flex items-center gap-1.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-bold text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)]"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add Custom Category
+                        </button>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--c-muted)]">
+                        The category determines the default transaction methods for this portal. If you need a new one, add a custom category and it will start with a safe default icon.
+                    </p>
+                    {isAddCategoryOpen && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3">
+                            <input
+                                id="new-category-name"
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddCustomCategory()}
+                                placeholder="New category name..."
+                                autoFocus
+                                className="min-w-[220px] flex-1 rounded-lg border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-medium text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddCustomCategory}
+                                className="rounded-lg bg-[var(--c-accent)] px-3 py-2 text-xs font-bold text-white transition hover:opacity-90"
+                            >
+                                Add
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setIsAddCategoryOpen(false); setNewCategoryName(''); }}
+                                className="rounded-lg p-2 text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                    )}
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6 2xl:grid-cols-7">
+                        {allCategories.map((cat) => (
+                            <div key={cat.id} className="relative">
+                                <CategoryTile
+                                    category={cat}
+                                    isActive={form.type === cat.id}
+                                    onClick={() => handleCategoryChange(cat.id)}
+                                />
+                                {cat.isCustom ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveCustomCategory(cat.id)}
+                                        className="absolute right-1.5 top-1.5 z-[2] flex h-6 w-6 items-center justify-center rounded-full border border-rose-500/30 bg-[var(--c-surface)] text-rose-400 transition hover:bg-rose-500/10"
+                                        aria-label={`Remove ${cat.label}`}
+                                        title={`Remove ${cat.label}`}
+                                    >
+                                        <X className="h-3.5 w-3.5" />
+                                    </button>
+                                ) : null}
                             </div>
-                        )}
+                        ))}
                     </div>
                 </div>
 
                 {/* ── Section 4 · Transaction Methods ───────────── */}
-                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm">
+                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-5 shadow-sm xl:col-span-12">
                     <div className="flex items-center justify-between gap-3">
                         <SectionHeading icon={Zap} label="Transaction Methods" />
                         <button
@@ -856,10 +960,12 @@ const PortalFormPage = () => {
                 </div>
 
                 {/* ── Status banner ──────────────────────────────── */}
-                <StatusBanner message={status.message} type={status.type} />
+                <div className="xl:col-span-12">
+                    <StatusBanner message={status.message} type={status.type} />
+                </div>
 
                 {/* ── Action bar ───────────────────────────────────── */}
-                <div className="flex items-center gap-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm">
+                <div className="flex items-center gap-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm xl:col-span-12">
                     <button
                         type="button"
                         onClick={handleSave}
@@ -879,20 +985,100 @@ const PortalFormPage = () => {
                 </div>
             </div>
 
+            {isLogoStudioOpen && logoRawUrl ? (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(15,23,42,0.45)] px-4 py-6 backdrop-blur-sm">
+                    <div className="w-full max-w-2xl overflow-hidden rounded-[1.75rem] border border-[var(--c-border)] bg-[var(--c-surface)] shadow-[0_32px_80px_-32px_rgba(15,23,42,0.45)]">
+                        <div className="flex items-center justify-between border-b border-[var(--c-border)] bg-[var(--c-panel)] px-5 py-3">
+                            <div>
+                                <p className="text-sm font-black text-[var(--c-text)]">Adjust Portal Logo</p>
+                                <p className="text-[11px] font-medium text-[var(--c-muted)]">Crop the corners neatly, then save this logo for the portal.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCancelLogoStudio}
+                                className="rounded-lg p-1.5 text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-4">
+                            <ImageStudio
+                                sourceUrl={logoRawUrl}
+                                onReset={handleCancelLogoStudio}
+                                onFileChange={handleLogoFileSelect}
+                                zoom={logoZoom}
+                                rotation={logoRotation}
+                                setZoom={setLogoZoom}
+                                setRotation={setLogoRotation}
+                                onCropComplete={(_, area) => { setLogoCroppedArea(area); }}
+                                aspect={1}
+                                cropShape="rect"
+                                showFilters={false}
+                                title="Portal Logo Crop"
+                                workspaceHeightClass="h-[180px] sm:h-[220px]"
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 border-t border-[var(--c-border)] bg-[var(--c-surface)] px-5 py-4">
+                            <button
+                                type="button"
+                                onClick={handleCancelLogoStudio}
+                                className="rounded-xl border border-[var(--c-border)] px-4 py-2 text-xs font-bold text-[var(--c-text)] transition hover:bg-[var(--c-panel)]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleApplyLogo}
+                                disabled={isUploadingLogo}
+                                className="rounded-xl bg-[var(--c-accent)] px-4 py-2 text-xs font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isUploadingLogo ? 'Saving Logo…' : 'Crop & Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            <ProgressVideoOverlay
+                open={!isEdit && isSaving}
+                dismissible={false}
+                minimal
+                title="Your portal creation is going on"
+                subtitle="Please wait while we complete the setup."
+                videoSrc="/Video/portalManagmentProgress.mp4"
+                frameWidthClass="max-w-[30rem]"
+                backdropClassName="bg-[rgba(255,255,255,0.94)] backdrop-blur-sm"
+            />
+        </>
+    );
+
+    if (embedded) {
+        return content;
+    }
+
+    return (
+        <PageShell
+            title={isEdit ? 'Edit Portal' : 'New Portal'}
+            subtitle={
+                isEdit
+                    ? `Editing "${existingPortal?.name || portalId}"`
+                    : 'Configure your new operational portal below.'
+            }
+            maxWidthClass="max-w-[min(120rem,calc(100vw-1.5rem))]"
+        >
+            {content}
         </PageShell>
     );
 };
 
 /* ─── Tiny layout helpers ────────────────────────────────────── */
 const SectionHeading = ({ icon: IconComponent, label }) => {
-    const iconNode = typeof IconComponent === 'function'
-        ? IconComponent({ className: 'h-3.5 w-3.5' })
-        : null;
-
     return (
         <div className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-[var(--c-accent)]/30 bg-[color:color-mix(in_srgb,var(--c-accent)_14%,transparent)] text-[var(--c-accent)]">
-                {iconNode}
+                {IconComponent ? <IconComponent className="h-3.5 w-3.5" /> : null}
             </span>
             <p className="text-xs font-black uppercase tracking-wider text-[var(--c-text)]">{label}</p>
         </div>

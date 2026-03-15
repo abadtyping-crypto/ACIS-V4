@@ -1,4 +1,5 @@
 import './App.css';
+import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import RequireAuth from './components/auth/RequireAuth';
 import AppLayout from './components/layout/AppLayout';
@@ -14,7 +15,6 @@ import LoginPage from './pages/LoginPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PortalManagementPage from './pages/PortalManagementPage';
 import PortalDetailPage from './pages/PortalDetailPage';
-import PortalFormPage from './pages/PortalFormPage';
 import ProfilePage from './pages/ProfilePage';
 import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage';
@@ -31,6 +31,30 @@ import ReceivePaymentsPage from './pages/ReceivePaymentsPage';
 import TitleBar from './components/layout/TitleBar';
 
 const App = () => {
+  useEffect(() => {
+    const handleNumberInputWheel = (event) => {
+      const activeElement = document.activeElement;
+      if (!(activeElement instanceof HTMLInputElement) || activeElement.type !== 'number') return;
+
+      const wheelTarget = event.target;
+      if (!(wheelTarget instanceof Element)) return;
+
+      if (wheelTarget.closest('input[type="number"]') !== activeElement) return;
+
+      event.preventDefault();
+      activeElement.blur();
+    };
+
+    document.addEventListener('wheel', handleNumberInputWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      document.removeEventListener('wheel', handleNumberInputWheel, true);
+    };
+  }, []);
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -70,8 +94,8 @@ const App = () => {
                     <Route path="profile" element={<AdaptiveProfilePage />} />
                     <Route path="profile/edit" element={<ProfilePage />} />
                     <Route path="portal-management" element={<PortalManagementPage />} />
-                    <Route path="portal-management/new" element={<PortalFormPage />} />
-                    <Route path="portal-management/edit/:portalId" element={<PortalFormPage />} />
+                    <Route path="portal-management/new" element={<PortalManagementPage />} />
+                    <Route path="portal-management/edit/:portalId" element={<PortalManagementPage />} />
                     <Route path="portal-management/:portalId" element={<PortalDetailPage />} />
                     <Route
                       path="document-calendar"

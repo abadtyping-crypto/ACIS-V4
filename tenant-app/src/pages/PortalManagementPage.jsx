@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import {
   BellIcon,
@@ -13,6 +13,7 @@ import PortalSummarySection from '../components/portal/PortalSummarySection';
 import LoanManagementSection from '../components/portal/LoanManagementSection';
 import InternalTransferSection from '../components/portal/InternalTransferSection';
 import PortalSetupSection from '../components/portal/PortalSetupSection';
+import PortalFormPage from './PortalFormPage';
 import RecentTransactionsSection from '../components/portal/RecentTransactionsSection';
 import ReportsSection from '../components/portal/ReportsSection';
 import { useRecycleBin } from '../context/useRecycleBin';
@@ -140,11 +141,18 @@ const PortalBalanceAdjustmentPanel = ({ refreshKey }) => {
 };
 
 const PortalManagementPage = () => {
+  const { tenantId, portalId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { registerRestoreListener } = useRecycleBin();
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [activeFunction, setActiveFunction] = useState('summary');
   const [isNavExpanded, setIsNavExpanded] = useState(false);
+  const pathname = window.location.pathname;
+  const isCreateRoute = pathname.endsWith('/portal-management/new');
+  const isEditRoute = pathname.includes('/portal-management/edit/');
+  const isPortalFormRoute = isCreateRoute || isEditRoute;
+  const currentFunction = isPortalFormRoute ? 'setup' : activeFunction;
 
   useEffect(() => {
     const unsubscribe = registerRestoreListener(() => {
@@ -156,31 +164,55 @@ const PortalManagementPage = () => {
   const handleQuickAction = (key) => {
     if (FUNCTION_ITEMS.some((item) => item.key === key)) {
       setActiveFunction(key);
+      if (isPortalFormRoute && tenantId) {
+        navigate(`/t/${tenantId}/portal-management`);
+      }
     }
   };
 
   const activeMeta = useMemo(
-    () => FUNCTION_ITEMS.find((item) => item.key === activeFunction) || FUNCTION_ITEMS[0],
-    [activeFunction],
+    () => {
+      if (isCreateRoute) {
+        return {
+          key: 'setup-create',
+          label: 'Create Portal',
+          description: 'Create a new portal without leaving the portal management workspace.',
+          Icon: SettingsIcon,
+        };
+      }
+      if (isEditRoute) {
+        return {
+          key: 'setup-edit',
+          label: 'Edit Portal',
+          description: `Update portal ${portalId || ''} inside the same portal management workspace.`,
+          Icon: SettingsIcon,
+        };
+      }
+      return FUNCTION_ITEMS.find((item) => item.key === currentFunction) || FUNCTION_ITEMS[0];
+    },
+    [currentFunction, isCreateRoute, isEditRoute, portalId],
   );
 
   const renderActiveContent = () => {
-    if (activeFunction === 'setup') {
+    if (isPortalFormRoute) {
+      return <PortalFormPage embedded />;
+    }
+    if (currentFunction === 'setup') {
       return <PortalSetupSection isOpen={true} onToggle={() => null} refreshKey={refreshCounter} />;
     }
-    if (activeFunction === 'loan') {
+    if (currentFunction === 'loan') {
       return <LoanManagementSection isOpen={true} onToggle={() => null} refreshKey={refreshCounter} />;
     }
-    if (activeFunction === 'transfer') {
+    if (currentFunction === 'transfer') {
       return <InternalTransferSection isOpen={true} onToggle={() => null} refreshKey={refreshCounter} />;
     }
-    if (activeFunction === 'balance') {
+    if (currentFunction === 'balance') {
       return <PortalBalanceAdjustmentPanel refreshKey={refreshCounter} />;
     }
-    if (activeFunction === 'recent') {
+    if (currentFunction === 'recent') {
       return <RecentTransactionsSection isOpen={true} onToggle={() => null} refreshKey={refreshCounter} />;
     }
-    if (activeFunction === 'reports') {
+    if (currentFunction === 'reports') {
       return <ReportsSection isOpen={true} onToggle={() => null} refreshKey={refreshCounter} />;
     }
     return <PortalSummarySection onQuickAction={handleQuickAction} refreshKey={refreshCounter} />;
@@ -201,12 +233,24 @@ const PortalManagementPage = () => {
           className={`sticky top-4 hidden h-fit rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm transition-all duration-300 ease-in-out lg:block ${isNavExpanded ? 'w-[260px]' : 'w-[72px]'}`}
         >
           <div>
-            <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">
-              Portal Functions
-            </p>
+            <div className={`mb-3 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] transition-all ${isNavExpanded ? 'gap-3 px-3 py-3' : 'justify-center px-0 py-2.5'}`}>
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--c-accent)]/25 bg-[color:color-mix(in_srgb,var(--c-accent)_14%,transparent)] text-[var(--c-accent)]">
+                <PortalIcon className="h-4.5 w-4.5" />
+              </span>
+              {isNavExpanded ? (
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--c-muted)]">
+                    Workspace
+                  </p>
+                  <p className="truncate text-sm font-black text-[var(--c-text)]">
+                    Portal Functions
+                  </p>
+                </div>
+              ) : null}
+            </div>
             <div className="grid gap-1.5">
               {FUNCTION_ITEMS.map((item) => {
-                const isActive = activeFunction === item.key;
+                const isActive = currentFunction === item.key;
                 return (
                   <button
                     key={item.key}
@@ -223,9 +267,6 @@ const PortalManagementPage = () => {
                       <item.Icon className="h-4 w-4" />
                     </span>
                     <span className={`${isNavExpanded ? 'inline' : 'hidden'} text-xs font-bold whitespace-nowrap`}>{item.label}</span>
-                    <div className={`${isNavExpanded ? 'hidden' : 'block'} absolute left-full ml-3 hidden group-hover:block rounded-lg bg-[var(--c-surface)] border border-[var(--c-border)] px-3 py-2 text-xs font-bold text-[var(--c-text)] shadow-2xl z-50 whitespace-nowrap ring-1 ring-black/5`}>
-                      {item.label}
-                    </div>
                   </button>
                 );
               })}
@@ -238,7 +279,7 @@ const PortalManagementPage = () => {
             <label className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--c-muted)]">
               Portal Function
               <select
-                value={activeFunction}
+                value={currentFunction}
                 onChange={(event) => setActiveFunction(event.target.value)}
                 className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-sm text-[var(--c-text)] outline-none"
               >
@@ -261,7 +302,7 @@ const PortalManagementPage = () => {
             <p className="text-xs text-[var(--c-muted)]">{activeMeta.description}</p>
           </div>
 
-          <div key={activeFunction} className="animate-in fade-in slide-in-from-bottom-2 duration-300 pb-20">
+          <div key={`${currentFunction}-${portalId || 'base'}-${isCreateRoute ? 'create' : isEditRoute ? 'edit' : 'view'}`} className="animate-in fade-in slide-in-from-bottom-2 duration-300 pb-20">
             {renderActiveContent()}
           </div>
         </div>

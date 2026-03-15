@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const IconSelect = ({
     value,
@@ -14,33 +15,83 @@ const IconSelect = ({
     hideLabel = false,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [panelPlacement, setPanelPlacement] = useState('bottom');
+    const [panelMaxHeight, setPanelMaxHeight] = useState(256);
+    const [panelStyle, setPanelStyle] = useState({});
     const rootRef = useRef(null);
+    const panelRef = useRef(null);
     const selected = options.find((opt) => opt.value === value) || null;
     const triggerClass = [
         'flex w-full items-center justify-between rounded-[1.15rem]',
-        'border border-white/40 bg-[color:color-mix(in_srgb,var(--c-surface)_82%,white_18%)]',
+        'border border-[var(--c-border)] bg-[var(--c-panel)]',
         'px-3 py-2.5 text-left text-sm font-bold shadow-sm outline-none transition',
         'text-[var(--c-text)]',
-        'shadow-[-10px_-10px_18px_rgba(255,255,255,0.7),10px_10px_22px_rgba(148,163,184,0.22)]',
+        'shadow-[0_10px_24px_-18px_rgba(15,23,42,0.38)]',
         'focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10',
         'disabled:opacity-50',
     ].join(' ');
     const panelClass = [
         'absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-[1.25rem]',
-        'border border-white/45 bg-[color:color-mix(in_srgb,var(--c-surface)_88%,white_12%)]',
+        'border border-[var(--c-border)] bg-[var(--c-surface)]',
         'p-2 shadow-2xl',
-        'shadow-[-12px_-12px_24px_rgba(255,255,255,0.72),14px_14px_28px_rgba(148,163,184,0.24)]',
+        'shadow-[0_22px_48px_-28px_rgba(15,23,42,0.55)]',
         'backdrop-blur-sm',
     ].join(' ');
 
     useEffect(() => {
         const onDocumentClick = (event) => {
+            const target = event.target;
             if (!rootRef.current) return;
-            if (!rootRef.current.contains(event.target)) setIsOpen(false);
+            if (rootRef.current.contains(target)) return;
+            if (panelRef.current?.contains(target)) return;
+            setIsOpen(false);
         };
         document.addEventListener('mousedown', onDocumentClick);
         return () => document.removeEventListener('mousedown', onDocumentClick);
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const updatePanelLayout = () => {
+            if (!rootRef.current) return;
+            const rect = rootRef.current.getBoundingClientRect();
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+            const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+            const preferredHeight = Math.min(panelRef.current?.scrollHeight || 256, 320);
+            const gap = 12;
+            const bottomSpace = Math.max(120, Math.floor(viewportHeight - rect.bottom - gap - 8));
+            const topSpace = Math.max(120, Math.floor(rect.top - gap - 8));
+            const shouldOpenUp = bottomSpace < preferredHeight && topSpace > bottomSpace;
+            const width = Math.max(rect.width, 240);
+            const left = Math.min(
+                Math.max(12, rect.left),
+                Math.max(12, viewportWidth - width - 12),
+            );
+            const top = shouldOpenUp
+                ? Math.max(12, rect.top - Math.min(preferredHeight, topSpace) - gap)
+                : Math.min(viewportHeight - Math.min(preferredHeight, bottomSpace) - 12, rect.bottom + gap);
+
+            setPanelPlacement(shouldOpenUp ? 'top' : 'bottom');
+            setPanelMaxHeight(shouldOpenUp ? topSpace : bottomSpace);
+            setPanelStyle({
+                position: 'fixed',
+                top: `${top}px`,
+                left: `${left}px`,
+                width: `${width}px`,
+                maxHeight: `${shouldOpenUp ? topSpace : bottomSpace}px`,
+            });
+        };
+
+        updatePanelLayout();
+        window.addEventListener('resize', updatePanelLayout);
+        window.addEventListener('scroll', updatePanelLayout, true);
+
+        return () => {
+            window.removeEventListener('resize', updatePanelLayout);
+            window.removeEventListener('scroll', updatePanelLayout, true);
+        };
+    }, [isOpen, options.length, searchable]);
 
     return (
         <div ref={rootRef} className={`relative ${className}`.trim()}>
@@ -70,15 +121,25 @@ const IconSelect = ({
             </button>
 
             {isOpen && !disabled && (
-                <div className={panelClass}>
+                createPortal(
+                <div
+                    ref={panelRef}
+                    className={`${panelClass} ${panelPlacement === 'top' ? 'origin-bottom' : 'origin-top'}`}
+                    style={{
+                        ...panelStyle,
+                        zIndex: 9999,
+                        maxHeight: `${panelMaxHeight}px`,
+                        marginTop: 0,
+                    }}
+                >
                     {searchable ? (
-                        <div className="sticky top-0 z-10 mb-1 rounded-xl bg-[color:color-mix(in_srgb,var(--c-surface)_90%,white_10%)] p-1">
+                        <div className="sticky top-0 z-10 mb-1 rounded-xl bg-[var(--c-surface)] p-1">
                             <input
                                 type="text"
                                 value={searchValue}
                                 onChange={(event) => onSearchChange?.(event.target.value)}
                                 placeholder={searchPlaceholder}
-                                className="w-full rounded-xl border border-white/40 bg-[color:color-mix(in_srgb,var(--c-panel)_82%,white_18%)] px-3 py-2 text-xs font-semibold text-[var(--c-text)] outline-none transition shadow-[inset_2px_2px_5px_rgba(148,163,184,0.16),inset_-2px_-2px_5px_rgba(255,255,255,0.65)] focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/10"
+                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)] outline-none transition shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/10"
                             />
                         </div>
                     ) : null}
@@ -95,8 +156,8 @@ const IconSelect = ({
                                 }}
                                 className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left transition ${
                                     opt.value === value
-                                        ? 'border border-[var(--c-accent)]/20 bg-[color:color-mix(in_srgb,var(--c-accent)_14%,white_86%)] text-[var(--c-accent)] shadow-[inset_2px_2px_6px_rgba(148,163,184,0.14),inset_-2px_-2px_6px_rgba(255,255,255,0.7)]'
-                                        : 'border border-transparent text-[var(--c-text)] hover:border-white/35 hover:bg-[color:color-mix(in_srgb,var(--c-panel)_78%,white_22%)] hover:shadow-[inset_2px_2px_6px_rgba(148,163,184,0.12),inset_-2px_-2px_6px_rgba(255,255,255,0.62)]'
+                                        ? 'border border-[var(--c-accent)]/20 bg-[color:color-mix(in_srgb,var(--c-accent)_14%,var(--c-surface))] text-[var(--c-accent)]'
+                                        : 'border border-transparent text-[var(--c-text)] hover:border-[var(--c-border)] hover:bg-[var(--c-panel)]'
                                 }`}
                             >
                                 {opt.icon && (
@@ -115,7 +176,9 @@ const IconSelect = ({
                             </button>
                         ))
                     )}
-                </div>
+                </div>,
+                document.body,
+                )
             )}
         </div>
     );

@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BellIcon, SearchIcon } from '../icons/AppIcons';
 import { useTheme } from '../../context/useTheme';
-import { Monitor, MoonStar, SunMedium } from 'lucide-react';
+import { ArrowUpRight, Eye, Monitor, MoonStar, SunMedium } from 'lucide-react';
 import { DEFAULT_PORTAL_ICON } from '../../lib/transactionMethodConfig';
 import { useTenantBrandingLogos } from '../../hooks/useTenantBrandingLogos';
+import { resolveNotificationPrimaryVisual } from '../../lib/notificationVisuals';
+import QuickViewModal from '../common/QuickViewModal';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const toDisplayName = (user) => {
@@ -37,6 +39,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [activeQuickView, setActiveQuickView] = useState(null);
   const menuRef = useRef(null);
   const notificationsRef = useRef(null);
   const appliedTheme = theme === 'system' ? resolvedTheme : theme;
@@ -67,6 +70,13 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
       goTo('notifications');
     }
     setNotificationsOpen(false);
+  };
+
+  const handleNotificationQuickView = async (event, item) => {
+    event.stopPropagation();
+    if (!item?.quickView) return;
+    if (!item.isRead) await onNotificationRead?.(item.id);
+    setActiveQuickView(item.quickView);
   };
 
   return (
@@ -157,23 +167,25 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                             : 'border-[var(--c-ring)] bg-[var(--c-panel)]'
                           }`}
                       >
+                        {(() => {
+                          const primaryVisual = resolveNotificationPrimaryVisual(item);
+                          return (
                         <div className="flex items-start gap-2 text-left">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setNotificationsOpen(false);
-                              if (item.createdBy) goTo(`profile/edit?uid=${encodeURIComponent(item.createdBy)}`);
-                            }}
-                            className="shrink-0 hover:opacity-80"
-                            title="View Profile"
-                          >
-                            <img
-                              src={item.createdByUser?.photoURL || '/avatar.png'}
-                              alt={item.createdByUser?.displayName || 'User'}
-                              className="mt-0.5 h-8 w-8 rounded-full border border-[var(--c-border)] object-cover"
-                            />
-                          </button>
+                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_70%,white_30%)]">
+                            {primaryVisual.kind === 'image' ? (
+                              <img
+                                src={primaryVisual.src}
+                                alt={primaryVisual.alt || 'Notification'}
+                                className="h-full w-full object-cover"
+                                onError={(event) => {
+                                  event.currentTarget.onerror = null;
+                                  event.currentTarget.src = primaryVisual.fallbackSrc || DEFAULT_PORTAL_ICON;
+                                }}
+                              />
+                            ) : (
+                              <primaryVisual.Icon className="h-4 w-4 text-[var(--c-accent)]" />
+                            )}
+                          </div>
                           <button
                             type="button"
                             onClick={() => handleNotificationOpen(item)}
@@ -200,21 +212,48 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                                 </p>
                               </div>
                             ) : null}
-                            <div className="mt-1.5 flex items-center justify-between text-[10px] text-[var(--c-muted)]">
-                              <span
-                                className="cursor-pointer hover:text-[var(--c-text)] hover:underline"
+                            <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px] text-[var(--c-muted)]">
+                              <button
+                                type="button"
+                                className="inline-flex min-w-0 items-center gap-1.5 hover:text-[var(--c-text)]"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setNotificationsOpen(false);
                                   if (item.createdBy) goTo(`profile/edit?uid=${encodeURIComponent(item.createdBy)}`);
                                 }}
                               >
-                                {item.createdByUser?.displayName || 'System'}
-                              </span>
+                                <img
+                                  src={item.createdByUser?.photoURL || '/avatar.png'}
+                                  alt={item.createdByUser?.displayName || 'User'}
+                                  className="h-4 w-4 rounded-full border border-[var(--c-border)] object-cover"
+                                />
+                                <span className="truncate">{item.createdByUser?.displayName || 'System'}</span>
+                              </button>
                               <span>{toDateLabel(item.createdAt)}</span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              {item.quickView ? (
+                                <button
+                                  type="button"
+                                  onClick={(event) => handleNotificationQuickView(event, item)}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--c-accent)]/20 bg-[color:color-mix(in_srgb,var(--c-accent)_12%,var(--c-surface))] px-2.5 py-1 text-[10px] font-bold text-[var(--c-accent)] transition hover:border-[var(--c-accent)]/35 hover:bg-[color:color-mix(in_srgb,var(--c-accent)_18%,var(--c-surface))]"
+                                  title="Quick View"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  <span>Quick View</span>
+                                </button>
+                              ) : null}
+                              {item.routePath ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--c-muted)]">
+                                  <ArrowUpRight className="h-3.5 w-3.5" />
+                                  <span>Open in workspace</span>
+                                </span>
+                              ) : null}
                             </div>
                           </button>
                         </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -268,6 +307,11 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
           </div>
         </div>
       </div>
+      <QuickViewModal
+        isOpen={Boolean(activeQuickView)}
+        quickView={activeQuickView}
+        onClose={() => setActiveQuickView(null)}
+      />
     </header >
   );
 };
