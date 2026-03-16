@@ -68,7 +68,7 @@ const renderUtilityIcon = (IconComponent, accent = false) => (
   </SidebarIconTile>
 );
 
-const AppSidebar = ({ isCollapsed, onToggle }) => {
+const AppSidebar = ({ isCollapsed, isHidden = false, isOverlay = false, layoutMode, onToggle }) => {
   const { tenantId } = useParams();
   const runtimePlatform = getRuntimePlatform();
   const visibleNavItems = NAV_ITEMS.filter((item) => isVisibleOnPlatform(item, runtimePlatform));
@@ -76,8 +76,26 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
   const recycleDomains = ['clients', 'portals', 'transactions', 'loanPersons', 'statements', 'paymentReceipts', 'invoices'];
   const { total: recycleTotal } = useRecycleBinSummary(tenantId, recycleDomains);
 
+  // In mini mode: overlay sidebar slides in via transform
+  if (isHidden && !isOverlay) return null;
+
+  const sidebarDensityClass = isCollapsed ? 'desktop-sidebar-collapsed' : 'desktop-sidebar-expanded';
+
+  const overlayClasses = isOverlay
+    ? 'desktop-sidebar-overlay fixed inset-y-0 left-0 z-50 shadow-2xl'
+    : '';
+
+  const overlayTransform = isOverlay
+    ? { transform: 'translateX(0)', transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)' }
+    : isHidden
+      ? { transform: 'translateX(-100%)', transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1)' }
+      : {};
+
   return (
-    <aside className={`desktop-sidebar block h-full shrink-0 overflow-hidden border-r border-[var(--c-border)] glass transition-all duration-300 ${isCollapsed ? 'w-[5.5rem]' : 'w-[17.8rem]'}`}>
+    <aside
+      className={`desktop-sidebar ${sidebarDensityClass} block h-full shrink-0 overflow-hidden border-r border-[var(--c-border)] glass transition-all duration-300 ${overlayClasses}`}
+      style={overlayTransform}
+    >
       <div className="flex h-full flex-col">
         <div className={`flex-1 overflow-y-auto scrollbar-hide ${isCollapsed ? 'px-2.5 py-4' : 'px-3 py-4'}`}>
           <nav className="space-y-1.5">
@@ -85,9 +103,8 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
               <div key={item.key} className="group relative flex items-center gap-1">
                 <NavLink
                   to={`/t/${tenantId}/${item.path}`}
-                  title={item.description || item.label}
                   className={({ isActive }) =>
-                    `flex min-h-12 flex-1 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold transition ${isActive
+                    `compact-nav-item flex flex-1 items-center gap-3 rounded-xl px-3 text-[13px] font-semibold transition ${isActive
                       ? 'bg-[color:color-mix(in_srgb,var(--c-panel)_88%,transparent)] text-[var(--c-accent)] ring-1 ring-[var(--c-ring)]'
                       : 'text-[var(--c-muted)] hover:bg-[color:color-mix(in_srgb,var(--c-panel)_75%,transparent)] hover:text-[var(--c-accent)]'
                     } ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`
@@ -102,12 +119,13 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
         </div>
         <div className={`desktop-sidebar-footer border-t border-[var(--c-border)] pb-3 pt-2 ${isCollapsed ? 'px-2.5' : 'px-3'}`}>
           <div className="space-y-1.5">
+            {layoutMode !== 'compact' && (
             <button
               type="button"
               onClick={onToggle}
-              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
               aria-label={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
               className={`flex min-h-11 w-full items-center gap-2.5 rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-panel)_72%,transparent)] px-2.5 text-[13px] font-semibold text-[var(--c-muted)] transition hover:border-[var(--c-ring)] hover:text-[var(--c-accent)] ${isCollapsed ? 'justify-center' : 'justify-start'}`}
+              style={{ minHeight: 'var(--d-control-h)' }}
             >
               <SidebarIconTile>
                 <svg className={`relative z-[1] h-4.5 w-4.5 shrink-0 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,12 +134,13 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
               </SidebarIconTile>
               <span className={isCollapsed ? 'hidden' : 'inline'}>{isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}</span>
             </button>
+            )}
 
             <button
               type="button"
               onClick={openRecycleBin}
-              title="Universal Recycle Bin"
               className={`relative flex min-h-11 w-full items-center gap-2.5 rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_58%,transparent)] px-2.5 text-[13px] font-semibold text-[var(--c-text)] transition hover:border-[var(--c-ring)] hover:bg-[color:color-mix(in_srgb,var(--c-panel)_72%,transparent)] hover:text-[var(--c-accent)] ${isCollapsed ? 'justify-center' : 'justify-start'}`}
+              style={{ minHeight: 'var(--d-control-h)' }}
             >
               {renderUtilityIcon(RecycleBinIcon, true)}
               <span className={isCollapsed ? 'hidden' : 'inline'}>Recycle Bin</span>
@@ -134,13 +153,13 @@ const AppSidebar = ({ isCollapsed, onToggle }) => {
 
             <NavLink
               to={`/t/${tenantId}/settings`}
-              title="Settings"
               className={({ isActive }) =>
                 `flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-[13px] font-semibold transition ${isActive
                   ? 'bg-[color:color-mix(in_srgb,var(--c-panel)_74%,transparent)] text-[var(--c-accent)] ring-1 ring-[var(--c-ring)]'
                   : 'text-[var(--c-muted)] hover:bg-[color:color-mix(in_srgb,var(--c-panel)_72%,transparent)] hover:text-[var(--c-accent)]'
                 } ${isCollapsed ? 'justify-center' : 'justify-start'}`
               }
+              style={{ minHeight: 'var(--d-control-h)' }}
             >
               {renderUtilityIcon(SettingsIcon)}
               <span className={isCollapsed ? 'hidden' : 'inline'}>Settings</span>

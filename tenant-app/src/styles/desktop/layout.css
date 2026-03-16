@@ -2,12 +2,15 @@
   display: flex;
   flex-direction: column;
   height: 100dvh;
-  overflow-x: hidden;
+  overflow: hidden; /* Main shell shouldn't scroll */
+  min-height: 24rem;
+  min-width: 22rem;
 }
 
 .desktop-shell .desktop-frame {
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
 }
 
 .desktop-shell .desktop-main {
@@ -18,20 +21,73 @@
 }
 
 .desktop-shell .desktop-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   min-width: 0;
+  overflow-x: hidden; /* Prevent horizontal spill in main content area */
 }
 
 .desktop-shell .desktop-footer {
   z-index: 10;
+  min-height: var(--d-shell-footer-h);
 }
 
 .desktop-shell .desktop-sidebar-footer {
-  min-height: 68px;
+  min-height: var(--d-shell-footer-h);
   background: transparent;
+}
+
+.desktop-shell .desktop-sidebar {
+  width: var(--d-sidebar-w);
+}
+
+.desktop-shell .desktop-sidebar.desktop-sidebar-collapsed {
+  width: var(--d-sidebar-w-collapsed);
 }
 
 .desktop-shell .brand-button,
 .desktop-shell .brand-button * {
   text-decoration: none !important;
+}
+
+/* --- Responsive Sidebar Overlay --- */
+.desktop-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.desktop-sidebar-overlay {
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- Overflow Safety Utility --- */
+.desktop-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  width: 100%;
+  margin-bottom: 0.35rem;
+  scrollbar-width: thin;
+}
+
+/* Force flex children to be able to shrink below content size */
+.desktop-shell * {
+  min-width: 0;
+}
+
+.desktop-main > .compact-page {
+  min-height: 100%;
 }

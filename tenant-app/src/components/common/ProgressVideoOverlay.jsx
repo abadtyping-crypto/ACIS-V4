@@ -11,6 +11,7 @@ const ProgressVideoOverlay = ({
   dismissible = true,
   frameWidthClass = 'max-w-4xl',
   backdropClassName = 'bg-[rgba(15,23,42,0.58)] backdrop-blur-md',
+  frameless = false,
 }) => {
   useEffect(() => {
     if (!open) return undefined;
@@ -34,7 +35,7 @@ const ProgressVideoOverlay = ({
 
   return (
     <div className={`fixed inset-0 z-[120] flex items-center justify-center px-4 py-6 ${backdropClassName}`}>
-      <div className={`w-full ${frameWidthClass} overflow-hidden rounded-[2rem] border border-[#f1ddcf] bg-white shadow-[0_32px_80px_-28px_rgba(15,23,42,0.18)]`}>
+      <div className={`w-full ${frameWidthClass} overflow-hidden ${frameless ? 'bg-transparent shadow-none border-0 rounded-none' : 'rounded-[2rem] border border-[#f1ddcf] bg-white shadow-[0_32px_80px_-28px_rgba(15,23,42,0.18)]'}`}>
         {minimal ? (
           <div className="px-6 pt-6 text-center">
             <p className="text-lg font-black text-[#53321d]">{title}</p>
@@ -59,10 +60,10 @@ const ProgressVideoOverlay = ({
           </div>
         )}
 
-        <div className={minimal ? 'bg-white px-6 pb-6 pt-4' : 'bg-white p-4'}>
-          <div className={`overflow-hidden rounded-[1.5rem] bg-white ${minimal ? '' : 'border border-[#f1ddcf] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.8)]'}`}>
+        <div className={minimal ? (frameless ? 'px-0 pb-0 pt-4' : 'bg-white px-6 pb-6 pt-4') : 'bg-white p-4'}>
+          <div className={`overflow-hidden ${frameless ? 'rounded-none bg-transparent' : 'rounded-[1.5rem] bg-white'} ${minimal ? '' : 'border border-[#f1ddcf] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.8)]'}`}>
             <video
-              className="block h-auto w-full bg-white"
+              className={`block h-auto w-full ${frameless ? 'bg-transparent' : 'bg-white'}`}
               src={videoSrc}
               autoPlay
               loop

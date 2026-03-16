@@ -108,7 +108,7 @@ const DependentDetailsPage = () => {
   }
 
   return (
-    <PageShell title={pageTitle} subtitle={pageSubtitle}>
+    <PageShell title={pageTitle} subtitle={pageSubtitle} widthPreset="data">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -134,7 +134,7 @@ const DependentDetailsPage = () => {
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Relationship</p>
-            <p className="mt-2 text-base font-black text-[var(--c-text)]">
+            <p className="mt-2 text-sm font-bold text-[var(--c-text)]">
               {dependent.relationship || 'Dependent'}
             </p>
           </article>
@@ -142,18 +142,18 @@ const DependentDetailsPage = () => {
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Parent</p>
             <Link
               to={`/t/${tenantId}/clients/${clientId}`}
-              className="mt-2 inline-flex items-center gap-2 text-base font-black text-[var(--c-text)] hover:text-[var(--c-accent)]"
+              className="mt-2 inline-flex items-center gap-2 text-sm font-bold text-[var(--c-text)] hover:text-[var(--c-accent)]"
             >
               {parent?.tradeName || parent?.fullName || parent?.displayClientId || clientId}
             </Link>
           </article>
           <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Transactions</p>
-            <p className="mt-2 text-base font-black text-[var(--c-text)]">{transactions.length}</p>
+            <p className="mt-2 text-sm font-bold text-[var(--c-text)]">{transactions.length}</p>
           </article>
           <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Status</p>
-            <p className="mt-2 text-base font-black text-[var(--c-text)]">{dependent.status || 'active'}</p>
+            <p className="mt-2 text-sm font-bold text-[var(--c-text)]">{dependent.status || 'active'}</p>
           </article>
         </section>
 
@@ -199,7 +199,7 @@ const DependentDetailsPage = () => {
           {transactions.length === 0 ? (
             <p className="py-4 text-center text-xs text-[var(--c-muted)]">No transactions linked to this dependent.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+            <div className="desktop-table-scroll overflow-x-auto rounded-xl border border-[var(--c-border)]">
               <table className="min-w-full text-xs">
                 <thead className="bg-[var(--c-panel)] text-[var(--c-muted)] uppercase">
                   <tr>

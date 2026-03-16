@@ -4,6 +4,7 @@ import { useTenant } from '../../context/useTenant';
 import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
 import ServiceTemplateEditor from '../common/ServiceTemplateEditor';
+import ApplicationIconQuickAddPanel from '../common/ApplicationIconQuickAddPanel';
 import {
     fetchServiceTemplates,
     upsertServiceTemplate,
@@ -15,6 +16,7 @@ import CurrencyValue from '../common/CurrencyValue';
 import {
     buildServiceTemplatePayload,
     createEmptyServiceTemplateDraft,
+    findServiceTemplateNameConflict,
     hydrateServiceTemplateDraft,
     validateServiceTemplateDraft,
 } from '../../lib/serviceTemplateRules';
@@ -29,6 +31,7 @@ const ServiceTemplateSection = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
     const [status, setStatus] = useState('');
+    const [isIconQuickAddOpen, setIsIconQuickAddOpen] = useState(false);
 
     // Form State
     const [draft, setDraft] = useState(createEmptyServiceTemplateDraft());
@@ -59,6 +62,7 @@ const ServiceTemplateSection = () => {
         setDraft(createEmptyServiceTemplateDraft());
         setEditingId(null);
         setError('');
+        setIsIconQuickAddOpen(false);
     };
 
     const handleEdit = (row) => {
@@ -71,6 +75,11 @@ const ServiceTemplateSection = () => {
     const handleSubmit = async () => {
         const validationError = validateServiceTemplateDraft(draft);
         if (validationError) return setError(validationError);
+
+        const duplicateRow = findServiceTemplateNameConflict(rows, draft.name, editingId);
+        if (duplicateRow) {
+            return setError('Another application already uses this name variant (case/space). Choose a unique name.');
+        }
 
         setIsSaving(true);
         setError('');
@@ -133,6 +142,25 @@ const ServiceTemplateSection = () => {
                     draft={draft}
                     onDraftChange={setDraft}
                     icons={icons}
+                    iconActionSlot={(
+                        <ApplicationIconQuickAddPanel
+                            tenantId={tenantId}
+                            createdBy={user?.uid || ''}
+                            existingIcons={icons}
+                            suggestedName={draft.name}
+                            isOpen={isIconQuickAddOpen}
+                            onOpen={() => setIsIconQuickAddOpen(true)}
+                            onClose={() => setIsIconQuickAddOpen(false)}
+                            onCreated={(createdIcon) => {
+                                setIcons((prev) => (
+                                    [...prev, createdIcon].sort((a, b) => String(a.iconName || '').localeCompare(String(b.iconName || ''), undefined, { sensitivity: 'base' }))
+                                ));
+                                setDraft((prev) => ({ ...prev, iconId: createdIcon.iconId }));
+                                setStatus(`Icon "${createdIcon.iconName}" added and selected.`);
+                                setError('');
+                            }}
+                        />
+                    )}
                     onSubmit={(event) => {
                         event.preventDefault();
                         void handleSubmit();
@@ -175,10 +203,10 @@ const ServiceTemplateSection = () => {
                                     ) : null}
                                     <div className="mt-1 flex gap-3 text-[10px] font-bold uppercase text-[var(--c-muted)]">
                                         <span className="flex items-center gap-1">
-                                            Gov: <CurrencyValue amount={row.govCharge} hideIcon />
+                                            Gov: <CurrencyValue value={row.govCharge} />
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            Client: <CurrencyValue amount={row.clientCharge} hideIcon />
+                                            Client: <CurrencyValue value={row.clientCharge} />
                                         </span>
                                     </div>
                                 </div>

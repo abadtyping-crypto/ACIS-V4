@@ -30,6 +30,60 @@
   --glass-blur: blur(20px);
   --glass-shadow: 0 16px 44px -30px rgba(230, 126, 34, 0.62);
 
+  /* Desktop density tokens (default: compact-standard) */
+  --d-font-label: 0.69rem;
+  --d-font-body: 0.83rem;
+  --d-font-title: 1.1rem;
+  --d-font-display: 1.65rem;
+  --d-lh-tight: 1.2;
+  --d-lh-body: 1.35;
+  --d-weight-label: 620;
+  --d-weight-body: 520;
+  --d-weight-title: 680;
+
+  --d-icon-xs: 0.75rem;
+  --d-icon-sm: 0.95rem;
+  --d-icon-md: 1.1rem;
+  --d-icon-hero: 1.45rem;
+
+  --d-control-h: 2.5rem;
+  --d-control-h-sm: 2.1rem;
+  --d-control-h-lg: 2.8rem;
+  --d-icon-btn: 2.4rem;
+  --d-badge-h: 1rem;
+  --d-row-gap: 0.55rem;
+
+  --d-card-pad-x: 0.95rem;
+  --d-card-pad-y: 0.85rem;
+  --d-card-gap: 0.7rem;
+  --d-section-gap: 0.95rem;
+  --d-panel-radius: 1rem;
+
+  --d-shell-titlebar-h: 2.1rem;
+  --d-shell-header-h: 3.7rem;
+  --d-shell-footer-h: 2.9rem;
+  --d-shell-main-pad-x: 1rem;
+  --d-shell-main-pad-y: 0.9rem;
+
+  --d-sidebar-w: 16.8rem;
+  --d-sidebar-w-collapsed: 5rem;
+  --d-sidebar-item-h: 2.7rem;
+
+  --d-page-max-content: 78rem;
+  --d-page-max-form: 64rem;
+  --d-page-max-data: 84rem;
+
+  --d-modal-w: 46rem;
+  --d-modal-max-h: 78vh;
+  --d-popover-w: 22rem;
+  --d-popover-max-h: 24rem;
+
+  --d-table-row-h: 2.5rem;
+  --d-table-cell-px: 0.75rem;
+  --d-table-cell-py: 0.6rem;
+  --d-table-font: 0.76rem;
+  --d-empty-pad: 1.8rem;
+
   color: var(--c-text);
   background-color: var(--c-bg);
   /* Native System Font Stack */
@@ -37,6 +91,57 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-density='compact-tight'] {
+  --d-font-label: 0.66rem;
+  --d-font-body: 0.78rem;
+  --d-font-title: 1rem;
+  --d-font-display: 1.45rem;
+
+  --d-control-h: 2.25rem;
+  --d-control-h-sm: 1.95rem;
+  --d-control-h-lg: 2.55rem;
+  --d-icon-btn: 2.15rem;
+
+  --d-card-pad-x: 0.78rem;
+  --d-card-pad-y: 0.72rem;
+  --d-card-gap: 0.55rem;
+  --d-section-gap: 0.78rem;
+
+  --d-shell-titlebar-h: 1.95rem;
+  --d-shell-header-h: 3.4rem;
+  --d-shell-footer-h: 2.6rem;
+  --d-shell-main-pad-x: 0.7rem;
+  --d-shell-main-pad-y: 0.65rem;
+
+  --d-sidebar-w: 15.8rem;
+  --d-sidebar-w-collapsed: 4.6rem;
+  --d-sidebar-item-h: 2.45rem;
+
+  --d-page-max-content: 72rem;
+  --d-page-max-form: 56rem;
+  --d-page-max-data: 78rem;
+
+  --d-modal-w: 42rem;
+  --d-modal-max-h: 74vh;
+  --d-popover-w: 20rem;
+  --d-popover-max-h: 21.5rem;
+
+  --d-table-row-h: 2.25rem;
+  --d-table-cell-px: 0.6rem;
+  --d-table-cell-py: 0.48rem;
+  --d-table-font: 0.72rem;
+  --d-empty-pad: 1.4rem;
+}
+
+:root[data-density='compact-wide'] {
+  --d-shell-main-pad-x: 1.25rem;
+  --d-shell-main-pad-y: 1rem;
+  --d-page-max-content: 84rem;
+  --d-page-max-form: 68rem;
+  --d-page-max-data: 92rem;
+  --d-popover-w: 23rem;
 }
 
 :root[data-theme='dark'] {
@@ -201,4 +306,70 @@ body::before {
 
 .auto-fit-span-full {
   grid-column: 1 / -1;
+}
+
+.compact-shell-main {
+  padding: var(--d-shell-main-pad-y) var(--d-shell-main-pad-x);
+}
+
+.compact-page {
+  width: 100%;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--d-section-gap);
+}
+
+.compact-page-width-content { max-width: var(--d-page-max-content); }
+.compact-page-width-form { max-width: var(--d-page-max-form); }
+.compact-page-width-data { max-width: var(--d-page-max-data); }
+.compact-page-width-full { max-width: 100%; }
+
+.compact-card,
+.compact-section {
+  border-radius: var(--d-panel-radius);
+  padding: var(--d-card-pad-y) var(--d-card-pad-x);
+  gap: var(--d-card-gap);
+}
+
+.compact-field,
+.compact-input,
+.compact-select,
+.compact-action {
+  min-height: var(--d-control-h);
+  font-size: var(--d-font-body);
+  line-height: var(--d-lh-body);
+}
+
+.compact-icon-action {
+  width: var(--d-icon-btn);
+  min-width: var(--d-icon-btn);
+  height: var(--d-icon-btn);
+}
+
+.compact-popover {
+  width: min(100%, var(--d-popover-w));
+  max-height: var(--d-popover-max-h);
+}
+
+.compact-dialog {
+  width: min(100%, var(--d-modal-w));
+  max-height: var(--d-modal-max-h);
+}
+
+.compact-table {
+  font-size: var(--d-table-font);
+}
+
+.compact-table thead th,
+.compact-table tbody td {
+  padding: var(--d-table-cell-py) var(--d-table-cell-px);
+}
+
+.compact-table tbody tr {
+  min-height: var(--d-table-row-h);
+}
+
+.compact-nav-item {
+  min-height: var(--d-sidebar-item-h);
 }

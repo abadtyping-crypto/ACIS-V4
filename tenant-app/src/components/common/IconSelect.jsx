@@ -22,16 +22,16 @@ const IconSelect = ({
     const panelRef = useRef(null);
     const selected = options.find((opt) => opt.value === value) || null;
     const triggerClass = [
-        'flex w-full items-center justify-between rounded-[1.15rem]',
+        'compact-field flex w-full items-center justify-between rounded-[1.15rem]',
         'border border-[var(--c-border)] bg-[var(--c-panel)]',
-        'px-3 py-2.5 text-left text-sm font-bold shadow-sm outline-none transition',
+        'px-3 text-left text-[13px] font-semibold shadow-sm outline-none transition',
         'text-[var(--c-text)]',
         'shadow-[0_10px_24px_-18px_rgba(15,23,42,0.38)]',
         'focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/10',
         'disabled:opacity-50',
     ].join(' ');
     const panelClass = [
-        'absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-[1.25rem]',
+        'compact-popover absolute z-50 mt-1.5 w-full overflow-auto rounded-[1.25rem]',
         'border border-[var(--c-border)] bg-[var(--c-surface)]',
         'p-2 shadow-2xl',
         'shadow-[0_22px_48px_-28px_rgba(15,23,42,0.55)]',
@@ -139,7 +139,7 @@ const IconSelect = ({
                                 value={searchValue}
                                 onChange={(event) => onSearchChange?.(event.target.value)}
                                 placeholder={searchPlaceholder}
-                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-semibold text-[var(--c-text)] outline-none transition shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/10"
+                                className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1.5 text-xs font-semibold text-[var(--c-text)] outline-none transition shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)] focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-accent)]/10"
                             />
                         </div>
                     ) : null}
@@ -154,7 +154,7 @@ const IconSelect = ({
                                     onChange(opt.value);
                                     setIsOpen(false);
                                 }}
-                                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left transition ${
+                                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition ${
                                     opt.value === value
                                         ? 'border border-[var(--c-accent)]/20 bg-[color:color-mix(in_srgb,var(--c-accent)_14%,var(--c-surface))] text-[var(--c-accent)]'
                                         : 'border border-transparent text-[var(--c-text)] hover:border-[var(--c-border)] hover:bg-[var(--c-panel)]'

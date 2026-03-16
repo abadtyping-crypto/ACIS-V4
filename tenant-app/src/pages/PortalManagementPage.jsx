@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import {
-  BellIcon,
-  InvoiceIcon,
   PortalIcon,
   ReceiptIcon,
   SettingsIcon,
@@ -14,8 +12,6 @@ import LoanManagementSection from '../components/portal/LoanManagementSection';
 import InternalTransferSection from '../components/portal/InternalTransferSection';
 import PortalSetupSection from '../components/portal/PortalSetupSection';
 import PortalFormPage from './PortalFormPage';
-import RecentTransactionsSection from '../components/portal/RecentTransactionsSection';
-import ReportsSection from '../components/portal/ReportsSection';
 import { useRecycleBin } from '../context/useRecycleBin';
 import { useAuth } from '../context/useAuth';
 import { useTenant } from '../context/useTenant';
@@ -59,20 +55,6 @@ const FUNCTION_ITEMS = [
     description: 'Open portal details to review and adjust operational balances safely.',
     Icon: PortalIcon,
   },
-  {
-    key: 'recent',
-    label: 'Recent Activity',
-    short: 'Recent',
-    description: 'Review recent transactions and trigger document actions quickly.',
-    Icon: BellIcon,
-  },
-  {
-    key: 'reports',
-    label: 'Configuration & Reports',
-    short: 'Reports',
-    description: 'Generate statements and exports for selected portals.',
-    Icon: InvoiceIcon,
-  },
 ];
 
 const PortalBalanceAdjustmentPanel = ({ refreshKey }) => {
@@ -95,7 +77,7 @@ const PortalBalanceAdjustmentPanel = ({ refreshKey }) => {
   }, [tenantId, refreshKey]);
 
   return (
-    <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.75)] sm:p-6">
+    <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm sm:p-5">
       <div className="mb-4">
         <h3 className="text-sm font-black text-[var(--c-text)] sm:text-base">Portal Balance Adjustment</h3>
         <p className="text-xs text-[var(--c-muted)]">
@@ -209,12 +191,6 @@ const PortalManagementPage = () => {
     if (currentFunction === 'balance') {
       return <PortalBalanceAdjustmentPanel refreshKey={refreshCounter} />;
     }
-    if (currentFunction === 'recent') {
-      return <RecentTransactionsSection isOpen={true} onToggle={() => null} refreshKey={refreshCounter} />;
-    }
-    if (currentFunction === 'reports') {
-      return <ReportsSection isOpen={true} onToggle={() => null} refreshKey={refreshCounter} />;
-    }
     return <PortalSummarySection onQuickAction={handleQuickAction} refreshKey={refreshCounter} />;
   };
 
@@ -225,6 +201,7 @@ const PortalManagementPage = () => {
       title="Portal Management"
       subtitle="Unified workspace for portal setup, transactions, adjustments, and reporting."
       icon={PortalIcon}
+      widthPreset="data"
     >
       <div className="grid h-full gap-4 overflow-hidden lg:grid-cols-[auto_1fr]">
         <aside

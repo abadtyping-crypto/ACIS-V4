@@ -3,6 +3,7 @@ import { Search, Tag, ChevronRight, Hash, Plus } from 'lucide-react';
 import { fetchServiceTemplates } from '../../lib/serviceTemplateStore';
 import { useTenant } from '../../context/useTenant';
 import { fetchApplicationIconLibrary } from '../../lib/applicationIconLibraryStore';
+import DirhamIcon from '../common/DirhamIcon';
 
 const EMIRATES = [
     { name: 'Abu Dhabi', icon: '/emiratesIcon/abudhabi.png' },
@@ -13,6 +14,12 @@ const EMIRATES = [
     { name: 'Sharjah', icon: '/emiratesIcon/sharjah.png' },
     { name: 'Umm Al Quwain', icon: '/emiratesIcon/ummAlQuwain.png' },
 ];
+
+const formatChargeValue = (value) => {
+    const num = Number(value || 0);
+    if (!Number.isFinite(num)) return '0.00';
+    return num.toFixed(2);
+};
 
 /**
  * Reusable Service/Template Search Component
@@ -118,7 +125,7 @@ const ServiceSearchField = ({
             <div
                 onClick={() => setIsOpen(true)}
                 className={`flex w-full cursor-pointer items-center gap-3 border bg-[var(--c-panel)] transition-all ${
-                    isCompact ? 'min-h-[42px] rounded-xl px-3 py-2' : 'min-h-[50px] rounded-2xl px-4 py-3'
+                    isCompact ? 'compact-field min-h-[40px] rounded-xl px-3 py-2' : 'compact-field min-h-[44px] rounded-xl px-3 py-2.5'
                 } ${isOpen ? 'border-[var(--c-accent)] ring-4 ring-[var(--c-accent)]/5' : 'border-[var(--c-border)]'
                     }`}
             >
@@ -128,7 +135,7 @@ const ServiceSearchField = ({
                 <div className="min-w-0 flex-1">
                     {selectedItem ? (
                         <>
-                            <p className={`truncate font-black text-[var(--c-text)] ${isCompact ? 'text-xs' : 'text-sm'}`}>
+                            <p className={`truncate font-semibold text-[var(--c-text)] ${isCompact ? 'text-xs' : 'text-sm'}`}>
                                 {selectedItem.name}
                             </p>
                             {selectedItem.description ? (
@@ -154,7 +161,7 @@ const ServiceSearchField = ({
                     <div className="sticky top-0 border-b border-[var(--c-border)] bg-[var(--c-surface)] p-3">
                         <input
                             autoFocus
-                            className="w-full font-bold rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5 text-sm outline-none focus:border-[var(--c-accent)]"
+                            className="compact-field w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-sm font-semibold outline-none focus:border-[var(--c-accent)]"
                             placeholder="Search applications..."
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
@@ -170,7 +177,7 @@ const ServiceSearchField = ({
                                 <button
                                     type="button"
                                     onClick={() => onCreateNew?.()}
-                                    className="flex items-center gap-2 mx-auto px-4 py-2 rounded-xl bg-[var(--c-accent)] text-[10px] font-black text-white uppercase shadow-lg shadow-[var(--c-accent)]/20"
+                                    className="compact-action flex items-center gap-2 mx-auto rounded-xl bg-[var(--c-accent)] px-4 text-[10px] font-semibold text-white uppercase shadow-lg shadow-[var(--c-accent)]/20"
                                 >
                                     <Plus size={12} /> Create Custom
                                 </button>
@@ -188,7 +195,7 @@ const ServiceSearchField = ({
                                         {getTemplateIcon(item)}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-black text-[var(--c-text)]">
+                                        <p className="truncate text-sm font-semibold text-[var(--c-text)]">
                                             {item.name}
                                         </p>
                                         {item.description ? (
@@ -198,9 +205,11 @@ const ServiceSearchField = ({
                                             {item.code} • {item.group}
                                         </p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-xs font-black text-[var(--c-text)]">{item.clientCharge}</p>
-                                        <p className="text-[9px] font-bold text-[var(--c-muted)]">Gov: {item.govCharge}</p>
+                                    <div className="flex shrink-0 items-center gap-1.5 text-right">
+                                        <DirhamIcon className="h-3.5 w-3.5" />
+                                        <p className="text-xs font-semibold text-[var(--c-text)]">
+                                            {formatChargeValue(item.clientCharge)}
+                                        </p>
                                     </div>
                                 </button>
                             ))

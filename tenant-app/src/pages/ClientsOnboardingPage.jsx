@@ -81,6 +81,7 @@ const ClientsOnboardingPage = () => {
                 title="Client Onboarding"
                 subtitle="Mobile quick actions for registration and live client list."
                 icon={UserPlus}
+                widthPreset="data"
             >
                 <div className="w-full space-y-4 pb-20">
                     {flash ? (
@@ -99,7 +100,7 @@ const ClientsOnboardingPage = () => {
                                         type="button"
                                         onClick={() => canCreateClient && setMobileView(type.id)}
                                         disabled={!canCreateClient}
-                                        className="flex min-h-14 items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-left hover:border-[var(--c-accent)] disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="compact-action flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-left hover:border-[var(--c-accent)] disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <img src={type.icon} alt={type.label} className="h-8 w-8 rounded-lg object-cover" />
                                         <span className="text-sm font-bold text-[var(--c-text)]">{type.label}</span>
@@ -108,7 +109,7 @@ const ClientsOnboardingPage = () => {
                                 <button
                                     type="button"
                                     onClick={() => setMobileView('list')}
-                                    className="mt-1 flex min-h-14 items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-left hover:border-[var(--c-accent)]"
+                                    className="compact-action mt-1 flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-left hover:border-[var(--c-accent)]"
                                 >
                                     <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--c-surface)]">
                                         <Users className="h-4.5 w-4.5 text-[var(--c-accent)]" />
@@ -160,8 +161,9 @@ const ClientsOnboardingPage = () => {
             title="Clients Onboarding"
             subtitle="Register companies, individuals, or dependents with zero friction."
             icon={UserPlus}
+            widthPreset="data"
         >
-            <div className="w-full space-y-6 pb-20">
+            <div className="w-full space-y-4 pb-12">
                 {flash ? (
                     <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
@@ -182,8 +184,8 @@ const ClientsOnboardingPage = () => {
 
                 {!activeType ? (
                     <>
-                        <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm">
-                            <h2 className="text-lg font-bold text-[var(--c-text)]">Client Registration</h2>
+                        <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm">
+                            <h2 className="text-base font-bold text-[var(--c-text)]">Client Registration</h2>
                             <p className="text-sm text-[var(--c-muted)]">Select a client type to begin the onboarding process.</p>
                             {!canCreateClient ? (
                                 <p className="mt-3 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
@@ -191,15 +193,15 @@ const ClientsOnboardingPage = () => {
                                 </p>
                             ) : null}
 
-                            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                            <div className="mt-4 grid gap-3 sm:grid-cols-3">
                                 {onboardingTypeConfig.map(type => (
                                     <button
                                         key={type.id}
                                         onClick={() => canCreateClient && setActiveType(type.id)}
                                         disabled={!canCreateClient}
-                                        className="group flex flex-col items-center gap-4 rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-6 transition hover:border-[var(--c-accent)] hover:bg-[var(--c-accent)]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="group flex flex-col items-center gap-3 rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4 transition hover:border-[var(--c-accent)] hover:bg-[var(--c-accent)]/5 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-[var(--c-surface)] shadow-sm transition group-hover:scale-110">
+                                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-[var(--c-surface)] shadow-sm transition group-hover:scale-110">
                                             <img src={type.icon} alt={type.label} className="h-full w-full object-cover" />
                                         </div>
                                         <span className="text-sm font-bold text-[var(--c-text)]">{type.label}</span>
@@ -226,9 +228,7 @@ const ClientsOnboardingPage = () => {
                             Back to Selection
                         </button>
 
-                        <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm">
-                            {renderFormByType(activeType, () => setActiveType(null))}
-                        </div>
+                        {renderFormByType(activeType, () => setActiveType(null))}
                     </div>
                 )}
             </div>

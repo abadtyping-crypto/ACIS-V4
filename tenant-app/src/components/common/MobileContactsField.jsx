@@ -133,26 +133,24 @@ const MobileContactsField = ({
             <button
               type="button"
               onClick={() => toggleWhatsApp(contact.id)}
-              className={`${buttonBaseClass} mt-1 h-14 w-14 shrink-0 ${
+              className={`${buttonBaseClass} compact-icon-action mt-1 shrink-0 ${
                 contact.whatsAppEnabled
                   ? 'border-emerald-500/50 bg-emerald-500/12 text-emerald-400'
                   : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]'
               }`}
               aria-label={contact.whatsAppEnabled ? 'Disable WhatsApp for this number' : 'Enable WhatsApp for this number'}
-              title={contact.whatsAppEnabled ? 'WhatsApp enabled' : 'WhatsApp disabled'}
             >
-              <WhatsAppIcon className="h-6 w-6" />
+              <WhatsAppIcon className="h-5 w-5" />
             </button>
 
             {safeContacts.length > 1 ? (
               <button
                 type="button"
                 onClick={() => removeContact(contact.id)}
-                className={`${buttonBaseClass} mt-1 h-14 w-14 shrink-0 border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400`}
+                className={`${buttonBaseClass} compact-icon-action mt-1 shrink-0 border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400`}
                 aria-label="Remove mobile number"
-                title="Remove mobile number"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             ) : null}
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
 import '../../styles/desktop/layout.css';
 import AppFooter from './AppFooter';
@@ -8,6 +8,7 @@ import { useTenantNotifications } from '../../hooks/useTenantNotifications';
 import { useTenant } from '../../context/useTenant';
 import { DESKTOP_APPEARANCE_EVENT, readDesktopAppearance } from '../../lib/mobileAppearance';
 import { useTheme } from '../../context/useTheme';
+import useElectronLayoutMode, { LAYOUT_MINI, LAYOUT_COMPACT, LAYOUT_STANDARD, LAYOUT_WIDE, modeToDensityTier } from '../../hooks/useElectronLayoutMode';
 
 const DESKTOP_PRESET_BACKGROUNDS = {
   aurora:
@@ -26,13 +27,54 @@ const DesktopLayout = ({ tenant, user, onLogout }) => {
   const { tenantId } = useTenant();
   const { resolvedTheme } = useTheme();
   const hasNativeTitleBar = typeof window !== 'undefined' && Boolean(window.electron?.windowControls);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('acis_sidebar_collapsed') === 'true';
-  });
+  const layoutMode = useElectronLayoutMode();
+  const densityTier = modeToDensityTier(layoutMode);
+
+  // --- Sidebar state driven by layout mode ---
+  const savedCollapsed = localStorage.getItem('acis_sidebar_collapsed') === 'true';
+  const [userToggled, setUserToggled] = useState(savedCollapsed);
+  const [overlayOpen, setOverlayOpen] = useState(false);
+
+  // Effective sidebar visibility per mode
+  const sidebarState = useMemo(() => {
+    if (layoutMode === LAYOUT_MINI) return { hidden: true, collapsed: true };
+    if (layoutMode === LAYOUT_COMPACT) return { hidden: false, collapsed: true };
+    if (layoutMode === LAYOUT_STANDARD) return { hidden: false, collapsed: true };
+    // wide — honour user preference
+    return { hidden: false, collapsed: userToggled };
+  }, [layoutMode, userToggled]);
+
+  // Only persist preference in wide mode
+  useEffect(() => {
+    if (layoutMode === LAYOUT_WIDE) {
+      localStorage.setItem('acis_sidebar_collapsed', userToggled);
+    }
+  }, [userToggled, layoutMode]);
 
   useEffect(() => {
-    localStorage.setItem('acis_sidebar_collapsed', isSidebarCollapsed);
-  }, [isSidebarCollapsed]);
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    root.setAttribute('data-layout-mode', layoutMode);
+    root.setAttribute('data-density', densityTier);
+    return () => {
+      root.removeAttribute('data-layout-mode');
+      root.removeAttribute('data-density');
+    };
+  }, [layoutMode, densityTier]);
+
+  // Overlay is only meaningful in mini mode; auto-close on mode change
+  const effectiveOverlayOpen = layoutMode === LAYOUT_MINI && overlayOpen;
+
+  const toggleSidebar = () => {
+    if (layoutMode === LAYOUT_MINI) {
+      setOverlayOpen(prev => !prev);
+    } else if (layoutMode === LAYOUT_COMPACT) {
+      // No toggle in compact — always collapsed
+      return;
+    } else {
+      setUserToggled(prev => !prev);
+    }
+  };
 
   const [desktopAppearance, setDesktopAppearance] = useState(() => readDesktopAppearance());
 
@@ -46,7 +88,6 @@ const DesktopLayout = ({ tenant, user, onLogout }) => {
     };
   }, []);
 
-  const toggleSidebar = () => setIsSidebarCollapsed(prev => !prev);
   const { unreadCount, recentNotifications, markAsRead } = useTenantNotifications(tenantId, user);
 
   const wallpaperPreset = DESKTOP_PRESET_BACKGROUNDS[desktopAppearance.wallpaper] || DESKTOP_PRESET_BACKGROUNDS.aurora;
@@ -62,8 +103,10 @@ const DesktopLayout = ({ tenant, user, onLogout }) => {
   return (
     <div
       className="desktop-shell bg-transparent"
+      data-layout-mode={layoutMode}
+      data-density={densityTier}
       style={{
-        height: hasNativeTitleBar ? 'calc(100dvh - 2.25rem)' : '100dvh',
+        height: hasNativeTitleBar ? 'calc(100dvh - var(--d-shell-titlebar-h))' : '100dvh',
         background: shellBackground,
         backgroundAttachment: desktopAppearance.mode === 'custom' ? 'scroll' : 'fixed',
         backgroundPosition: 'center',
@@ -71,19 +114,34 @@ const DesktopLayout = ({ tenant, user, onLogout }) => {
         backgroundSize: 'cover',
       }}
     >
-      <DesktopHeader 
-        tenant={tenant} 
-        user={user} 
+      <DesktopHeader
+        tenant={tenant}
+        user={user}
         notificationCount={unreadCount}
         recentNotifications={recentNotifications}
         onNotificationRead={markAsRead}
         onLogout={onLogout}
+        layoutMode={layoutMode}
+        onToggleSidebar={toggleSidebar}
       />
       <div className="desktop-frame flex flex-1 min-h-0">
-        <AppSidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
-        <div className="desktop-content flex flex-1 flex-col">
-          <main className="desktop-main flex-1 px-3 py-4 sm:px-5 lg:px-7 lg:py-6">
-            <Outlet />
+        {/* Overlay backdrop for mini mode */}
+        {effectiveOverlayOpen && (
+          <div
+            className="desktop-sidebar-backdrop"
+            onClick={() => setOverlayOpen(false)}
+          />
+        )}
+        <AppSidebar
+          isCollapsed={sidebarState.collapsed}
+          isHidden={sidebarState.hidden}
+          isOverlay={effectiveOverlayOpen}
+          layoutMode={layoutMode}
+          onToggle={toggleSidebar}
+        />
+        <div className="desktop-content flex flex-1 flex-col min-w-0">
+          <main className="desktop-main compact-shell-main flex-1">
+            <Outlet context={{ layoutMode }} />
           </main>
           <AppFooter tenantName={tenant.name} tenantLogoUrl={tenant.logoUrl} />
         </div>

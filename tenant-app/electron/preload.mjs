@@ -5,7 +5,14 @@ contextBridge.exposeInMainWorld(
     windowControls: {
         minimize: () => ipcRenderer.send('window-minimize'),
         maximize: () => ipcRenderer.send('window-maximize'),
-        close: () => ipcRenderer.send('window-close')
+        close: () => ipcRenderer.send('window-close'),
+        getIsMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+        onMaximizedChange: (callback) => {
+            if (typeof callback !== 'function') return () => {};
+            const listener = (_event, value) => callback(Boolean(value));
+            ipcRenderer.on('window-maximized-change', listener);
+            return () => ipcRenderer.removeListener('window-maximized-change', listener);
+        },
     },
     mail: {
         send: (payload) => ipcRenderer.invoke('mail-send', payload),

@@ -102,16 +102,16 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
         <div ref={wrapperRef} className="relative w-full">
             <div
                 onClick={() => setIsOpen(true)}
-                className={`flex min-h-[50px] w-full cursor-pointer items-center gap-3 rounded-2xl border bg-[var(--c-panel)] px-4 py-3 transition-all ${isOpen ? 'border-[var(--c-accent)] ring-4 ring-[var(--c-accent)]/5' : 'border-[var(--c-border)]'
+                className={`compact-field flex min-h-[44px] w-full cursor-pointer items-center gap-3 rounded-xl border bg-[var(--c-panel)] px-3 py-2.5 transition-all ${isOpen ? 'border-[var(--c-accent)] ring-4 ring-[var(--c-accent)]/5' : 'border-[var(--c-border)]'
                     }`}
             >
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--c-surface)] text-[var(--c-muted)]">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--c-surface)] text-[var(--c-muted)]">
                     {getClientIcon(selectedItem)}
                 </div>
                 <div className="min-w-0 flex-1">
                     {selectedItem ? (
                         <>
-                            <p className="truncate text-sm font-black text-[var(--c-text)]">
+                            <p className="truncate text-sm font-semibold text-[var(--c-text)]">
                                 {selectedItem.fullName || selectedItem.tradeName}
                             </p>
                             <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
@@ -137,7 +137,7 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
                     <div className="sticky top-0 border-b border-[var(--c-border)] bg-[var(--c-surface)] p-3">
                         <input
                             autoFocus
-                            className="w-full font-bold rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5 text-sm outline-none focus:border-[var(--c-accent)]"
+                            className="compact-field w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-sm font-semibold outline-none focus:border-[var(--c-accent)]"
                             placeholder="Type to search (Name, ID, Mobile, Emirates ID)..."
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
@@ -161,7 +161,7 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
                                         {getClientIcon(item)}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-black text-[var(--c-text)]">
+                                        <p className="truncate text-sm font-semibold text-[var(--c-text)]">
                                             {item.fullName || item.tradeName}
                                         </p>
                                         <p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">
@@ -169,7 +169,7 @@ const ClientSearchField = ({ onSelect, selectedId, placeholder = 'Search Client.
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <p className={`text-[10px] font-black ${getBalanceValue(item) < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                                        <p className={`text-[10px] font-semibold ${getBalanceValue(item) < 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
                                             <CurrencyValue value={getBalanceValue(item)} iconSize="h-2.5 w-2.5" />
                                         </p>
                                     </div>

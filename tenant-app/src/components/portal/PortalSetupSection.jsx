@@ -20,9 +20,9 @@ const PortalListItem = ({ portal, onEdit, onDelete, onOpen }) => {
     const isNegative = balance < 0;
 
     return (
-        <div className="group flex items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 transition hover:border-[var(--c-accent)]/40 hover:shadow-sm">
+        <div className="group flex items-center gap-2.5 rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-2.5 py-2 transition hover:border-[var(--c-accent)]/40 hover:shadow-sm">
             {/* Icon */}
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-white">
                 <img
                     src={portal.iconUrl || fallbackTypeIcon(portal.type)}
                     alt={portal.name}
@@ -36,9 +36,9 @@ const PortalListItem = ({ portal, onEdit, onDelete, onOpen }) => {
 
             {/* Info */}
             <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold text-[var(--c-text)]">{portal.name}</p>
+                <p className="truncate text-xs font-semibold text-[var(--c-text)]">{portal.name}</p>
                 <p className="text-[10px] uppercase tracking-wider text-[var(--c-muted)]">{portal.type}</p>
-                <p className={`mt-0.5 text-[10px] font-bold ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
+                <p className={`mt-0.5 text-[10px] font-semibold ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
                     <CurrencyValue value={balance} iconSize="h-2.5 w-2.5" />
                 </p>
             </div>
@@ -47,21 +47,21 @@ const PortalListItem = ({ portal, onEdit, onDelete, onOpen }) => {
             <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
                 <ActionBtn
                     onClick={onOpen}
-                    title="Open portal detail"
+                    actionLabel="Open portal detail"
                     className="hover:text-[var(--c-accent)]"
                 >
                     <ExternalLink className="h-3.5 w-3.5" />
                 </ActionBtn>
                 <ActionBtn
                     onClick={onEdit}
-                    title="Edit portal"
+                    actionLabel="Edit portal"
                     className="hover:text-[var(--c-accent)]"
                 >
                     <Pencil className="h-3.5 w-3.5" />
                 </ActionBtn>
                 <ActionBtn
                     onClick={onDelete}
-                    title="Delete portal"
+                    actionLabel="Delete portal"
                     className="hover:text-rose-400"
                 >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -71,12 +71,11 @@ const PortalListItem = ({ portal, onEdit, onDelete, onOpen }) => {
     );
 };
 
-const ActionBtn = ({ onClick, title, className = '', children }) => (
+const ActionBtn = ({ onClick, actionLabel, className = '', children }) => (
     <button
         type="button"
         onClick={onClick}
-        title={title}
-        aria-label={title}
+        aria-label={actionLabel}
         className={`rounded-lg bg-[var(--c-panel)] p-1.5 text-[var(--c-muted)] transition ${className}`}
     >
         {children}
@@ -137,7 +136,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
         <button
             type="button"
             onClick={handleAddNew}
-            className="flex items-center gap-1.5 rounded-xl bg-[var(--c-accent)] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:opacity-90"
+            className="compact-action flex items-center gap-1.5 rounded-xl bg-[var(--c-accent)] px-3 text-xs font-semibold text-white shadow-sm transition hover:opacity-90"
         >
             <Plus className="h-3.5 w-3.5" />
             Add New Portal
@@ -165,7 +164,7 @@ const PortalSetupSection = ({ isOpen, onToggle, refreshKey }) => {
                         <button
                             type="button"
                             onClick={handleAddNew}
-                            className="flex items-center gap-1.5 rounded-xl border border-[var(--c-accent)]/40 px-4 py-2 text-xs font-bold text-[var(--c-accent)] transition hover:bg-[var(--c-accent)]/10"
+                            className="compact-action flex items-center gap-1.5 rounded-xl border border-[var(--c-accent)]/40 px-4 text-xs font-semibold text-[var(--c-accent)] transition hover:bg-[var(--c-accent)]/10"
                         >
                             <Plus className="h-3.5 w-3.5" />
                             Create your first portal

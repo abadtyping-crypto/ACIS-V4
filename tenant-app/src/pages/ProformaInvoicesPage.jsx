@@ -417,6 +417,7 @@ const ProformaInvoicesPage = () => {
       title="Proforma Invoices"
       subtitle="Manage proforma lifecycle, edit service lines, and trigger payment flow."
       icon={Plus}
+      widthPreset="data"
     >
       <div className="space-y-4">
         {status ? (
@@ -488,7 +489,7 @@ const ProformaInvoicesPage = () => {
               <div className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xl font-black text-[var(--c-text)]">{selectedProforma.displayRef || selectedProforma.id}</p>
+                    <p className="text-lg font-bold text-[var(--c-text)]">{selectedProforma.displayRef || selectedProforma.id}</p>
                     <p className="text-sm font-bold text-[var(--c-muted)]">{selectedProforma.clientSnapshot?.name || selectedProforma.clientSnapshot?.tradeName || 'Client'}</p>
                   </div>
                   <p className="rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1 text-xs font-black uppercase tracking-wider text-[var(--c-text)]">

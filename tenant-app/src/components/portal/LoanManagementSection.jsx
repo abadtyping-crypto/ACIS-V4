@@ -327,13 +327,13 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
             defaultOpen={isOpen}
             onToggle={onToggle}
         >
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {/* Pending Balance Banner */}
                 {selectedPerson && (
-                    <div className="flex items-center justify-between rounded-2xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-accent)_10%,var(--c-surface)_90%)] p-4 text-[var(--c-text)] shadow-sm">
+                    <div className="flex items-center justify-between rounded-2xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-accent)_10%,var(--c-surface)_90%)] p-3 text-[var(--c-text)] shadow-sm">
                         <div>
                             <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Pending Balance</p>
-                            <p className="text-2xl font-black">
+                            <p className="text-xl font-semibold">
                                 <span className="inline-flex items-center gap-2">
                                     <img src="/dirham.svg" alt="AED" className="h-5 w-5 object-contain" />
                                     {(pendingBalance || 0).toLocaleString()}
@@ -379,7 +379,6 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                     <button
                                         onClick={() => handleDeletePerson(p)}
                                         className="rounded-lg bg-[var(--c-panel)] p-1.5 text-[var(--c-muted)] hover:text-rose-500 transition"
-                                        title="Delete"
                                     >
                                         <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -423,7 +422,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                 {showQuickAdd ? (
                                     <div className="mt-2 space-y-3 rounded-2xl border border-[var(--c-accent)]/20 bg-[color:color-mix(in_srgb,var(--c-accent)_7%,var(--c-surface))] p-3 animate-in fade-in slide-in-from-top-2">
                                         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--c-accent)]">Quick Add</p>
+                                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--c-accent)]">Quick Add</p>
                                             <p className="mt-1 text-xs font-semibold text-[var(--c-text)]">Create a loan person without leaving this page.</p>
                                         </div>
                                         <input
@@ -459,7 +458,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                                 {newPerson.emailContacts.map((contact) => (
                                                     <div key={contact.id} className="flex items-start gap-2">
                                                         <div className="min-w-0 flex-1">
-                                                            <div className="flex h-14 items-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:border-[var(--c-accent)] focus-within:ring-4 focus-within:ring-[var(--c-accent)]/5">
+                                                            <div className="flex h-11 items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:border-[var(--c-accent)] focus-within:ring-4 focus-within:ring-[var(--c-accent)]/5">
                                                                 <input
                                                                     type="email"
                                                                     value={contact.value}
@@ -484,7 +483,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                                                         }));
                                                                     }}
                                                                     placeholder="email@domain.com"
-                                                                    className="w-full bg-transparent text-sm font-bold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)]"
+                                                                    className="w-full bg-transparent text-sm font-semibold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)]"
                                                                 />
                                                             </div>
                                                             {quickAddEmailErrors[contact.id] ? (
@@ -505,15 +504,14 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                                                 }
                                                                 return { ...prev, emailContacts: nextContacts };
                                                             })}
-                                                            className={`mt-1 inline-flex h-14 w-14 items-center justify-center rounded-2xl border transition ${
+                                                            className={`mt-1 inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${
                                                                 contact.emailEnabled
                                                                     ? 'border-[var(--c-accent)]/45 bg-[color:color-mix(in_srgb,var(--c-accent)_12%,transparent)] text-[var(--c-accent)]'
                                                                     : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]'
                                                             }`}
                                                             aria-label={contact.emailEnabled ? 'Disable email conversation for this address' : 'Enable email conversation for this address'}
-                                                            title={contact.emailEnabled ? 'Email conversation enabled' : 'Email conversation disabled'}
                                                         >
-                                                            <Mail className="h-5 w-5" />
+                                                            <Mail className="h-4 w-4" />
                                                         </button>
                                                         {newPerson.emailContacts.length > 1 ? (
                                                             <button
@@ -534,11 +532,10 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                                                         return next;
                                                                     });
                                                                 }}
-                                                                className="mt-1 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400"
+                                                                className="mt-1 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400"
                                                                 aria-label="Remove email address"
-                                                                title="Remove email address"
                                                             >
-                                                                <X className="h-5 w-5" />
+                                                                <X className="h-4 w-4" />
                                                             </button>
                                                         ) : null}
                                                     </div>
@@ -585,7 +582,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                     <div className="flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5">
                                         <div>
                                             <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Available Balance</p>
-                                            <p className="mt-1 inline-flex items-center gap-2 text-sm font-black text-[var(--c-text)]">
+                                            <p className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-[var(--c-text)]">
                                                 <img src="/dirham.svg" alt="AED" className="h-4 w-4 object-contain" />
                                                 {showPortalBalance
                                                     ? Number(selectedPortal.balance || 0).toLocaleString(undefined, {
@@ -598,9 +595,8 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                         <button
                                             type="button"
                                             onClick={() => setShowPortalBalance((prev) => !prev)}
-                                            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-text)]"
+                                            className="compact-icon-action inline-flex items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] text-[var(--c-muted)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-text)]"
                                             aria-label={showPortalBalance ? 'Hide balance' : 'Show balance'}
-                                            title={showPortalBalance ? 'Hide balance' : 'Show balance'}
                                         >
                                             {showPortalBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
@@ -632,7 +628,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                         placeholder="0.00"
                                         value={form.amount}
                                         onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                                        className="w-full bg-transparent py-2 text-base font-bold outline-none"
+                                        className="w-full bg-transparent py-1.5 text-sm font-semibold outline-none"
                                     />
                                 </div>
                             </div>
@@ -645,7 +641,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                                     placeholder="..."
                                     value={form.description}
                                     onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                    className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
+                                    className="compact-field w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 text-xs font-semibold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20"
                                 />
                             </div>
                         </div>
@@ -660,7 +656,7 @@ const LoanManagementSection = ({ isOpen, onToggle, refreshKey }) => {
                         <button
                             type="submit"
                             disabled={isSaving || !canUserPerformAction(tenantId, user, 'loanManagement')}
-                            className={`w-full rounded-xl py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50 ${form.type === 'disbursement' ? 'bg-orange-500 shadow-orange-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}
+                            className={`compact-action w-full rounded-xl py-2.5 text-sm font-semibold text-white shadow-lg transition hover:opacity-90 disabled:opacity-50 ${form.type === 'disbursement' ? 'bg-orange-500 shadow-orange-500/20' : 'bg-emerald-500 shadow-emerald-500/20'}`}
                         >
                             {form.type === 'disbursement' ? 'Disburse Funds' : 'Record Repayment'}
                         </button>

@@ -41,7 +41,6 @@ const DashboardPage = () => {
       if (personRes.ok) {
         const people = (personRes.rows || []).filter((p) => !p.deletedAt);
         const pendingByPerson = txRes.ok ? (txRes.rows || {}) : {};
-
         const summary = people.map((person) => ({
           ...person,
           pendingBalance: pendingByPerson[person.id] || 0,
@@ -50,9 +49,11 @@ const DashboardPage = () => {
       }
       setIsLoading(false);
     };
+
     const frame = requestAnimationFrame(() => {
       void loadData();
     });
+
     return () => {
       active = false;
       cancelAnimationFrame(frame);
@@ -77,38 +78,39 @@ const DashboardPage = () => {
       title={`${tenant.name} Dashboard`}
       subtitle="Quick business overview, status indicators, and shortcuts."
       icon={LayoutDashboard}
+      widthPreset="data"
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+        <article className="compact-section rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--c-muted)]">Portals</p>
-          <p className="mt-2 text-2xl font-black text-[var(--c-text)]">{portals.length}</p>
-          <p className="text-sm text-[var(--c-muted)]">Configured operational portals</p>
+          <p className="mt-1.5 text-[1.35rem] font-semibold text-[var(--c-text)]">{portals.length}</p>
+          <p className="text-[13px] text-[var(--c-muted)]">Configured operational portals</p>
         </article>
-        <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+        <article className="compact-section rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--c-muted)]">Loan Persons</p>
-          <p className="mt-2 text-2xl font-black text-[var(--c-text)]">{loanSummary.length}</p>
-          <p className="text-sm text-[var(--c-muted)]">Tracked in loan management</p>
+          <p className="mt-1.5 text-[1.35rem] font-semibold text-[var(--c-text)]">{loanSummary.length}</p>
+          <p className="text-[13px] text-[var(--c-muted)]">Tracked in loan management</p>
         </article>
-        <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+        <article className="compact-section rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--c-muted)]">Net Liquidity</p>
-          <div className="mt-2 text-2xl font-black text-[var(--c-text)]">
+          <div className="mt-1.5 text-[1.35rem] font-semibold text-[var(--c-text)]">
             <CurrencyValue value={totalPortalBalance - totalLoanOutstanding} iconSize="h-6 w-6" />
           </div>
-          <p className="text-sm text-[var(--c-muted)]">Portals less loan exposure</p>
+          <p className="text-[13px] text-[var(--c-muted)]">Portals less loan exposure</p>
         </article>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+        <article className="compact-section rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <p className="text-sm font-black text-[var(--c-text)]">Portal Summary</p>
+              <p className="text-sm font-semibold text-[var(--c-text)]">Portal Summary</p>
               <p className="text-xs text-[var(--c-muted)]">All added portals are reflected here</p>
             </div>
             <button
               type="button"
               onClick={() => setShowAllPortals((prev) => !prev)}
-              className="rounded-lg border border-[var(--c-border)] px-2.5 py-1 text-[11px] font-bold text-[var(--c-muted)] hover:text-[var(--c-text)]"
+              className="rounded-lg border border-[var(--c-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--c-muted)] hover:text-[var(--c-text)]"
             >
               {showAllPortals ? 'Summarize' : 'Expand'}
             </button>
@@ -125,10 +127,10 @@ const DashboardPage = () => {
                   key={portal.id}
                   type="button"
                   onClick={() => navigate(`/t/${tenantId}/portal-management/${portal.id}`)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] p-3 text-left transition hover:border-[var(--c-accent)]"
-                  title={`Open ${portal.name} details`}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--c-border)] bg-gradient-to-br from-[var(--c-surface)] to-[var(--c-panel)] px-2.5 py-2 text-left transition hover:border-[var(--c-accent)]"
+                  aria-label={`Open ${portal.name} details`}
                 >
-                  <div className="h-12 w-12 overflow-hidden rounded-lg">
+                  <div className="h-10 w-10 overflow-hidden rounded-lg">
                     <img
                       src={portal.iconUrl || fallbackPortalIcon(portal.type)}
                       alt={portal.name}
@@ -140,8 +142,8 @@ const DashboardPage = () => {
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-[var(--c-text)]">{portal.name}</p>
-                    <p className={`text-xs font-bold ${portal.balance < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    <p className="truncate text-sm font-semibold text-[var(--c-text)]">{portal.name}</p>
+                    <p className={`text-xs font-semibold ${portal.balance < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                       <CurrencyValue value={portal.balance || 0} iconSize="h-3 w-3" />
                     </p>
                   </div>
@@ -151,24 +153,24 @@ const DashboardPage = () => {
           </div>
         </article>
 
-        <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
+        <article className="compact-section rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <p className="text-sm font-black text-[var(--c-text)]">Loan Summary</p>
+              <p className="text-sm font-semibold text-[var(--c-text)]">Loan Summary</p>
               <p className="text-xs text-[var(--c-muted)]">Summarized in compact mode, full in expand mode</p>
             </div>
             <button
               type="button"
               onClick={() => setShowAllLoans((prev) => !prev)}
-              className="rounded-lg border border-[var(--c-border)] px-2.5 py-1 text-[11px] font-bold text-[var(--c-muted)] hover:text-[var(--c-text)]"
+              className="rounded-lg border border-[var(--c-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--c-muted)] hover:text-[var(--c-text)]"
             >
               {showAllLoans ? 'Summarize' : 'Expand'}
             </button>
           </div>
 
           <div className="mb-3 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Total Pending</p>
-            <p className={`text-sm font-black ${totalLoanOutstanding > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Total Pending</p>
+            <p className={`text-sm font-semibold ${totalLoanOutstanding > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
               <CurrencyValue value={totalLoanOutstanding} iconSize="h-3.5 w-3.5" />
             </p>
           </div>
@@ -180,9 +182,9 @@ const DashboardPage = () => {
               <p className="py-4 text-center text-xs text-[var(--c-muted)]">No loan persons found.</p>
             ) : (
               visibleLoans.map((person) => (
-                <div key={person.id} className="flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2">
-                  <p className="truncate text-sm font-bold text-[var(--c-text)]">{person.name}</p>
-                  <p className={`text-xs font-bold ${person.pendingBalance > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                <div key={person.id} className="flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1.5">
+                  <p className="truncate text-sm font-semibold text-[var(--c-text)]">{person.name}</p>
+                  <p className={`text-xs font-semibold ${person.pendingBalance > 0 ? 'text-amber-500' : 'text-emerald-500'}`}>
                     <CurrencyValue value={person.pendingBalance || 0} iconSize="h-3 w-3" />
                   </p>
                 </div>

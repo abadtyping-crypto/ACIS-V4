@@ -83,7 +83,7 @@ const CountryPhoneField = ({
   return (
     <div ref={rootRef} className="relative mt-1">
       <div
-        className={`flex h-14 overflow-hidden rounded-2xl border bg-[var(--c-panel)] text-[var(--c-text)] shadow-sm transition ${
+        className={`compact-field flex overflow-hidden rounded-2xl border bg-[var(--c-panel)] text-[var(--c-text)] shadow-sm transition ${
           errorMessage
             ? 'border-red-400/70 focus-within:border-red-400 focus-within:ring-4 focus-within:ring-red-400/10'
             : 'border-[var(--c-border)] focus-within:border-[var(--c-accent)] focus-within:ring-4 focus-within:ring-[var(--c-accent)]/5'
@@ -95,14 +95,14 @@ const CountryPhoneField = ({
             if (isOpen) closeDropdown();
             else setIsOpen(true);
           }}
-          className="inline-flex h-full shrink-0 items-center gap-2 border-r border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_32%,var(--c-panel)_68%)] px-4 text-left outline-none transition hover:bg-[color:color-mix(in_srgb,var(--c-surface)_42%,var(--c-panel)_58%)] focus-visible:bg-[color:color-mix(in_srgb,var(--c-surface)_42%,var(--c-panel)_58%)]"
+          className="inline-flex h-full shrink-0 items-center gap-2 border-r border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_32%,var(--c-panel)_68%)] px-3 text-left outline-none transition hover:bg-[color:color-mix(in_srgb,var(--c-surface)_42%,var(--c-panel)_58%)] focus-visible:bg-[color:color-mix(in_srgb,var(--c-surface)_42%,var(--c-panel)_58%)]"
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
           <FlagSprite iso2={selectedCountry.iso2} />
           <ChevronDown className={`h-4 w-4 text-[var(--c-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
-        <div className="inline-flex items-center border-r border-[var(--c-border)] px-3 text-sm font-black text-[var(--c-text)]">
+        <div className="inline-flex items-center border-r border-[var(--c-border)] px-2.5 text-[13px] font-semibold text-[var(--c-text)]">
           +{selectedCountry.dialCode}
         </div>
         <input
@@ -116,7 +116,7 @@ const CountryPhoneField = ({
           onPaste={onValuePaste}
           onBlur={onValueBlur}
           placeholder={placeholder}
-          className="min-w-0 flex-1 bg-transparent px-4 text-sm font-bold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)]"
+          className="min-w-0 flex-1 bg-transparent px-3 text-[13px] font-semibold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)]"
         />
       </div>
       {errorMessage ? (
@@ -126,7 +126,7 @@ const CountryPhoneField = ({
       ) : null}
 
       {isOpen ? (
-        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[80] w-full max-w-[22rem] overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] shadow-[0_24px_48px_-28px_color-mix(in_srgb,var(--c-text)_55%,transparent)]">
+        <div className="compact-popover absolute left-0 top-[calc(100%+0.45rem)] z-[80] overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] shadow-[0_24px_48px_-28px_color-mix(in_srgb,var(--c-text)_55%,transparent)]">
           <div className="border-b border-[var(--c-border)] p-3">
             <input
               ref={searchInputRef}
@@ -138,7 +138,7 @@ const CountryPhoneField = ({
             />
           </div>
 
-          <div className="max-h-72 overflow-y-auto py-1">
+          <div className="overflow-y-auto py-1" style={{ maxHeight: 'var(--d-popover-max-h)' }}>
             {filteredCountries.length === 0 ? (
               <div className="px-4 py-3 text-sm font-semibold text-[var(--c-muted)]">No country found</div>
             ) : (

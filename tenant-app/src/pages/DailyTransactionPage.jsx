@@ -21,8 +21,8 @@ import CurrencyValue from '../components/common/CurrencyValue';
 import { Plus, FileText, Calendar, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { buildMethodIconMap, resolveMethodIconUrl, resolvePortalMethodDefinitions } from '../lib/transactionMethodConfig';
 
-const inputClass = "mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5 font-bold";
-const selectClass = "mt-1 w-full rounded-2xl border-2 border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm font-black text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/20";
+const inputClass = "compact-field mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-[13px] text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5 font-semibold";
+const selectClass = "compact-field mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-[13px] font-semibold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/20";
 const activeTabClass = 'bg-[var(--c-accent)] text-white shadow-lg shadow-[color-mix(in_srgb,var(--c-accent)_28%,transparent)]';
 const activeCardClass = 'border-[var(--c-accent)] bg-[color:color-mix(in_srgb,var(--c-accent)_10%,var(--c-surface))]';
 const accentHeroClass = 'bg-[color:color-mix(in_srgb,var(--c-accent)_10%,var(--c-surface))] border-[var(--c-accent)]/20';
@@ -331,21 +331,22 @@ const DailyTransactionPage = () => {
             subtitle="Record and manage daily applications and financial entries."
             icon={Plus}
             eyebrow="Transactions"
+            widthPreset="data"
         >
             <div className="space-y-6">
-                    <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm">
+                    <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-2.5 shadow-sm">
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 type="button"
                                 onClick={() => setActiveView('add')}
-                                className={`rounded-2xl px-4 py-3 text-lg font-black transition ${activeView === 'add' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
+                                className={`compact-action rounded-xl px-3 text-base font-semibold transition ${activeView === 'add' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
                             >
                                 Add New
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveView('existing')}
-                                className={`rounded-2xl px-4 py-3 text-lg font-black transition ${activeView === 'existing' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
+                                className={`compact-action rounded-xl px-3 text-base font-semibold transition ${activeView === 'existing' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}
                             >
                                 Existing
                             </button>
@@ -354,28 +355,28 @@ const DailyTransactionPage = () => {
                     {activeView === 'add' ? (
                     <>
                     {/* Hero Header matching screenshot */}
-                    <div className={`flex items-center gap-4 rounded-3xl p-6 shadow-sm ${accentHeroClass}`}>
-                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${accentHeroIconClass}`}>
-                            <FileText size={24} />
+                    <div className={`flex items-center gap-3 rounded-2xl p-4 shadow-sm ${accentHeroClass}`}>
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accentHeroIconClass}`}>
+                            <FileText size={20} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-[var(--c-text)]">Transaction Entry Details</h2>
-                            <p className="text-sm font-bold text-[var(--c-muted)]">Complete application, client, and payment information</p>
+                            <h2 className="text-lg font-semibold text-[var(--c-text)]">Transaction Entry Details</h2>
+                            <p className="text-[13px] font-medium text-[var(--c-muted)]">Complete application, client, and payment information</p>
                         </div>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Section 1: Date & Template */}
-                        <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm space-y-4">
+                        <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm space-y-3">
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-1.5">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-[11px] font-black uppercase tracking-wider text-[var(--c-text)]">Date *</label>
+                                        <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--c-text)]">Date *</label>
                                         <div className="flex gap-1">
                                             <button
                                                 type="button"
                                                 onClick={() => setTransactionDate(new Date().toISOString().split('T')[0])}
-                                                className={`rounded-lg px-2 py-1 text-[9px] font-black uppercase transition ${accentSoftButtonClass}`}
+                                                className={`rounded-lg px-2 py-1 text-[9px] font-semibold uppercase transition ${accentSoftButtonClass}`}
                                             >
                                                 Today
                                             </button>
@@ -386,7 +387,7 @@ const DailyTransactionPage = () => {
                                                     d.setDate(d.getDate() - 1);
                                                     setTransactionDate(d.toISOString().split('T')[0]);
                                                 }}
-                                                className="rounded-lg bg-amber-500/10 px-2 py-1 text-[9px] font-black uppercase text-amber-600 hover:bg-amber-500 hover:text-white transition"
+                                                className="rounded-lg bg-amber-500/10 px-2 py-1 text-[9px] font-semibold uppercase text-amber-600 hover:bg-amber-500 hover:text-white transition"
                                             >
                                                 Yesterday
                                             </button>
@@ -405,11 +406,11 @@ const DailyTransactionPage = () => {
                                 </div>
                                 <div className="space-y-1.5">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-[11px] font-black uppercase tracking-wider text-[var(--c-text)]">Application Name *</label>
+                                        <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--c-text)]">Application Name *</label>
                                         <button
                                             type="button"
                                             onClick={() => setIsQuickAddOpen(true)}
-                                            className="flex items-center gap-1 text-[10px] font-black uppercase text-[var(--c-accent)] hover:underline"
+                                            className="flex items-center gap-1 text-[10px] font-semibold uppercase text-[var(--c-accent)] hover:underline"
                                         >
                                             <Plus size={10} /> Add
                                         </button>

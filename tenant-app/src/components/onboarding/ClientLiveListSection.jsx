@@ -307,16 +307,16 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
   };
 
   return (
-    <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm">
+    <section className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[var(--c-text)]">Live List</h2>
-          <p className="text-sm text-[var(--c-muted)]">Unified view of clients and dependents with edit/delete controls.</p>
+          <h2 className="text-base font-semibold text-[var(--c-text)]">Live List</h2>
+          <p className="text-[13px] text-[var(--c-muted)]">Unified view of clients and dependents with edit/delete controls.</p>
         </div>
         <button
           type="button"
           onClick={loadRows}
-          className="inline-flex items-center gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 text-xs font-bold text-[var(--c-text)] hover:border-[var(--c-accent)]"
+          className="compact-action inline-flex items-center gap-2 rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-xs font-semibold text-[var(--c-text)] hover:border-[var(--c-accent)]"
         >
           <RefreshCcw size={14} />
           Refresh
@@ -334,25 +334,25 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
         </div>
       ) : null}
 
-      <div className="mt-5 grid gap-3 md:grid-cols-12">
+      <div className="mt-4 grid gap-3 md:grid-cols-12">
         <label className="md:col-span-4">
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--c-muted)]">Search</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Search</span>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--c-muted)]" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search name, CLID/DPID, mobile"
-              className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] py-2.5 pl-9 pr-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
+              className="compact-field w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] pl-9 pr-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
             />
           </div>
         </label>
         <label className="md:col-span-4">
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--c-muted)]">Type</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Type</span>
           <select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value)}
-            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
+            className="compact-field w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
           >
             <option value="all">All</option>
             <option value="clients">Clients</option>
@@ -360,11 +360,11 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
           </select>
         </label>
         <label className="md:col-span-4">
-          <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--c-muted)]">Per Page</span>
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Per Page</span>
           <select
             value={pageSize}
             onChange={(event) => setPageSize(Number(event.target.value))}
-            className="w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
+            className="compact-field w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-sm text-[var(--c-text)] outline-none focus:border-[var(--c-accent)]"
           >
             {PAGE_SIZES.map((size) => (
               <option key={size} value={size}>
@@ -375,15 +375,15 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
         </label>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--c-border)]">
-        <table className="min-w-full text-sm">
+      <div className="desktop-table-scroll mt-4 overflow-x-auto rounded-xl border border-[var(--c-border)]">
+        <table className="compact-table min-w-full text-xs">
           <thead className="sticky top-0 z-10 bg-[var(--c-panel)]">
-            <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--c-muted)]">
-              <th className="px-3 py-3 font-bold">Entry</th>
-              <th className="px-3 py-3 font-bold">ID</th>
-              <th className="px-3 py-3 font-bold">Created By</th>
-              <th className="px-3 py-3 font-bold">Status</th>
-              <th className="px-3 py-3 font-bold">Actions</th>
+            <tr className="text-left text-[10px] uppercase tracking-[0.12em] text-[var(--c-muted)]">
+              <th className="font-semibold">Entry</th>
+              <th className="font-semibold">ID</th>
+              <th className="font-semibold">Created By</th>
+              <th className="font-semibold">Status</th>
+              <th className="font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -415,12 +415,11 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                   <tr key={item.id} className="border-t border-[var(--c-border)] align-top transition hover:bg-[color:color-mix(in_srgb,var(--c-panel)_38%,transparent)]">
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
-                        <img src={getTypeIcon(item)} alt={typeLabel} className="h-10 w-10 rounded-xl object-cover" />
+                        <img src={getTypeIcon(item)} alt={typeLabel} className="h-8.5 w-8.5 rounded-xl object-cover" />
                         <div>
                           <Link
                             to={targetPath}
                             className="font-semibold text-[var(--c-text)] hover:text-[var(--c-accent)] hover:underline"
-                            title={`Open ${nameLabel} details`}
                           >
                             {nameLabel}
                           </Link>
@@ -443,7 +442,6 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
                       <Link
                         to={`/t/${tenantId}/profile`}
                         className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 pr-3 text-xs text-[var(--c-text)] hover:border-[var(--c-accent)]"
-                        title={`Open profile of ${creator.name}`}
                       >
                         <img src={creator.avatar} alt={creator.name} className="h-6 w-6 rounded-full object-cover" />
                         <span>{creator.name}</span>
@@ -513,13 +511,13 @@ const ClientLiveListSection = ({ tenantId, user, refreshKey = 0 }) => {
 
       {editingRow ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-xl">
+          <div className="compact-dialog w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-[var(--c-text)]">Edit {editingRow.displayClientId || editingRow.id}</h3>
+                <h3 className="text-base font-semibold text-[var(--c-text)]">Edit {editingRow.displayClientId || editingRow.id}</h3>
                 <p className="text-xs text-[var(--c-muted)]">System ID and financial fields are locked.</p>
               </div>
-              <button type="button" onClick={() => setEditingRow(null)} className="rounded-lg border border-[var(--c-border)] p-2">
+              <button type="button" onClick={() => setEditingRow(null)} className="compact-icon-action rounded-lg border border-[var(--c-border)]">
                 <X size={16} />
               </button>
             </div>

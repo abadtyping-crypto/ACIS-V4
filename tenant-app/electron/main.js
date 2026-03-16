@@ -88,6 +88,14 @@ function createWindow() {
     mainWindow.on('resize', saveState);
     mainWindow.on('move', saveState);
 
+    const publishMaximizeState = () => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.webContents.send('window-maximized-change', mainWindow.isMaximized());
+    };
+
+    mainWindow.on('maximize', publishMaximizeState);
+    mainWindow.on('unmaximize', publishMaximizeState);
+
     ipcMain.on('window-minimize', () => mainWindow.minimize());
     ipcMain.on('window-maximize', () => {
         if (mainWindow.isMaximized()) {
@@ -97,6 +105,12 @@ function createWindow() {
         }
     });
     ipcMain.on('window-close', () => mainWindow.close());
+    ipcMain.removeHandler('window-is-maximized');
+    ipcMain.handle('window-is-maximized', () => {
+        if (!mainWindow || mainWindow.isDestroyed()) return false;
+        return mainWindow.isMaximized();
+    });
+    publishMaximizeState();
 
     ipcMain.removeHandler('mail-send');
     ipcMain.handle('mail-send', async (_event, payload) => {

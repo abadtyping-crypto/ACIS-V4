@@ -218,7 +218,7 @@ const NotificationsPage = () => {
                         if (item.createdBy) navigate(`/t/${tenantId}/profile/edit?uid=${encodeURIComponent(item.createdBy)}`);
                       }}
                       className="inline-flex items-center gap-1.5 rounded-full border border-[var(--c-border)] bg-[var(--c-surface)] px-1.5 py-1 transition hover:border-[var(--c-accent)] hover:text-[var(--c-text)]"
-                      title="View Profile"
+                      aria-label="View profile"
                     >
                       <img
                         src={item.createdByUser?.photoURL || '/avatar.png'}
@@ -230,7 +230,7 @@ const NotificationsPage = () => {
                       </span>
                     </button>
                     {item.createdAt ? (
-                      <span title={toDateLabel(item.createdAt)}>
+                      <span>
                         {toRelativeTime(item.createdAt)}
                       </span>
                     ) : null}

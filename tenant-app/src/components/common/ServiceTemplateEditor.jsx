@@ -7,24 +7,24 @@ const buildToneClasses = (tone) => {
     return {
       wrapper: 'space-y-5',
       section: 'rounded-[1.35rem] border border-sky-500/35 bg-slate-900/70 p-4',
-      sectionTitle: 'text-[11px] font-black uppercase tracking-[0.2em] text-sky-300',
-      label: 'text-xs font-bold text-slate-200',
+      sectionTitle: 'text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300',
+      label: 'text-xs font-semibold text-slate-200',
       input:
         'mt-2 w-full rounded-xl border border-slate-600 bg-slate-700/80 px-3 py-2.5 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20',
       textarea:
         'mt-2 w-full rounded-xl border border-slate-600 bg-slate-700/80 px-3 py-2.5 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20',
       pickerFrame: 'mt-2 rounded-2xl border border-slate-600 bg-slate-900/70 p-3',
       pickerTile: 'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-600 bg-slate-800 text-slate-400',
-      helperTitle: 'text-sm font-black text-slate-100',
+      helperTitle: 'text-sm font-semibold text-slate-100',
       helperText: 'text-xs font-semibold text-slate-400',
-      chooseButton: 'rounded-xl bg-sky-500 px-4 py-2 text-sm font-black text-white transition hover:bg-sky-400',
+      chooseButton: 'compact-action rounded-xl bg-sky-500 px-4 text-sm font-semibold text-white transition hover:bg-sky-400',
       chargeFrame: 'mt-2 flex w-full max-w-[170px] items-center rounded-xl border border-slate-600 bg-slate-700/80 focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-500/20',
       chargeIcon: 'flex h-10 w-10 shrink-0 items-center justify-center text-slate-300',
       chargeInput: 'h-10 w-[9ch] min-w-0 bg-transparent pr-3 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-400',
       error: 'text-xs font-bold text-rose-400',
       status: 'text-xs font-bold text-emerald-400',
-      submit: 'rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-black text-white transition hover:bg-sky-400 disabled:opacity-50',
-      cancel: 'rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-bold text-slate-100 disabled:opacity-50',
+      submit: 'compact-action rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:opacity-50',
+      cancel: 'compact-action rounded-xl border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-100 disabled:opacity-50',
       pickerPanel: 'absolute left-0 right-0 top-[calc(100%+0.65rem)] z-[90] overflow-hidden rounded-2xl border border-slate-600 bg-slate-900 shadow-2xl',
       pickerSearch: 'w-full rounded-xl border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-400 focus:border-sky-400',
       pickerOption: 'flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-slate-800',
@@ -36,24 +36,24 @@ const buildToneClasses = (tone) => {
   return {
     wrapper: 'space-y-5',
     section: 'rounded-[1.35rem] border border-[var(--c-border)] bg-[var(--c-surface)] p-4',
-    sectionTitle: 'text-[11px] font-black uppercase tracking-[0.2em] text-[var(--c-accent)]',
-    label: 'text-xs font-bold text-[var(--c-text)]',
+    sectionTitle: 'text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--c-accent)]',
+    label: 'text-xs font-semibold text-[var(--c-text)]',
     input:
       'mt-2 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm font-semibold text-[var(--c-text)] outline-none transition placeholder:text-[var(--c-muted)] focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]',
     textarea:
       'mt-2 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm font-semibold text-[var(--c-text)] outline-none transition placeholder:text-[var(--c-muted)] focus:border-[var(--c-accent)] focus:ring-2 focus:ring-[var(--c-ring)]',
     pickerFrame: 'mt-2 rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-3',
     pickerTile: 'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-white text-[var(--c-muted)]',
-    helperTitle: 'text-sm font-black text-[var(--c-text)]',
+    helperTitle: 'text-sm font-semibold text-[var(--c-text)]',
     helperText: 'text-xs font-semibold text-[var(--c-muted)]',
-    chooseButton: 'rounded-xl bg-[var(--c-accent)] px-4 py-2 text-sm font-black text-white transition hover:opacity-90',
+    chooseButton: 'compact-action rounded-xl bg-[var(--c-accent)] px-4 text-sm font-semibold text-white transition hover:opacity-90',
     chargeFrame: 'mt-2 flex w-full max-w-[170px] items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] focus-within:border-[var(--c-accent)] focus-within:ring-2 focus-within:ring-[var(--c-ring)]',
     chargeIcon: 'flex h-10 w-10 shrink-0 items-center justify-center text-[var(--c-muted)]',
     chargeInput: 'h-10 w-[9ch] min-w-0 bg-transparent pr-3 text-sm font-semibold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)]',
     error: 'text-xs font-bold text-rose-500',
     status: 'text-xs font-bold text-emerald-500',
-    submit: 'rounded-xl bg-[var(--c-accent)] px-4 py-2.5 text-sm font-black text-white transition hover:opacity-90 disabled:opacity-50',
-    cancel: 'rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5 text-sm font-bold text-[var(--c-text)] disabled:opacity-50',
+    submit: 'compact-action rounded-xl bg-[var(--c-accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50',
+    cancel: 'compact-action rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-2.5 text-sm font-semibold text-[var(--c-text)] disabled:opacity-50',
     pickerPanel: 'absolute left-0 right-0 top-[calc(100%+0.65rem)] z-[90] overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] shadow-2xl',
     pickerSearch: 'w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm font-semibold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)] focus:border-[var(--c-accent)]',
     pickerOption: 'flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-[var(--c-panel)]',
@@ -148,7 +148,7 @@ const IconLibraryPicker = ({
                 <ImageIcon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black">No icon</p>
+                <p className="truncate text-sm font-semibold">No icon</p>
                 <p className={theme.helperText}>Use default application tile</p>
               </div>
               {!value ? <Check className="h-4 w-4 shrink-0" /> : null}
@@ -174,7 +174,7 @@ const IconLibraryPicker = ({
                       {icon.iconUrl ? <img src={icon.iconUrl} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="h-5 w-5" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-black">{icon.iconName}</p>
+                      <p className="truncate text-sm font-semibold">{icon.iconName}</p>
                     </div>
                     {isSelected ? <Check className="h-4 w-4 shrink-0" /> : null}
                   </button>
@@ -215,6 +215,7 @@ const ServiceTemplateEditor = ({
   draft,
   onDraftChange,
   icons = [],
+  iconActionSlot = null,
   onSubmit,
   onCancel,
   isSaving = false,
@@ -267,6 +268,7 @@ const ServiceTemplateEditor = ({
               onChange={(nextValue) => updateField('iconId', nextValue)}
               theme={theme}
             />
+            {iconActionSlot ? <div className="mt-3">{iconActionSlot}</div> : null}
           </div>
 
           {children ? <div>{children}</div> : null}

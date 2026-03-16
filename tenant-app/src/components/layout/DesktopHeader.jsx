@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BellIcon, SearchIcon } from '../icons/AppIcons';
 import { useTheme } from '../../context/useTheme';
-import { ArrowUpRight, Eye, Monitor, MoonStar, SunMedium } from 'lucide-react';
+import { ArrowUpRight, Eye, Menu as MenuIcon, Monitor, MoonStar, SunMedium } from 'lucide-react';
 import { DEFAULT_PORTAL_ICON } from '../../lib/transactionMethodConfig';
 import { useTenantBrandingLogos } from '../../hooks/useTenantBrandingLogos';
 import { resolveNotificationPrimaryVisual } from '../../lib/notificationVisuals';
@@ -32,7 +32,7 @@ const toBalanceLabel = (value) => {
   return `${sign}AED ${Math.abs(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = [], onNotificationRead, onLogout }) => {
+const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = [], onNotificationRead, onLogout, layoutMode = 'wide', onToggleSidebar }) => {
   const hasNativeTitleBar = typeof window !== 'undefined' && Boolean(window.electron?.windowControls);
   const { tenantId } = useParams();
   const { theme, resolvedTheme, toggleTheme } = useTheme();
@@ -80,9 +80,20 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
   };
 
   return (
-    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4 lg:px-6">
-      <div className="glass no-drag flex min-h-[4.25rem] items-center justify-between gap-2 rounded-2xl border border-[var(--c-border)] px-3 sm:px-4">
+    <header className="sticky top-0 z-40 px-2 pt-2 sm:px-3 lg:px-4">
+      <div className="glass no-drag flex items-center justify-between gap-2 rounded-2xl border border-[var(--c-border)] px-2.5 sm:px-3" style={{ minHeight: 'var(--d-shell-header-h)' }}>
         <div className="flex items-center gap-3">
+          {/* Hamburger button for mini mode */}
+          {layoutMode === 'mini' && onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="compact-icon-action inline-flex items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] text-[var(--c-text)] shadow-sm transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+              aria-label="Toggle sidebar"
+            >
+              <MenuIcon className="h-5 w-5" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => goTo('dashboard')}
@@ -92,12 +103,14 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
             <img
               src={headerLogoUrl}
               alt={tenantLabel}
-              className="h-11 w-11 rounded-xl border border-[var(--glass-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_88%,transparent)] object-cover shadow-sm"
+              className="h-9 w-9 rounded-xl border border-[var(--glass-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_88%,transparent)] object-cover shadow-sm"
             />
+            {(layoutMode === 'standard' || layoutMode === 'wide') && (
             <div className="min-w-0">
-              <p className="truncate text-base font-black text-[var(--c-text)]">{tenant.name}</p>
+              <p className="truncate text-[0.95rem] font-semibold text-[var(--c-text)]">{tenant.name}</p>
               <p className="truncate text-xs text-[var(--c-muted)]">{hasNativeTitleBar ? 'Tenant Workspace' : 'Brand Workspace'}</p>
             </div>
+            )}
           </button>
         </div>
 
@@ -105,33 +118,31 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
           <button
             type="button"
             onClick={toggleTheme}
-            className="inline-flex min-h-11 w-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] text-sm font-semibold text-[var(--c-text)] shadow-sm transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+            className="compact-icon-action inline-flex items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] text-sm font-semibold text-[var(--c-text)] shadow-sm transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
             aria-label={`Toggle theme (currently ${themeLabel})`}
-            title={`Theme: ${themeLabel} (${theme === 'system' ? 'Auto' : 'Manual'})`}
           >
-            <ThemeIcon className="h-6 w-6" />
+            <ThemeIcon className="h-5 w-5" />
           </button>
 
           <button
             type="button"
             onClick={() => goTo('search')}
-            className="inline-flex min-h-11 w-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] text-sm font-semibold text-[var(--c-text)] shadow-sm transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+            className="compact-icon-action inline-flex items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] text-sm font-semibold text-[var(--c-text)] shadow-sm transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
             aria-label="Search clients and dependants"
-            title="Search Workspace"
           >
-            <SearchIcon className="h-6 w-6" />
+            <SearchIcon className="h-5 w-5" />
           </button>
 
           <div className="relative" ref={notificationsRef}>
             <button
               type="button"
               onClick={() => setNotificationsOpen((prev) => !prev)}
-              className="relative inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] px-4 text-sm font-semibold text-[var(--c-text)] transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+              className="compact-action relative inline-flex items-center justify-center rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] px-3 text-sm font-semibold text-[var(--c-text)] transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
               aria-label="Notifications"
               aria-expanded={notificationsOpen}
               aria-haspopup="menu"
             >
-              <BellIcon className="h-6 w-6" />
+              <BellIcon className="h-5 w-5" />
               {notificationCount > 0 ? (
                 <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--c-danger)] px-1 text-[10px] font-bold text-white">
                   {notificationCount}
@@ -139,7 +150,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
               ) : null}
             </button>
             {notificationsOpen ? (
-              <div className="glass absolute right-0 top-[calc(100%+8px)] z-50 w-[22rem] rounded-2xl border border-[var(--c-border)] p-2 shadow-lg">
+              <div className="compact-popover glass absolute right-0 top-[calc(100%+8px)] z-50 rounded-2xl border border-[var(--c-border)] p-2 shadow-lg">
                 <div className="mb-2 flex items-center justify-between px-2 py-1">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--c-muted)]">Recent Notifications</p>
                   <button
@@ -158,7 +169,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                     No recent notifications.
                   </p>
                 ) : (
-                  <div className="max-h-[24rem] space-y-1 overflow-auto pr-1">
+                  <div className="space-y-1 overflow-auto pr-1" style={{ maxHeight: 'var(--d-popover-max-h)' }}>
                     {recentNotifications.map((item) => (
                       <div
                         key={item.id}
@@ -237,7 +248,7 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
                                   type="button"
                                   onClick={(event) => handleNotificationQuickView(event, item)}
                                   className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--c-accent)]/20 bg-[color:color-mix(in_srgb,var(--c-accent)_12%,var(--c-surface))] px-2.5 py-1 text-[10px] font-bold text-[var(--c-accent)] transition hover:border-[var(--c-accent)]/35 hover:bg-[color:color-mix(in_srgb,var(--c-accent)_18%,var(--c-surface))]"
-                                  title="Quick View"
+                                  aria-label="Quick View"
                                 >
                                   <Eye className="h-3.5 w-3.5" />
                                   <span>Quick View</span>
@@ -266,16 +277,16 @@ const DesktopHeader = ({ tenant, user, notificationCount, recentNotifications = 
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] px-3 transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
+              className="compact-action flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--c-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_84%,transparent)] px-3 transition hover:border-[var(--c-ring)] hover:bg-[var(--c-panel)]"
               aria-expanded={menuOpen}
               aria-haspopup="menu"
             >
               <img
                 src={user.photoURL || '/avatar.png'}
                 alt={displayName}
-                className="h-8 w-8 rounded-full border border-[var(--c-border)] object-cover"
+                className="h-7 w-7 rounded-full border border-[var(--c-border)] object-cover"
               />
-              <span className="hidden text-left 2xl:block">
+              <span className="hidden text-left xl:block">
                 <span className="block text-sm font-semibold text-[var(--c-text)]">{displayName}</span>
                 <span className="block text-xs text-[var(--c-muted)]">{user.role}</span>
               </span>

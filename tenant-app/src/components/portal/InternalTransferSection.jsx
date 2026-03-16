@@ -207,7 +207,7 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
                 <div className="grid gap-4 sm:grid-cols-2">
                     {/* Amount */}
                     <div>
-                        <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Amount</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Transfer Amount</label>
                         <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:ring-2 focus-within:ring-[var(--c-accent)]/20">
                             <DirhamIcon className="mr-2 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
                             <input
@@ -216,14 +216,14 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
                                 placeholder="0.00"
                                 value={form.amount}
                                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                                className="w-full bg-transparent py-2 text-base font-bold outline-none"
+                                className="w-full bg-transparent py-1.5 text-sm font-semibold outline-none"
                             />
                         </div>
                     </div>
 
                     {/* Fee */}
                     <div>
-                        <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Transfer Fee (Optional)</label>
+                        <label className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Transfer Fee (Optional)</label>
                         <div className="mt-1 flex items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 focus-within:ring-2 focus-within:ring-[var(--c-accent)]/20">
                             <DirhamIcon className="mr-2 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
                             <input
@@ -231,7 +231,7 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
                                 placeholder="0.00"
                                 value={form.fee}
                                 onChange={(e) => setForm({ ...form, fee: e.target.value })}
-                                className="w-full bg-transparent py-2 text-base font-bold outline-none"
+                                className="w-full bg-transparent py-1.5 text-sm font-semibold outline-none"
                             />
                         </div>
                     </div>
@@ -239,13 +239,13 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
 
                 {/* Description */}
                 <div>
-                    <label className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Reference / Note</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Reference / Note</label>
                     <textarea
                         placeholder="Reason for transfer..."
                         rows={2}
                         value={form.description}
                         onChange={(e) => setForm({ ...form, description: e.target.value })}
-                        className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20 resize-none"
+                        className="mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-3 py-2 text-xs font-semibold outline-none focus:ring-2 focus:ring-[var(--c-accent)]/20 resize-none"
                     />
                 </div>
 
@@ -312,7 +312,7 @@ const InternalTransferSection = ({ isOpen, onToggle, refreshKey }) => {
                 <button
                     type="submit"
                     disabled={isSaving || !canUserPerformAction(tenantId, user, 'internalTransfer')}
-                    className="w-full rounded-xl bg-[var(--c-accent)] py-3 text-sm font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 hover:opacity-90 disabled:opacity-50 transition"
+                    className="compact-action w-full rounded-xl bg-[var(--c-accent)] py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--c-accent)]/20 hover:opacity-90 disabled:opacity-50 transition"
                 >
                     {isSaving ? 'Processing...' : 'Confirm Transfer'}
                 </button>

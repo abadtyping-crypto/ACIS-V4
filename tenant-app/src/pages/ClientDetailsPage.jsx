@@ -87,6 +87,7 @@ const ClientDetailsPage = () => {
     <PageShell
       title={client.tradeName || client.fullName || 'Client Profile'}
       subtitle={`Client 360 • ${client.displayClientId || client.id}`}
+      widthPreset="data"
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -107,21 +108,21 @@ const ClientDetailsPage = () => {
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Type</p>
-            <p className="mt-2 text-base font-black text-[var(--c-text)]">{String(client.type || '-').toUpperCase()}</p>
+            <p className="mt-2 text-sm font-bold text-[var(--c-text)]">{String(client.type || '-').toUpperCase()}</p>
           </article>
           <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Opening Balance</p>
-            <p className="mt-2 text-base font-black text-[var(--c-text)]">
+            <p className="mt-2 text-sm font-bold text-[var(--c-text)]">
               <CurrencyValue value={client.openingBalance || 0} iconSize="h-3 w-3" />
             </p>
           </article>
           <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Transactions</p>
-            <p className="mt-2 text-base font-black text-[var(--c-text)]">{transactions.length}</p>
+            <p className="mt-2 text-sm font-bold text-[var(--c-text)]">{transactions.length}</p>
           </article>
           <article className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4">
             <p className="text-[11px] uppercase tracking-wider text-[var(--c-muted)]">Dependents</p>
-            <p className="mt-2 text-base font-black text-[var(--c-text)]">{dependents.length}</p>
+            <p className="mt-2 text-sm font-bold text-[var(--c-text)]">{dependents.length}</p>
           </article>
         </section>
 
@@ -145,7 +146,7 @@ const ClientDetailsPage = () => {
           {transactions.length === 0 ? (
             <p className="py-4 text-center text-xs text-[var(--c-muted)]">No client-linked transactions yet.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-[var(--c-border)]">
+            <div className="desktop-table-scroll overflow-x-auto rounded-xl border border-[var(--c-border)]">
               <table className="min-w-full text-xs">
                 <thead className="bg-[var(--c-panel)] text-[var(--c-muted)] uppercase">
                   <tr>
@@ -186,7 +187,6 @@ const ClientDetailsPage = () => {
                   key={dep.id}
                   to={`/t/${tenantId}/clients/${clientId}/dependents/${dep.id}`}
                   className="block rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2 hover:border-[var(--c-accent)] hover:shadow-sm"
-                  title="Open dependent details"
                 >
                   <p className="text-xs font-bold text-[var(--c-text)]">{dep.fullName || dep.tradeName || dep.displayClientId}</p>
                   <p className="text-[10px] text-[var(--c-muted)]">

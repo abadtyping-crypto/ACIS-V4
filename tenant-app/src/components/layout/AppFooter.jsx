@@ -9,14 +9,14 @@ const AppFooter = ({ tenantName, tenantLogoUrl }) => {
   const logoAlt = tenantName || 'Tenant';
 
   return (
-    <footer className="desktop-footer glass border-t border-[var(--c-border)] px-8 py-3">
-      <div className="flex items-center gap-3">
+    <footer className="desktop-footer glass border-t border-[var(--c-border)] px-4 py-2">
+      <div className="flex items-center gap-2.5">
         <img
           src={logoSrc}
           alt={logoAlt}
-          className="h-7 w-7 rounded-lg border border-[var(--glass-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_88%,transparent)] object-cover shadow-sm"
+          className="h-6 w-6 rounded-lg border border-[var(--glass-border)] bg-[color:color-mix(in_srgb,var(--c-surface)_88%,transparent)] object-cover shadow-sm"
         />
-        <p className="text-xs text-[var(--c-muted)]">
+        <p className="text-[11px] text-[var(--c-muted)]">
           {tenantName} Admin Workspace • {year}
         </p>
       </div>

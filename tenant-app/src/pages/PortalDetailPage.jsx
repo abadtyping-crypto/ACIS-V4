@@ -214,7 +214,7 @@ const PortalDetailPage = () => {
         <Link
           to={`/t/${tenantId}/profile/edit?uid=${encodeURIComponent(String(value || ''))}`}
           className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 pr-3 text-xs text-[var(--c-text)] hover:border-[var(--c-accent)]"
-          title={`Open profile of ${creator.name}`}
+          aria-label={`Open profile of ${creator.name}`}
         >
           <img src={creator.avatar} alt={creator.name} className="h-6 w-6 rounded-full object-cover" />
           <span>{creator.name}</span>
@@ -1072,7 +1072,7 @@ const PortalDetailPage = () => {
               {txRows.length === 0 ? (
                 <p className="text-sm text-[var(--c-muted)]">No transactions found for this portal.</p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="desktop-table-scroll overflow-x-auto">
                   <table className="w-full min-w-[740px] text-left text-sm">
                     <thead>
                       <tr className="text-xs uppercase text-[var(--c-muted)]">
@@ -1095,7 +1095,7 @@ const PortalDetailPage = () => {
                                 type="button"
                                 onClick={() => setSelectedTx(row)}
                                 className="rounded-lg border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 text-xs font-bold text-[var(--c-accent)] hover:border-[var(--c-accent)]"
-                                title="View full transaction details"
+                                aria-label="View full transaction details"
                               >
                                 {row.displayTransactionId || row.id}
                               </button>
@@ -1108,7 +1108,7 @@ const PortalDetailPage = () => {
                               <Link
                                 to={`/t/${tenantId}/profile`}
                                 className="inline-flex items-center gap-2 rounded-full border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 pr-3 text-xs text-[var(--c-text)] hover:border-[var(--c-accent)]"
-                                title={`Open profile of ${creator.name}`}
+                                aria-label={`Open profile of ${creator.name}`}
                               >
                                 <img src={creator.avatar} alt={creator.name} className="h-6 w-6 rounded-full object-cover" />
                                 <span>{creator.name}</span>

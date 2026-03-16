@@ -4,13 +4,16 @@ import { FileText, Copy, Mail, Ban, CheckCircle2, RefreshCcw, Plus, Tags, X, Gri
 import PageShell from '../components/layout/PageShell';
 import { useTenant } from '../context/useTenant';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/useTheme';
 import ClientSearchField from '../components/dailyTransaction/ClientSearchField';
 import ServiceSearchField from '../components/dailyTransaction/ServiceSearchField';
 import CurrencyValue from '../components/common/CurrencyValue';
 import DirhamIcon from '../components/common/DirhamIcon';
+import ProgressVideoOverlay from '../components/common/ProgressVideoOverlay';
 import CountryPhoneField from '../components/common/CountryPhoneField';
 import EmirateSelect from '../components/common/EmirateSelect';
 import ServiceTemplateEditor from '../components/common/ServiceTemplateEditor';
+import ApplicationIconQuickAddPanel from '../components/common/ApplicationIconQuickAddPanel';
 import { WhatsAppIcon } from '../components/settings/BrandingSubsections';
 import {
   DEFAULT_COUNTRY_PHONE_ISO2,
@@ -37,6 +40,8 @@ import { fetchServiceTemplates, upsertServiceTemplate } from '../lib/serviceTemp
 import {
   buildServiceTemplatePayload,
   createEmptyServiceTemplateDraft,
+  findServiceTemplateNameConflict,
+  normalizeLibraryDescription,
   validateServiceTemplateDraft,
 } from '../lib/serviceTemplateRules';
 import {
@@ -44,8 +49,8 @@ import {
   resolvePdfTemplateForRenderer,
 } from '../lib/pdfTemplateRenderer';
 
-const inputClass = 'mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5';
-const selectClass = 'mt-1 w-full rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] px-4 py-3 text-sm font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5';
+const inputClass = 'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5';
+const selectClass = 'mt-1 w-full rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-2.5 text-sm font-bold text-[var(--c-text)] outline-none transition focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5';
 const activeTabClass = 'bg-[var(--c-accent)] text-white shadow-lg shadow-[color-mix(in_srgb,var(--c-accent)_28%,transparent)]';
 const activeChoiceCardClass = 'border-[var(--c-accent)] bg-[color:color-mix(in_srgb,var(--c-accent)_10%,var(--c-surface))]';
 const activeChoiceIconClass = 'bg-[var(--c-accent)] text-white';
@@ -178,6 +183,13 @@ const addWeeks = (dateValue, weeks) => {
   return base.toISOString().slice(0, 10);
 };
 
+const formatAmountInputValue = (value) => {
+  if (value === '' || value === null || value === undefined) return '0.00';
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '0.00';
+  return numeric.toFixed(2);
+};
+
 const toProperText = (value) =>
   String(value || '')
     .trim()
@@ -187,6 +199,7 @@ const toProperText = (value) =>
 const QuotationPage = () => {
   const { tenantId } = useTenant();
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
 
   const [activeView, setActiveView] = useState('create');
@@ -211,6 +224,7 @@ const QuotationPage = () => {
   const [manualEmailErrors, setManualEmailErrors] = useState({});
   const [applicationIcons, setApplicationIcons] = useState([]);
   const [isInlineTemplateOpen, setIsInlineTemplateOpen] = useState(false);
+  const [isInlineTemplateIconQuickAddOpen, setIsInlineTemplateIconQuickAddOpen] = useState(false);
   const [inlineTemplateDraft, setInlineTemplateDraft] = useState(createEmptyServiceTemplateDraft());
   const [inlineTemplateError, setInlineTemplateError] = useState('');
   const [isInlineTemplateSaving, setIsInlineTemplateSaving] = useState(false);
@@ -218,6 +232,7 @@ const QuotationPage = () => {
   const [quotationTerms, setQuotationTerms] = useState(() => cloneQuotationTerms(parseQuotationTerms(DEFAULT_QUOTATION_TERMS)));
   const [draggedItemRowId, setDraggedItemRowId] = useState('');
   const [dragOverItemRowId, setDragOverItemRowId] = useState('');
+  const statusRef = useRef(null);
   const quotationDateFieldRef = useRef(null);
   const validityFieldRef = useRef(null);
 
@@ -289,6 +304,9 @@ const QuotationPage = () => {
   const pushStatus = (message, type = 'info') => {
     setStatus(message);
     setStatusType(type);
+    window.requestAnimationFrame(() => {
+      statusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   };
   const focusQuotationDateControls = useCallback(() => {
     const target = validityFieldRef.current || quotationDateFieldRef.current;
@@ -554,7 +572,7 @@ const QuotationPage = () => {
     setItemBuilder({
       service,
       qty: 1,
-      amount: String(Number(service?.clientCharge || 0)),
+      amount: formatAmountInputValue(service?.clientCharge || 0),
     });
   };
 
@@ -594,13 +612,9 @@ const QuotationPage = () => {
       return;
     }
 
-    const alreadyExists = (existingTemplatesRes.rows || []).some((item) => {
-      const existingId = String(item?.id || '').trim().toLowerCase();
-      const existingName = String(item?.name || '').trim().toLowerCase();
-      return existingId === templateId.toLowerCase() || existingName === trimmedName.toLowerCase();
-    });
-    if (alreadyExists) {
-      setInlineTemplateError('Application name already exists. Use a different name.');
+    const duplicateRow = findServiceTemplateNameConflict(existingTemplatesRes.rows || [], trimmedName);
+    if (duplicateRow) {
+      setInlineTemplateError('Another application already uses this name variant (case/space). Choose a unique name.');
       setIsInlineTemplateSaving(false);
       return;
     }
@@ -629,12 +643,13 @@ const QuotationPage = () => {
     const createdTemplate = { id: templateId, ...payload };
     setServiceRefreshKey((prev) => prev + 1);
     setIsInlineTemplateOpen(false);
+    setIsInlineTemplateIconQuickAddOpen(false);
     setInlineTemplateDraft(createEmptyServiceTemplateDraft());
     setInlineTemplateError('');
     setItemBuilder({
       service: createdTemplate,
       qty: 1,
-      amount: String(Number(createdTemplate.clientCharge || 0)),
+      amount: formatAmountInputValue(createdTemplate.clientCharge || 0),
     });
     pushStatus(`Application "${createdTemplate.name}" created.`, 'success');
     setIsInlineTemplateSaving(false);
@@ -714,7 +729,7 @@ const QuotationPage = () => {
     return {
       displayRef: reference,
       quoteDate: quotationDate,
-      description: quotationDescription.trim(),
+      description: normalizeLibraryDescription(quotationDescription),
       validityWeeks: Number(validityWeeks),
       expiryDate,
       termsAndConditions: resolvedQuotationTerms,
@@ -751,8 +766,8 @@ const QuotationPage = () => {
     if (items.length === 0) return 'Add at least one application.';
     if (clientMode === 'existing' && !existingClient?.id) return 'Select an existing client.';
     if (clientMode === 'manual') {
-      if (!manualClient.tradeName.trim()) return 'Trade Name is required.';
       if (!manualClient.legalName.trim()) return manualClient.clientType === 'individual' ? 'Name is required.' : 'Company legal name is required.';
+      if (manualClient.clientType === 'company' && !manualClient.tradeName.trim()) return 'Trade Name is required.';
       const mobileErrors = {};
       const filledMobileContacts = manualClient.mobileContacts.filter((contact) => String(contact.value || '').trim());
       if (filledMobileContacts.length === 0) {
@@ -808,6 +823,11 @@ const QuotationPage = () => {
       pushStatus(validationError, 'error');
       return;
     }
+
+    const shouldGenerate = window.confirm(
+      `Generate quotation ${reference} now?\n\nPlease confirm before continuing.`,
+    );
+    if (!shouldGenerate) return;
 
     setIsSaving(true);
     const quotationId = toSafeDocId(reference, 'quotation');
@@ -1012,28 +1032,28 @@ const QuotationPage = () => {
       subtitle="Create, review, and manage client quotations before they move into proforma conversion."
       icon={FileText}
       eyebrow="Quotation"
+      widthPreset="data"
     >
-      <div className="space-y-6">
-        <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm">
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-2 shadow-sm">
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setActiveView('create')} className={`rounded-2xl px-4 py-3 text-lg font-black transition ${activeView === 'create' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}>Create Quotation</button>
-            <button type="button" onClick={() => setActiveView('existing')} className={`rounded-2xl px-4 py-3 text-lg font-black transition ${activeView === 'existing' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}>Existing Quotations</button>
+            <button type="button" onClick={() => setActiveView('create')} className={`rounded-xl px-3 py-2 text-sm font-bold transition ${activeView === 'create' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}>Create Quotation</button>
+            <button type="button" onClick={() => setActiveView('existing')} className={`rounded-xl px-3 py-2 text-sm font-bold transition ${activeView === 'existing' ? activeTabClass : 'bg-[var(--c-panel)] text-[var(--c-muted)]'}`}>Existing Quotations</button>
           </div>
         </div>
 
-        {status ? <div className={`rounded-2xl border px-4 py-3 text-sm font-bold ${statusType === 'error' ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}`}>{status}</div> : null}
+        {status ? <div ref={statusRef} className={`rounded-2xl border px-4 py-3 text-sm font-bold ${statusType === 'error' ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}`}>{status}</div> : null}
 
         {activeView === 'create' ? (
           <div className="space-y-6">
-            <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm">
-              <div className="grid gap-6 md:grid-cols-[200px_minmax(0,1fr)_220px]">
-                <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Quotation Date<input ref={quotationDateFieldRef} type="date" className={inputClass} value={quotationDate} onChange={(e) => setQuotationDate(e.target.value)} /></label>
-                <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Description<textarea className={`${inputClass} min-h-[52px] resize-y`} value={quotationDescription} onChange={(e) => setQuotationDescription(e.target.value)} placeholder="Purpose of this quotation" /></label>
+            <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm">
+              <div className="grid gap-4 md:grid-cols-[200px_minmax(0,1fr)_220px]">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Quotation Date<input ref={quotationDateFieldRef} type="date" className={inputClass} style={{ colorScheme: resolvedTheme }} value={quotationDate} onChange={(e) => setQuotationDate(e.target.value)} /></label>
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Validity Duration<select ref={validityFieldRef} className={selectClass} value={validityWeeks} onChange={(e) => setValidityWeeks(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map((week) => <option key={week} value={week}>{week} Week{week > 1 ? 's' : ''}</option>)}</select><p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Expires on {expiryDate}</p></label>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm space-y-4">
+            <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm space-y-4">
               <div className="space-y-2">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Client Source</p>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -1044,9 +1064,9 @@ const QuotationPage = () => {
                       setExistingClient(null);
                       setSelectedDependents([]);
                     }}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${clientMode === 'existing' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
+                    className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${clientMode === 'existing' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
                   >
-                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${clientMode === 'existing' ? activeChoiceIconClass : 'bg-[var(--c-surface)] text-[var(--c-accent)]'}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${clientMode === 'existing' ? activeChoiceIconClass : 'bg-[var(--c-surface)] text-[var(--c-accent)]'}`}>
                       <Users className="h-5 w-5" />
                     </span>
                     <span className="min-w-0">
@@ -1061,9 +1081,9 @@ const QuotationPage = () => {
                       setExistingClient(null);
                       setSelectedDependents([]);
                     }}
-                    className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${clientMode === 'manual' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
+                    className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${clientMode === 'manual' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
                   >
-                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${clientMode === 'manual' ? activeChoiceIconClass : 'bg-[var(--c-surface)] text-[var(--c-accent)]'}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${clientMode === 'manual' ? activeChoiceIconClass : 'bg-[var(--c-surface)] text-[var(--c-accent)]'}`}>
                       <UserPlus className="h-5 w-5" />
                     </span>
                     <span className="min-w-0">
@@ -1092,7 +1112,7 @@ const QuotationPage = () => {
                       <button
                         type="button"
                         onClick={() => setManualClient((prev) => ({ ...prev, clientType: 'company' }))}
-                        className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${manualClient.clientType === 'company' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
+                        className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${manualClient.clientType === 'company' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
                       >
                         <img src="/company.png" alt="Company" className="h-10 w-10 rounded-xl object-cover" />
                         <div>
@@ -1103,7 +1123,7 @@ const QuotationPage = () => {
                       <button
                         type="button"
                         onClick={() => setManualClient((prev) => ({ ...prev, clientType: 'individual' }))}
-                        className={`flex items-center gap-3 rounded-2xl border px-4 py-4 text-left transition ${manualClient.clientType === 'individual' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
+                        className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${manualClient.clientType === 'individual' ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}
                       >
                         <img src="/individual.png" alt="Individual" className="h-10 w-10 rounded-xl object-cover" />
                         <div>
@@ -1114,7 +1134,9 @@ const QuotationPage = () => {
                     </div>
                   </div>
                   <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">{manualClient.clientType === 'individual' ? 'Name' : 'Company Legal Name'}<input className={inputClass} value={manualClient.legalName} onChange={(e) => setManualClient((prev) => ({ ...prev, legalName: e.target.value }))} placeholder={manualClient.clientType === 'individual' ? 'Full name' : 'Company legal name'} /></label>
-                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Trade Name<input className={inputClass} value={manualClient.tradeName} onChange={(e) => setManualClient((prev) => ({ ...prev, tradeName: e.target.value.toUpperCase() }))} placeholder="Trade Name As Per License" /></label>
+                  {manualClient.clientType === 'company' ? (
+                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Trade Name<input className={inputClass} value={manualClient.tradeName} onChange={(e) => setManualClient((prev) => ({ ...prev, tradeName: e.target.value.toUpperCase() }))} placeholder="Trade Name As Per License" /></label>
+                  ) : null}
                   <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Brand Name<input className={inputClass} value={manualClient.brandName} onChange={(e) => setManualClient((prev) => ({ ...prev, brandName: e.target.value }))} placeholder="Optional brand name" /></label>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -1148,7 +1170,7 @@ const QuotationPage = () => {
                           <button
                             type="button"
                             onClick={() => toggleMobileWhatsApp(contact.id)}
-                            className={`mt-1 inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border transition ${
+                            className={`mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition ${
                               contact.whatsAppEnabled
                                 ? 'border-emerald-500/50 bg-emerald-500/12 text-emerald-400'
                                 : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]'
@@ -1156,13 +1178,13 @@ const QuotationPage = () => {
                             aria-label={contact.whatsAppEnabled ? 'Disable WhatsApp for this number' : 'Enable WhatsApp for this number'}
                             title={contact.whatsAppEnabled ? 'WhatsApp enabled' : 'WhatsApp disabled'}
                           >
-                            <WhatsAppIcon className="h-6 w-6" />
+                            <WhatsAppIcon className="h-5 w-5" />
                           </button>
                           {manualClient.mobileContacts.length > 1 ? (
                             <button
                               type="button"
                               onClick={() => removeManualMobileContact(contact.id)}
-                              className="mt-1 inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400"
+                              className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400"
                               aria-label="Remove mobile number"
                               title="Remove mobile number"
                             >
@@ -1190,7 +1212,7 @@ const QuotationPage = () => {
                       {manualClient.emailContacts.map((contact, index) => (
                         <div key={contact.id} className="flex items-start gap-2">
                           <div className="min-w-0 flex-1">
-                            <div className={`mt-1 flex h-14 overflow-hidden rounded-2xl border bg-[var(--c-panel)] text-[var(--c-text)] shadow-sm transition ${
+                            <div className={`mt-1 flex h-11 overflow-hidden rounded-xl border bg-[var(--c-panel)] text-[var(--c-text)] shadow-sm transition ${
                               manualEmailErrors[contact.id]
                                 ? 'border-red-400/70 focus-within:border-red-400 focus-within:ring-4 focus-within:ring-red-400/10'
                                 : 'border-[var(--c-border)] focus-within:border-[var(--c-accent)] focus-within:ring-4 focus-within:ring-[var(--c-accent)]/5'
@@ -1214,7 +1236,7 @@ const QuotationPage = () => {
                           <button
                             type="button"
                             onClick={() => toggleEmailConversation(contact.id)}
-                            className={`mt-1 inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border transition ${
+                            className={`mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition ${
                               contact.emailEnabled
                                 ? activeSoftTagClass
                                 : 'border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)]'
@@ -1228,7 +1250,7 @@ const QuotationPage = () => {
                             <button
                               type="button"
                               onClick={() => removeManualEmailContact(contact.id)}
-                              className="mt-1 inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400"
+                              className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-muted)] transition hover:border-rose-400/60 hover:bg-rose-500/10 hover:text-rose-400"
                               aria-label="Remove email address"
                               title="Remove email address"
                             >
@@ -1253,14 +1275,37 @@ const QuotationPage = () => {
               )}
             </div>
 
-            <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--c-accent)_14%,transparent)] text-[var(--c-accent)]">
-                  <Tags className="h-5 w-5" />
+            <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--c-accent)_14%,transparent)] text-[var(--c-accent)]">
+                  <FileText className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-2xl font-black text-[var(--c-text)]">Add Services</p>
-                  <p className="text-xs font-black uppercase tracking-wider text-[var(--c-muted)]">Build line items</p>
+                  <p className="text-base font-bold text-[var(--c-text)]">Description</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Purpose of this quotation</p>
+                </div>
+              </div>
+
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">
+                Description
+                <textarea
+                  className={`${inputClass} min-h-[84px] resize-y`}
+                  value={quotationDescription}
+                  onChange={(e) => setQuotationDescription(e.target.value)}
+                  onBlur={() => setQuotationDescription((prev) => normalizeLibraryDescription(prev))}
+                  placeholder="Purpose of this quotation"
+                />
+              </label>
+            </div>
+
+            <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--c-accent)_14%,transparent)] text-[var(--c-accent)]">
+                  <Tags className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-bold text-[var(--c-text)]">Add Services</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Build line items</p>
                 </div>
               </div>
 
@@ -1275,7 +1320,6 @@ const QuotationPage = () => {
                       onCreateNew={null}
                       refreshKey={serviceRefreshKey}
                       variant="compact"
-                      openOnMount={items.length === 0 && !itemBuilder.service}
                     />
                   </div>
                 </div>
@@ -1288,7 +1332,7 @@ const QuotationPage = () => {
                       setIsInlineTemplateOpen((prev) => !prev);
                       setInlineTemplateError('');
                     }}
-                    className="mt-2 flex h-[46px] w-[52px] items-center justify-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)]"
+                    className="mt-2 flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-[var(--c-text)] transition hover:border-[var(--c-accent)] hover:text-[var(--c-accent)]"
                     aria-label="Add new application template"
                   >
                     <Plus className="h-5 w-5" />
@@ -1308,7 +1352,7 @@ const QuotationPage = () => {
 
                 <label className="text-xs font-black uppercase tracking-wider text-[var(--c-muted)]">
                   Unit Price
-                  <div className="mt-2 flex h-[50px] max-w-[176px] items-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] pl-3 pr-2 focus-within:border-[var(--c-accent)] focus-within:ring-4 focus-within:ring-[var(--c-accent)]/5">
+                  <div className="mt-2 flex h-10 max-w-[176px] items-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] pl-3 pr-2 focus-within:border-[var(--c-accent)] focus-within:ring-4 focus-within:ring-[var(--c-accent)]/5">
                     <DirhamIcon className="mr-3 h-4 w-4 shrink-0 text-[var(--c-muted)]" />
                     <input
                       type="number"
@@ -1316,6 +1360,7 @@ const QuotationPage = () => {
                       className="w-[9ch] min-w-0 bg-transparent text-sm font-bold text-[var(--c-text)] outline-none placeholder:text-[var(--c-muted)]"
                       value={itemBuilder.amount}
                       onChange={(event) => setItemBuilder((prev) => ({ ...prev, amount: event.target.value }))}
+                      onBlur={(event) => setItemBuilder((prev) => ({ ...prev, amount: formatAmountInputValue(event.target.value) }))}
                       placeholder="0.00"
                     />
                   </div>
@@ -1326,7 +1371,7 @@ const QuotationPage = () => {
                   <button
                     type="button"
                     onClick={handleAddBuiltItem}
-                    className={`mt-2 h-[50px] w-full rounded-2xl px-5 text-lg font-black transition ${primaryActionClass}`}
+                    className={`mt-2 h-10 w-full rounded-xl px-4 text-sm font-bold transition ${primaryActionClass}`}
                   >
                     Add
                   </button>
@@ -1334,15 +1379,35 @@ const QuotationPage = () => {
               </div>
 
               {isInlineTemplateOpen ? (
-                <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4">
+                <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4">
                   <p className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-[var(--c-accent)]">Add New Application</p>
                   <ServiceTemplateEditor
                     draft={inlineTemplateDraft}
                     onDraftChange={setInlineTemplateDraft}
                     icons={applicationIcons}
+                    iconActionSlot={(
+                      <ApplicationIconQuickAddPanel
+                        tenantId={tenantId}
+                        createdBy={user?.uid || ''}
+                        existingIcons={applicationIcons}
+                        suggestedName={inlineTemplateDraft.name}
+                        isOpen={isInlineTemplateIconQuickAddOpen}
+                        onOpen={() => setIsInlineTemplateIconQuickAddOpen(true)}
+                        onClose={() => setIsInlineTemplateIconQuickAddOpen(false)}
+                        onCreated={(createdIcon) => {
+                          setApplicationIcons((prev) => (
+                            [...prev, createdIcon].sort((a, b) => String(a.iconName || '').localeCompare(String(b.iconName || ''), undefined, { sensitivity: 'base' }))
+                          ));
+                          setInlineTemplateDraft((prev) => ({ ...prev, iconId: createdIcon.iconId }));
+                          setInlineTemplateError('');
+                          pushStatus(`Icon "${createdIcon.iconName}" added and selected.`, 'success');
+                        }}
+                      />
+                    )}
                     onSubmit={handleInlineTemplateSave}
                     onCancel={() => {
                       setIsInlineTemplateOpen(false);
+                      setIsInlineTemplateIconQuickAddOpen(false);
                       setInlineTemplateError('');
                       setInlineTemplateDraft(createEmptyServiceTemplateDraft());
                     }}
@@ -1364,10 +1429,10 @@ const QuotationPage = () => {
               ) : <div className="rounded-2xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] p-6 text-center text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">No applications added yet.</div>}
             </div>
 
-            <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm space-y-4">
+            <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-2xl font-black text-[var(--c-text)]">Terms and Conditions</p>
+                  <p className="text-base font-bold text-[var(--c-text)]">Terms and Conditions</p>
                   <p className="text-xs font-black uppercase tracking-wider text-[var(--c-muted)]">Shown on this quotation only</p>
                 </div>
                 <button
@@ -1437,15 +1502,15 @@ const QuotationPage = () => {
               </div>
             </div>
 
-            <div className="flex justify-end"><button type="button" onClick={() => void saveQuotation()} disabled={isSaving || isLoading} className={`min-w-[220px] rounded-2xl px-8 py-4 text-sm font-black transition disabled:opacity-50 ${primaryActionClass}`}>{isSaving ? 'Generating...' : 'Generate Quotation'}</button></div>
+            <div className="flex justify-end"><button type="button" onClick={() => void saveQuotation()} disabled={isSaving || isLoading} className={`min-w-[180px] rounded-xl px-6 py-3 text-sm font-bold transition disabled:opacity-50 ${primaryActionClass}`}>{isSaving ? 'Generating...' : 'Generate Quotation'}</button></div>
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[minmax(320px,420px)_1fr]">
-            <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm"><p className="mb-3 text-sm font-black text-[var(--c-text)]">Quotation List</p><div className="space-y-2">{rows.map((quotation) => <button key={quotation.id} type="button" onClick={() => setSelectedQuotationId(quotation.id)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selectedQuotationId === quotation.id ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}><p className="text-sm font-black text-[var(--c-text)]">{quotation.displayRef}</p><p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">{quotation.status || 'generated'} • {quotation.quoteDate}</p><div className="mt-2 text-xs font-bold text-[var(--c-text)]"><CurrencyValue value={quotation.totalAmount || 0} iconSize="h-3 w-3" /></div></button>)}{rows.length === 0 ? <div className="rounded-2xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] p-6 text-center text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">No quotations generated yet.</div> : null}</div></div>
-            <div className="rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-6 shadow-sm">
+            <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3 shadow-sm"><p className="mb-3 text-sm font-bold text-[var(--c-text)]">Quotation List</p><div className="space-y-2">{rows.map((quotation) => <button key={quotation.id} type="button" onClick={() => setSelectedQuotationId(quotation.id)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selectedQuotationId === quotation.id ? activeChoiceCardClass : 'border-[var(--c-border)] bg-[var(--c-panel)]'}`}><p className="text-sm font-black text-[var(--c-text)]">{quotation.displayRef}</p><p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">{quotation.status || 'generated'} • {quotation.quoteDate}</p><div className="mt-2 text-xs font-bold text-[var(--c-text)]"><CurrencyValue value={quotation.totalAmount || 0} iconSize="h-3 w-3" /></div></button>)}{rows.length === 0 ? <div className="rounded-2xl border border-dashed border-[var(--c-border)] bg-[var(--c-panel)] p-6 text-center text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">No quotations generated yet.</div> : null}</div></div>
+            <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-4 shadow-sm">
               {selectedQuotation ? (
-                <div className="space-y-6">
-                  <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-2xl font-black text-[var(--c-text)]">{selectedQuotation.displayRef}</p><p className="text-sm font-bold text-[var(--c-muted)]">{selectedQuotation.clientSnapshot?.name || selectedQuotation.clientSnapshot?.tradeName || 'Client'}</p></div><div className="text-right"><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Status</p><p className="text-sm font-black text-[var(--c-text)]">{selectedQuotation.status || 'generated'}</p></div></div>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-lg font-bold text-[var(--c-text)]">{selectedQuotation.displayRef}</p><p className="text-sm font-bold text-[var(--c-muted)]">{selectedQuotation.clientSnapshot?.name || selectedQuotation.clientSnapshot?.tradeName || 'Client'}</p></div><div className="text-right"><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Status</p><p className="text-sm font-black text-[var(--c-text)]">{selectedQuotation.status || 'generated'}</p></div></div>
                   <div className="grid gap-4 md:grid-cols-3"><div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Quote Date</p><p className="mt-2 text-sm font-black text-[var(--c-text)]">{selectedQuotation.quoteDate || '-'}</p></div><div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Expiry Date</p><p className="mt-2 text-sm font-black text-[var(--c-text)]">{selectedQuotation.expiryDate || '-'}</p></div><div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4"><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Total</p><div className="mt-2 text-sm font-black text-[var(--c-text)]"><CurrencyValue value={selectedQuotation.totalAmount || 0} iconSize="h-3 w-3" /></div></div></div>
                   <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4"><p className="mb-3 text-sm font-black text-[var(--c-text)]">Applications</p><div className="space-y-2">{(selectedQuotation.items || []).map((item, index) => <div key={`${selectedQuotation.id}-${index}`} className="flex items-center justify-between rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] px-4 py-3"><div><p className="text-sm font-black text-[var(--c-text)]">{item.name}</p><p className="text-[10px] font-bold uppercase text-[var(--c-muted)]">Qty {item.qty}</p></div><div className="text-sm font-black text-[var(--c-text)]"><CurrencyValue value={item.lineTotal || 0} iconSize="h-3 w-3" /></div></div>)}</div></div>
                   {String(selectedQuotation.termsAndConditions || '').trim() ? <div className="rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] p-4"><p className="mb-3 text-sm font-black text-[var(--c-text)]">Terms and Conditions</p><div className="space-y-2">{String(selectedQuotation.termsAndConditions || '').split(/\r?\n/).filter(Boolean).map((term, index) => <p key={`${selectedQuotation.id}-term-${index}`} className="text-sm font-bold text-[var(--c-text)]">{term}</p>)}</div></div> : null}
@@ -1458,6 +1523,17 @@ const QuotationPage = () => {
         )}
 
       </div>
+      <ProgressVideoOverlay
+        open={isSaving}
+        dismissible={false}
+        minimal
+        frameless
+        videoSrc="/Video/DocumentGeneration.mp4"
+        frameWidthClass="max-w-[360px]"
+        backdropClassName="bg-white/92 backdrop-blur-sm"
+        title="Quotation Generating"
+        subtitle=""
+      />
     </PageShell>
   );
 };

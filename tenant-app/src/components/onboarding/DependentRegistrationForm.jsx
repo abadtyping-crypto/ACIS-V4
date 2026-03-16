@@ -299,9 +299,9 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
 
     if (!parent) {
         return (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <header className="mb-4 border-b border-[var(--c-border)] pb-4">
-                    <h2 className="text-sm font-black uppercase tracking-widest text-[var(--c-text)]">Step 1: Link to Parent/Sponsor</h2>
+                    <h2 className="text-sm font-semibold uppercase tracking-widest text-[var(--c-text)]">Step 1: Link to Parent/Sponsor</h2>
                 </header>
 
                 <div className="space-y-2">
@@ -325,13 +325,13 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-8 flex items-center justify-between border-b border-[var(--c-border)] pb-6">
+        <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-6 flex items-center justify-between border-b border-[var(--c-border)] pb-4">
                 <div>
-                    <h2 className="text-xl font-black text-[var(--c-text)] uppercase">{activeType} Registration</h2>
+                    <h2 className="text-lg font-semibold text-[var(--c-text)] uppercase">{activeType} Registration</h2>
                     <div className="mt-1 flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Linked to:</span>
-                        <span className="rounded-full bg-[var(--c-accent)]/10 px-2.5 py-0.5 text-[10px] font-black text-[var(--c-accent)]">
+                        <span className="rounded-full bg-[var(--c-accent)]/10 px-2.5 py-0.5 text-[10px] font-semibold text-[var(--c-accent)]">
                             {parent.fullName || parent.tradeName} ({parent.displayClientId})
                         </span>
                         <button type="button" onClick={() => setParent(null)} className="text-[10px] font-bold text-rose-500 hover:underline">Change</button>
@@ -339,11 +339,11 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                 </div>
                 <div className="text-right">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Next Available ID</p>
-                    <p className="text-lg font-black text-[var(--c-accent)]">{nextId}</p>
+                    <p className="text-base font-semibold text-[var(--c-accent)]">{nextId}</p>
                 </div>
             </header>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Dependent Full Name *</label>
@@ -442,7 +442,7 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                 <MobileContactsField
                     label="Mobile Numbers"
                     contacts={form.mobileContacts}
@@ -470,21 +470,21 @@ const DependentRegistrationForm = ({ activeType, tenantId, user, onCancel, onSuc
                 <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 rounded-xl bg-[var(--c-accent)] py-3.5 text-sm font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50"
+                    className="compact-action flex-1 rounded-xl bg-[var(--c-accent)] py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50"
                 >
                     {isSaving ? 'Registering...' : 'Register Dependent'}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-6 py-3.5 text-sm font-bold text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
+                    className="compact-action rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-6 py-2.5 text-sm font-semibold text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
                 >
                     Cancel
                 </button>
             </div>
 
             {status.message && (
-                <div className={`rounded-xl border p-4 text-center text-sm font-bold animate-pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'}`}>
+                <div className={`rounded-xl border p-3 text-center text-sm font-semibold animate-pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'}`}>
                     {status.message}
                 </div>
             )}

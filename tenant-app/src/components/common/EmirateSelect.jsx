@@ -23,6 +23,13 @@ const EmirateSelect = ({
     setSearchQuery('');
   };
 
+  const handleSelectOption = (nextValue) => {
+    closeDropdown();
+    window.requestAnimationFrame(() => {
+      onChange?.(nextValue);
+    });
+  };
+
   const filteredOptions = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return EMIRATE_OPTIONS;
@@ -60,7 +67,7 @@ const EmirateSelect = ({
           if (isOpen) closeDropdown();
           else if (!disabled) setIsOpen(true);
         }}
-        className={`flex w-full items-center justify-between gap-3 rounded-2xl border bg-[var(--c-panel)] px-4 py-3 text-left text-sm font-bold text-[var(--c-text)] outline-none transition ${
+        className={`compact-field flex w-full items-center justify-between gap-3 rounded-2xl border bg-[var(--c-panel)] px-3 text-left text-[13px] font-semibold text-[var(--c-text)] outline-none transition ${
           errorMessage
             ? 'border-red-400/70 focus:border-red-400 focus:ring-4 focus:ring-red-400/10'
             : 'border-[var(--c-border)] focus:border-[var(--c-accent)] focus:ring-4 focus:ring-[var(--c-accent)]/5'
@@ -70,7 +77,7 @@ const EmirateSelect = ({
       >
         {selected ? (
           <span className="flex min-w-0 items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]">
               <img
                 src={selected.icon}
                 alt=""
@@ -86,7 +93,7 @@ const EmirateSelect = ({
       </button>
 
       {isOpen ? (
-        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[80] w-full overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] shadow-[0_24px_48px_-28px_color-mix(in_srgb,var(--c-text)_55%,transparent)]">
+        <div className="compact-popover absolute left-0 top-[calc(100%+0.45rem)] z-[80] w-full overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-panel)] shadow-[0_24px_48px_-28px_color-mix(in_srgb,var(--c-text)_55%,transparent)]">
           <div className="border-b border-[var(--c-border)] p-3">
             <input
               ref={searchInputRef}
@@ -98,7 +105,7 @@ const EmirateSelect = ({
             />
           </div>
 
-          <div className="max-h-72 overflow-y-auto py-1">
+          <div className="overflow-y-auto py-1" style={{ maxHeight: 'var(--d-popover-max-h)' }}>
             {filteredOptions.length === 0 ? (
               <div className="px-4 py-3 text-sm font-semibold text-[var(--c-muted)]">{emptyMessage}</div>
             ) : (
@@ -108,17 +115,14 @@ const EmirateSelect = ({
                   <button
                     key={item.value}
                     type="button"
-                    onClick={() => {
-                      onChange?.(item.value);
-                      closeDropdown();
-                    }}
+                    onClick={() => handleSelectOption(item.value)}
                     className={`flex w-full items-center gap-3 px-4 py-3 text-left transition ${
                       isSelected
                         ? 'bg-[var(--c-accent-soft)] text-[var(--c-text)]'
                         : 'text-[var(--c-text)] hover:bg-[color:color-mix(in_srgb,var(--c-surface)_18%,var(--c-panel)_82%)]'
                     }`}
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]">
+                    <span className="flex h-8.5 w-8.5 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--c-border)] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]">
                       <img
                         src={item.icon}
                         alt=""

@@ -20,6 +20,7 @@ import {
 import {
   buildServiceTemplatePayload,
   createEmptyServiceTemplateDraft,
+  findServiceTemplateNameConflict,
   validateServiceTemplateDraft,
 } from '../../lib/serviceTemplateRules';
 
@@ -176,13 +177,9 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
       return;
     }
 
-    const alreadyExists = (existingTemplatesRes.rows || []).some((item) => {
-      const existingId = String(item?.id || '').trim().toLowerCase();
-      const existingName = String(item?.name || '').trim().toLowerCase();
-      return existingId === templateId.toLowerCase() || existingName === trimmedName.toLowerCase();
-    });
-    if (alreadyExists) {
-      setError('Application name already exists. Use a different name.');
+    const duplicateRow = findServiceTemplateNameConflict(existingTemplatesRes.rows || [], trimmedName);
+    if (duplicateRow) {
+      setError('Another application already uses this name variant (case/space). Choose a unique name.');
       setIsSaving(false);
       return;
     }
@@ -225,9 +222,9 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-sky-500/40 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-slate-700 px-5 py-3.5">
           <div>
-            <p className="text-sm font-black tracking-widest text-sky-300 uppercase">Add New Application</p>
+            <p className="text-sm font-semibold tracking-widest text-sky-300 uppercase">Add New Application</p>
             <p className="text-xs text-slate-400">Create reusable application without leaving this page.</p>
           </div>
           <button
@@ -240,7 +237,7 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-5">
+        <form onSubmit={handleSubmit} className="space-y-4 p-4">
           <ServiceTemplateEditor
             draft={draft}
             onDraftChange={setDraft}
@@ -259,7 +256,7 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                className="mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20"
+                className="compact-field mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20"
                 onChange={(event) => {
                   const file = event.target.files?.[0] || null;
                   event.target.value = '';
@@ -319,7 +316,7 @@ const QuickAddServiceTemplateModal = ({ isOpen, onClose, onCreated }) => {
               <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-300">
                 New Icon Name (Required for Upload)
                 <input
-                  className="mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 py-2.5 text-sm text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20"
+                  className="compact-field mt-1 w-full rounded-xl border border-slate-500/40 bg-slate-700/60 px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20"
                   value={newIconName}
                   onChange={(e) => setNewIconName(e.target.value)}
                   placeholder={`Default: ${String(draft.name || '').trim() || 'Application Name'}`}

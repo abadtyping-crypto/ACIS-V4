@@ -11,6 +11,7 @@ import {
 import SectionCard from '../portal/SectionCard';
 import { generateDisplayTxId, toSafeDocId } from '../../lib/txIdGenerator';
 import IconSelect from '../common/IconSelect';
+import DirhamIcon from '../common/DirhamIcon';
 import MobileContactsField from '../common/MobileContactsField';
 import { TRANSACTION_METHODS, TX_METHOD_LABELS, resolvePortalTypeIcon } from '../../lib/transactionMethodConfig';
 import { canUserPerformAction } from '../../lib/userControlPreferences';
@@ -49,7 +50,7 @@ const fallbackPortalIcon = (type) => {
 
 const DirhamAmount = ({ amount, className = '' }) => (
     <span className={`inline-flex items-center gap-1 ${className}`.trim()}>
-        <img src="/dirham.svg" alt="AED" className="h-4 w-4 object-contain" />
+        <DirhamIcon className="h-4 w-4" />
         <span>{(Number(amount || 0)).toLocaleString()}</span>
     </span>
 );
@@ -307,20 +308,20 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
     }));
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="mb-8 flex items-center justify-between border-b border-[var(--c-border)] pb-6">
+        <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-6 flex items-center justify-between border-b border-[var(--c-border)] pb-4">
                 <div>
-                    <h2 className="text-xl font-black text-[var(--c-text)] uppercase">{activeType} Registration</h2>
-                    <p className="text-xs font-bold text-[var(--c-muted)]">Registering under {tenantId}</p>
+                    <h2 className="text-lg font-semibold text-[var(--c-text)] uppercase">{activeType} Registration</h2>
+                    <p className="text-xs font-semibold text-[var(--c-muted)]">Registering under {tenantId}</p>
                 </div>
                 <div className="text-right">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--c-muted)]">Next Available ID</p>
-                    <p className="text-lg font-black text-[var(--c-accent)]">{nextId}</p>
+                    <p className="text-base font-semibold text-[var(--c-accent)]">{nextId}</p>
                 </div>
             </header>
 
             {/* 4.1 Mandatory Identity Fields */}
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Trade License Number *</label>
@@ -379,7 +380,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
             </div>
 
             {/* 4.2 & 4.4 Contact & Address */}
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
@@ -477,13 +478,13 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
             </div>
 
             {/* 4.5 Balance & Portal Transaction */}
-            <div className="rounded-2xl border-2 border-dashed border-[var(--c-border)] bg-[var(--c-panel)]/30 p-6">
-                <div className="flex items-center gap-2 mb-6">
+            <div className="rounded-2xl border-2 border-dashed border-[var(--c-border)] bg-[var(--c-panel)]/30 p-4">
+                <div className="mb-4 flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-[var(--c-accent)]" />
-                    <h3 className="text-sm font-black uppercase tracking-widest text-[var(--c-text)]">Opening Balance & Finance</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-widest text-[var(--c-text)]">Opening Balance & Finance</h3>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-[var(--c-muted)]">Opening Balance</label>
                         <input
@@ -558,7 +559,7 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                     <p className="mt-1 text-[10px] text-[var(--c-muted)]">Applies to this client only. Uses Mail Configuration template.</p>
                 </div>
                 {form.createPortalTransaction && selectedPortal && (
-                    <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
                         <div className="rounded-xl border border-[var(--c-border)] bg-[var(--c-surface)] p-3">
                             <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--c-muted)]">Selected Portal</p>
                             <div className="flex items-center gap-3">
@@ -574,14 +575,14 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                                     />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-black text-[var(--c-text)]">{selectedPortal.name}</p>
+                                    <p className="text-sm font-semibold text-[var(--c-text)]">{selectedPortal.name}</p>
                                     <p className="text-xs font-bold text-[var(--c-muted)]">{selectedPortal.type || 'Portal'}</p>
                                 </div>
                             </div>
                         </div>
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Portal Balance</p>
-                            <p className="text-lg font-black text-emerald-800">
+                            <p className="text-base font-semibold text-emerald-800">
                                 <DirhamAmount amount={selectedPortal.balance} />
                             </p>
                             {form.openingBalance && (
@@ -610,21 +611,21 @@ const CompanyRegistrationForm = ({ activeType, tenantId, user, onCancel, onSucce
                 <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 rounded-xl bg-[var(--c-accent)] py-3.5 text-sm font-bold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50"
+                    className="compact-action flex-1 rounded-xl bg-[var(--c-accent)] py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--c-accent)]/20 transition hover:opacity-90 disabled:opacity-50"
                 >
                     {isSaving ? 'Registering...' : 'Register Company'}
                 </button>
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-6 py-3.5 text-sm font-bold text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
+                    className="compact-action rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-6 py-2.5 text-sm font-semibold text-[var(--c-muted)] transition hover:text-[var(--c-text)]"
                 >
                     Cancel
                 </button>
             </div>
 
             {status.message && (
-                <div className={`rounded-xl border p-4 text-center text-sm font-bold animate-pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'}`}>
+                <div className={`rounded-xl border p-3 text-center text-sm font-semibold animate-pulse ${status.type === 'error' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-emerald-500 bg-emerald-50 text-emerald-700'}`}>
                     {status.message}
                 </div>
             )}

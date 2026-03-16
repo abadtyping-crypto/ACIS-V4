@@ -4,6 +4,7 @@ import { useTenant } from '../../context/useTenant';
 import { useAuth } from '../../context/useAuth';
 import { toSafeDocId } from '../../lib/idUtils';
 import useIsDesktopLayout from '../../hooks/useIsDesktopLayout';
+import { normalizeLibraryTitle } from '../../lib/serviceTemplateRules';
 import {
   deleteApplicationIcon,
   fetchApplicationIconLibrary,
@@ -29,9 +30,7 @@ const normalizeNameForCompare = (value) =>
     .replace(/[^a-z0-9]/g, '');
 
 const sanitizeIconName = (value) =>
-  String(value || '')
-    .trim()
-    .replace(/\s+/g, ' ');
+  normalizeLibraryTitle(value);
 
 const ApplicationIconLibrarySection = () => {
   const { tenantId } = useTenant();
@@ -336,8 +335,8 @@ const ApplicationIconLibrarySection = () => {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-[var(--c-text)]">Reusable Icon</p>
-                        <p className="truncate text-[10px] font-medium text-[var(--c-muted)]">Library item</p>
+                        <p className="truncate text-sm font-bold text-[var(--c-text)]">{row.iconName || row.iconId}</p>
+                        <p className="truncate text-[10px] font-medium text-[var(--c-muted)]">Local Library</p>
                       </div>
                     </div>
                     <div className="mt-3 flex items-center gap-2">

@@ -103,7 +103,7 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
 
     if (isLoading && rows.length === 0) {
         return (
-            <div className="flex items-center justify-center rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] p-12 italic text-[var(--c-muted)]">
+            <div className="flex items-center justify-center rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] p-8 italic text-[var(--c-muted)]">
                 Loading live list...
             </div>
         );
@@ -111,8 +111,8 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
 
     if (rows.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[var(--c-border)] bg-[var(--c-panel)]/30 p-12 text-center text-sm">
-                <p className="text-xs font-bold uppercase tracking-widest text-[var(--c-muted)]">No Transactions Recorded</p>
+            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--c-border)] bg-[var(--c-panel)]/30 p-8 text-center text-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">No Transactions Recorded</p>
                 <p className="mt-2 text-[10px] text-[var(--c-muted)]">Try switching to Add New and post a transaction.</p>
             </div>
         );
@@ -121,13 +121,13 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
     return (
         <section className="space-y-4">
             <div className="flex items-center justify-between gap-3 px-2">
-                <h3 className="text-sm font-black text-[var(--c-text)]">Existing Transactions</h3>
+                <h3 className="text-sm font-semibold text-[var(--c-text)]">Existing Transactions</h3>
                 <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--c-muted)]">Per page</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Per page</label>
                     <select
                         value={pageSize}
                         onChange={handlePageSizeChange}
-                        className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-2 py-1 text-[11px] font-bold text-[var(--c-text)]"
+                        className="compact-field rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-2 text-[11px] font-semibold text-[var(--c-text)]"
                     >
                         <option value={50}>50</option>
                         <option value={100}>100</option>
@@ -136,16 +136,16 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-3xl border border-[var(--c-border)] bg-[var(--c-surface)] shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                        <thead className="border-b border-[var(--c-border)] bg-[var(--c-panel)] text-[10px] font-black uppercase tracking-widest text-[var(--c-muted)]">
+            <div className="overflow-hidden rounded-2xl border border-[var(--c-border)] bg-[var(--c-surface)] shadow-sm">
+                <div className="desktop-table-scroll overflow-x-auto">
+                    <table className="compact-table w-full text-left text-xs">
+                        <thead className="border-b border-[var(--c-border)] bg-[var(--c-panel)] text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">
                             <tr>
-                                <th className="p-4">Transaction ID</th>
-                                <th className="p-4">Client</th>
-                                <th className="p-4">Service</th>
-                                <th className="p-4 text-right">Charge</th>
-                                <th className="p-4 text-center">Audit</th>
+                                <th>Transaction ID</th>
+                                <th>Client</th>
+                                <th>Service</th>
+                                <th className="text-right">Charge</th>
+                                <th className="text-center">Audit</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--c-border)]">
@@ -157,35 +157,35 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                                 const applicationName = app?.name || 'Unknown Application';
                                 return (
                                     <tr key={row.id} className="transition hover:bg-[var(--c-panel)]/50">
-                                        <td className="p-4">
+                                        <td>
                                             <div className="flex items-center gap-2">
-                                                <span className="font-bold text-[var(--c-text)]">{row.transactionId || row.id}</span>
+                                                <span className="font-semibold text-[var(--c-text)]">{row.transactionId || row.id}</span>
                                             </div>
                                             <p className="mt-1 flex items-center gap-1.5 text-[10px] text-[var(--c-muted)]">
                                                 <Clock className="h-2.5 w-2.5" />
                                                 {new Date(row.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </td>
-                                        <td className="p-4">
-                                            <p className="font-bold text-[var(--c-text)]">{clientName}</p>
+                                        <td>
+                                            <p className="font-semibold text-[var(--c-text)]">{clientName}</p>
                                             <p className="text-[10px] text-[var(--c-muted)] uppercase">{String(client?.type || 'client')}</p>
                                         </td>
-                                        <td className="p-4">
-                                            <p className="font-bold text-[var(--c-text)]">{applicationName}</p>
+                                        <td>
+                                            <p className="font-semibold text-[var(--c-text)]">{applicationName}</p>
                                             <p className="text-[10px] text-[var(--c-muted)] truncate max-w-[120px]">{row.applicationId || '-'}</p>
                                         </td>
-                                        <td className="p-4 text-right">
-                                            <div className="font-black text-[var(--c-text)]">
+                                        <td className="text-right">
+                                            <div className="font-semibold text-[var(--c-text)]">
                                                 <CurrencyValue value={row.clientCharge || 0} iconSize="h-3 w-3" />
                                             </div>
-                                            <p className="text-[9px] font-bold text-emerald-500">
+                                            <p className="text-[9px] font-semibold text-emerald-500">
                                                 + <CurrencyValue value={row.profit || 0} iconSize="h-2 w-2" />
                                             </p>
                                         </td>
-                                        <td className="p-4">
+                                        <td>
                                             <div className="flex items-center justify-center gap-2">
                                                 {isLocked ? (
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500" title="Invoiced & Locked">
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500" aria-label="Invoiced and locked">
                                                         <Lock className="h-4 w-4" />
                                                     </div>
                                                 ) : (
@@ -194,8 +194,8 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                                                             <button
                                                                 disabled={deletingId === row.id}
                                                                 onClick={() => handleDelete(row.id)}
-                                                                className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-rose-500 transition hover:bg-rose-500 hover:text-white disabled:opacity-50"
-                                                                title="Soft Delete"
+                                                                className="compact-icon-action flex items-center justify-center rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] text-rose-500 transition hover:bg-rose-500 hover:text-white disabled:opacity-50"
+                                                                aria-label="Soft Delete"
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </button>
@@ -217,16 +217,16 @@ const TransactionLiveList = ({ tenantId, refreshKey }) => {
                     type="button"
                     onClick={handlePrevPage}
                     disabled={isLoading || pageIndex <= 0}
-                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1.5 text-xs font-bold text-[var(--c-text)] disabled:opacity-50"
+                    className="compact-action rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-xs font-semibold text-[var(--c-text)] disabled:opacity-50"
                 >
                     Previous
                 </button>
-                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--c-muted)]">Page {pageIndex + 1}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--c-muted)]">Page {pageIndex + 1}</span>
                 <button
                     type="button"
                     onClick={handleNextPage}
                     disabled={isLoading || !hasNext}
-                    className="rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 py-1.5 text-xs font-bold text-[var(--c-text)] disabled:opacity-50"
+                    className="compact-action rounded-xl border border-[var(--c-border)] bg-[var(--c-panel)] px-3 text-xs font-semibold text-[var(--c-text)] disabled:opacity-50"
                 >
                     Next
                 </button>

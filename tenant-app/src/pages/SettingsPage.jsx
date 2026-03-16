@@ -112,6 +112,7 @@ const SettingsPage = () => {
           ? `Tenant-scoped configuration for branding, preferences, and operations. Currency: ${tenant.currency}`
           : 'Mobile access: User control and icon library customization.'}
         icon={Settings}
+        widthPreset="data"
       >
         {!isDesktop ? (
           <div className="space-y-3">
@@ -140,11 +141,11 @@ const SettingsPage = () => {
           <aside 
             onMouseEnter={() => setIsNavExpanded(true)}
             onMouseLeave={() => setIsNavExpanded(false)}
-            className={`sticky top-4 z-20 h-fit rounded-2xl border border-(--c-border) bg-(--c-surface) p-2 shadow-sm transition-all duration-300 ease-in-out hidden lg:block ${isNavExpanded ? 'w-[260px]' : 'w-[64px]'}`}
+            className={`sticky top-3 z-20 h-fit rounded-2xl border border-(--c-border) bg-(--c-surface) p-1.5 shadow-sm transition-all duration-300 ease-in-out hidden lg:block ${isNavExpanded ? 'w-[232px]' : 'w-[58px]'}`}
           >
             <div className="mb-2 flex items-center gap-3 px-3 py-1">
               <Settings className="h-4 w-4 shrink-0 text-(--c-accent)" />
-              <p className={`text-[10px] font-bold uppercase tracking-widest text-(--c-muted) transition-all duration-300 whitespace-nowrap overflow-hidden ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
+              <p className={`text-[10px] font-semibold uppercase tracking-[0.12em] text-(--c-muted) transition-all duration-300 whitespace-nowrap overflow-hidden ${isNavExpanded ? 'opacity-100' : 'opacity-0'}`}>
                 Settings
               </p>
             </div>
@@ -154,7 +155,7 @@ const SettingsPage = () => {
                   key={section.key}
                   type="button"
                   onClick={() => handleSectionChange(section.key)}
-                  className={`group relative mx-auto flex items-center rounded-xl py-2.5 text-left text-sm font-bold transition-all duration-300 overflow-hidden ${
+                  className={`group relative mx-auto flex items-center rounded-xl py-2 text-left text-sm font-semibold transition-all duration-300 overflow-hidden ${
                     isNavExpanded ? 'w-full justify-start gap-3 px-3' : 'w-10 justify-center gap-0 px-0'
                   } ${
                     activeSection === section.key
